@@ -107,6 +107,21 @@
       border-radius: 6px;
       white-space: pre-line;
     }
+    .chat-customer-banner {
+      background: #E8F0E9;
+      border: 1px solid #C8DBC9;
+      color: #2E5A36;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
     .content { padding: 16px; flex: 1; }
 
@@ -154,7 +169,6 @@
     .btn-danger { background: #FDECEC; color: var(--danger); border: 1px solid #F5C6C6; }
     .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
 
-    /* Nút lọc trạng thái có tô màu cố định khi chọn */
     .filter-strip {
       display: flex;
       gap: 6px;
@@ -604,8 +618,9 @@
       <!-- TAB 4: LỊCH SỬ CHAT KHÁCH HÀNG -->
       <div id="tab-chats" class="content" style="display:none;">
         <div id="chatStats" class="stats-row" style="grid-template-columns: repeat(3, 1fr);"></div>
+        <div id="chatFilterStrip" class="filter-strip" style="margin-bottom:10px;"></div>
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-          <input id="chatSearchInput" type="search" class="input" style="flex:1; min-width:200px;" placeholder="Tìm câu hỏi khách hoặc nội dung tiệm trả lời..." oninput="renderChatLogs()" />
+          <input id="chatSearchInput" type="search" class="input" style="flex:1; min-width:200px;" placeholder="Tìm tên khách, SĐT, mã đơn, câu hỏi hoặc câu trả lời..." oninput="renderChatLogs()" />
           <button id="clearChatsBtn" type="button" class="btn btn-danger btn-sm" onclick="confirmClearAllChats(this)">Xóa toàn bộ lịch sử</button>
         </div>
         <div id="chatLogsList"></div>
@@ -638,6 +653,17 @@
           <pre id="aiDiagResult" style="margin-top:10px; background:var(--soft); padding:10px; border-radius:8px; font-size:12px; white-space:pre-wrap; display:none;"></pre>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Xem Lịch Sử Chat Gắn Với Đơn Hàng -->
+  <div id="orderChatModal" class="modal-bg">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 id="orderChatModalTitle">Lịch sử trò chuyện của khách</h3>
+        <button class="btn btn-soft btn-sm" onclick="closeOrderChatModal()">✕</button>
+      </div>
+      <div id="orderChatModalBody"></div>
     </div>
   </div>
 
@@ -888,6 +914,7 @@
     let allChatLogs = [];
     let orderFilter = "Tất cả";
     let productFilter = "all";
+    let chatFilterMode = "all";
     let currentProductImages = [];
     let editingOrderItems = [];
     const trackingDebounceTimers = {};
@@ -1034,7 +1061,8 @@
         discountValue: Number(o.discountValue || 0),
         discountAmount: Number(o.discountAmount || 0),
         paymentMethod: o.paymentMethod || "COD",
-        trackingCode: o.trackingCode || ""
+        trackingCode: o.trackingCode || "",
+        sessionId: String(o.sessionId || "")
       }));
       if (Array.isArray(data.chatLogs)) {
         allChatLogs = data.chatLogs;
@@ -1062,6 +1090,55 @@
       });
     }
 
+    // --- HELPER TÌM LỊCH SỬ CHAT CỦA ĐƠN HÀNG ---
+    function getLinkedChatsForOrder(o) {
+      if (!o || !allChatLogs.length) return [];
+      const oid = String(o.orderId || "").trim();
+      const sid = String(o.sessionId || "").trim();
+      const matched = allChatLogs.filter(c => {
+        if (oid && String(c.orderId || "").trim() === oid) return true;
+        if (sid && String(c.sessionId || "").trim() === sid) return true;
+        return false;
+      });
+      // Đảo ngược để hiển thị theo trình tự thời gian từ trên xuống dưới
+      return matched.slice().reverse();
+    }
+
+    function openOrderChatModal(orderId) {
+      const o = allOrders.find(item => item.orderId === orderId);
+      if (!o) return;
+      const turns = getLinkedChatsForOrder(o);
+      document.getElementById("orderChatModalTitle").textContent = `Lịch sử chat — Đơn #${o.orderId}`;
+
+      const cleanPhone = String(o.phone || "").replace(/^'/, "");
+      const headerCard = `
+        <div class="chat-customer-banner">
+          <span>👤 ${escapeHtml(o.customerName)} • ${escapeHtml(cleanPhone)} (${escapeHtml(o.platform)}: ${escapeHtml(o.socialHandle)})</span>
+          <span>${turns.length} lượt hỏi</span>
+        </div>
+      `;
+
+      const turnsHtml = turns.length
+        ? turns.map(t => `
+            <div class="chat-turn-box">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
+                <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml(t.createdAt)}</span>
+              </div>
+              <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
+              <div>${formatChatSourceBadge(t.source)}</div>
+            </div>
+          `).join("")
+        : `<div style="text-align:center; color:var(--muted); padding:16px;">Chưa có tin nhắn nào gắn với đơn hàng này.</div>`;
+
+      document.getElementById("orderChatModalBody").innerHTML = headerCard + turnsHtml;
+      document.getElementById("orderChatModal").classList.add("open");
+    }
+
+    function closeOrderChatModal() {
+      document.getElementById("orderChatModal").classList.remove("open");
+    }
+
     // --- SMART MESSAGING HELPER ---
     function openCustomerMessage(platform, socialHandle) {
       const raw = String(socialHandle || "").trim();
@@ -1070,7 +1147,6 @@
         return;
       }
 
-      // 1. Nếu khách dán sẵn URL (https://...) -> mở trực tiếp
       if (/^https?:\/\//i.test(raw)) {
         window.open(raw, "_blank", "noopener,noreferrer");
         return;
@@ -1184,6 +1260,7 @@
         const codToCollect = isPaid ? 0 : Number(o.total || 0);
         const discountAmt = Number(o.discountAmount || 0);
         const shipFee = Number(o.shipFee || 0);
+        const linkedChats = getLinkedChatsForOrder(o);
 
         const safeOrderId = escapeAttrJs(o.orderId);
         const safeName = escapeAttrJs(o.customerName || "");
@@ -1192,7 +1269,6 @@
         const safePlat = escapeAttrJs(o.platform || "");
         const safeHandle = escapeAttrJs(o.socialHandle || "");
 
-        // Tách từng món hàng xuống dòng theo dấu ;
         const itemLines = String(o.itemsSummary || "")
           .split(";")
           .map(s => s.trim())
@@ -1202,7 +1278,7 @@
           : `<div>${escapeHtml(o.itemsSummary)}</div>`;
 
         return `
-          <div class="card">
+          <div class="card" id="orderCard_${escapeHtml(o.orderId)}">
             <!-- TẦNG 1: Header -->
             <div class="order-tier-1">
               <div>
@@ -1210,6 +1286,7 @@
                 <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(o.createdAt)}</span>
               </div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                ${linkedChats.length > 0 ? `<button type="button" class="badge badge-info" style="border:none; cursor:pointer;" onclick="openOrderChatModal('${safeOrderId}')">💬 Chat (${linkedChats.length} tin)</button>` : ""}
                 <span class="badge ${isPaid ? 'badge-ok' : 'badge-info'}">${isPaid ? 'Đã thanh toán CK' : 'COD'}</span>
                 <span class="badge ${o.status === 'Đã hủy' ? 'badge-danger' : (o.status === 'Hoàn thành' ? 'badge-ok' : 'badge-warn')}">${escapeHtml(o.status)}</span>
               </div>
@@ -1265,6 +1342,7 @@
                   <button type="button" class="btn btn-soft btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">${isPaid ? 'Đổi sang COD' : 'Đổi sang Đã CK'}</button>
                   <button type="button" class="btn btn-soft btn-sm" onclick="openOrderEditModal('${safeOrderId}')">Sửa</button>
                   <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderShipping('${safeOrderId}')">Copy tất cả</button>
+                  ${linkedChats.length > 0 ? `<button type="button" class="btn btn-soft btn-sm" onclick="openOrderChatModal('${safeOrderId}')">💬 Xem chat (${linkedChats.length})</button>` : ""}
                 </div>
                 <div class="order-toolbar-right">
                   <select class="select" style="padding:5px 8px; font-size:12px; width:auto;" onchange="changeOrderStatus('${safeOrderId}', this.value)">
@@ -1351,7 +1429,8 @@
             discountValue: Number(item.discountValue || 0),
             discountAmount: Number(item.discountAmount || 0),
             paymentMethod: item.paymentMethod || "COD",
-            trackingCode: item.trackingCode || ""
+            trackingCode: item.trackingCode || "",
+            sessionId: String(item.sessionId || "")
           }));
         }
         const freshStatusEl = document.getElementById("trackStatus_" + orderId);
@@ -1370,7 +1449,6 @@
       }
     }
 
-    // Optimistic UI: Đổi COD / Đã CK
     async function toggleOrderPayment(orderId) {
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
@@ -1379,7 +1457,6 @@
       const liveTracking = getLiveTrackingValue(orderId, o.trackingCode);
       const nextPayment = prevPayment === "Đã thanh toán CK" ? "COD" : "Đã thanh toán CK";
 
-      // Cập nhật lạc quan ngay lập tức (0ms)
       o.paymentMethod = nextPayment;
       o.trackingCode = liveTracking;
       renderOrders();
@@ -1391,10 +1468,9 @@
           order: { ...o, paymentMethod: nextPayment, trackingCode: liveTracking }
         });
         if (res.orders) {
-          applyAllData({ orders: res.orders, products: res.products || allProducts, faqs: allFaqs });
+          applyAllData({ orders: res.orders, products: res.products || allProducts, faqs: allFaqs, chatLogs: res.chatLogs || allChatLogs });
         }
       } catch (err) {
-        // Hoàn tác nếu lỗi mạng
         o.paymentMethod = prevPayment;
         o.trackingCode = prevTracking;
         renderOrders();
@@ -1402,7 +1478,6 @@
       }
     }
 
-    // Optimistic UI: Đổi trạng thái đơn (kèm dự tính hoàn/trừ kho lạc quan 2 chiều)
     async function changeOrderStatus(orderId, nextStatus) {
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
@@ -1431,7 +1506,6 @@
         });
       }
 
-      // Cập nhật giao diện tức thì (0ms)
       renderOrders();
       renderProducts();
       showToast(isCancelling ? "Đã hủy đơn & hoàn trả tồn kho" : (isRestoring ? "Đã khôi phục đơn & trừ lại kho" : "Đã cập nhật trạng thái đơn"));
@@ -1444,7 +1518,6 @@
           faqs: allFaqs
         });
       } catch (err) {
-        // Hoàn tác nếu kết nối thất bại
         o.status = prevStatus;
         stockSnapshot.forEach(snap => {
           const p = allProducts.find(prod => prod.id === snap.id);
@@ -1811,7 +1884,8 @@
           applyAllData({
             orders: res.orders || allOrders,
             products: res.products || allProducts,
-            faqs: allFaqs
+            faqs: allFaqs,
+            chatLogs: res.chatLogs || allChatLogs
           });
           closeOrderEditModal();
           showToast("Đã cập nhật đơn hàng");
@@ -1848,7 +1922,6 @@
       const priceConfigRow = document.getElementById("priceConfigRow");
 
       if (isItem) {
-        // Loại 2: Sản phẩm hoàn chỉnh / Bộ kit / Dụng cụ -> ẩn Chưa gia keo & Quy đổi đóng gói
         unsizedField.style.display = "none";
         stockGrid.className = "";
         document.getElementById("stockSectionTitle").textContent = "Tồn kho & Giá bán sản phẩm";
@@ -1864,7 +1937,6 @@
           document.getElementById("pBaseUnit").value = "bộ";
         }
       } else {
-        // Loại 1: Giấy thủ công (Bán gói & lẻ)
         unsizedField.style.display = "flex";
         stockGrid.className = "grid-2";
         document.getElementById("stockSectionTitle").textContent = "Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)";
@@ -1970,7 +2042,6 @@
       const prevStock = Number(p.stock || 0);
       const prevUnsized = maxVal;
 
-      // Optimistic UI
       p.stock = prevStock + moved;
       p.unsizedStock = prevUnsized - moved;
       renderProducts();
@@ -1992,7 +2063,6 @@
       }
     }
 
-    // Optimistic UI: Ẩn / Hiện sản phẩm
     async function toggleVisibility(id, nextVisible) {
       const p = allProducts.find(item => item.id === id);
       if (!p) return;
@@ -2076,6 +2146,79 @@
       renderProductImagesPreview();
     }
 
+    function resizeImageToBase64(file, maxDim = 1000, quality = 0.84) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL("image/jpeg", quality);
+            const base64 = dataUrl.split(",")[1];
+            resolve({ base64, mimeType: "image/jpeg", fileName: file.name || "giay.jpg" });
+          };
+          img.onerror = reject;
+          img.src = ev.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadProductImages(inputEl) {
+      const files = Array.from(inputEl.files || []);
+      if (!files.length) return;
+      const slotsLeft = 3 - currentProductImages.length;
+      if (slotsLeft <= 0) {
+        showToast("Đã đủ 3 ảnh tối đa cho sản phẩm này");
+        inputEl.value = "";
+        return;
+      }
+
+      const toUpload = files.slice(0, slotsLeft);
+      const saveBtn = document.getElementById("saveProdBtn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Đang tải ảnh lên Drive...";
+
+      try {
+        for (let i = 0; i < toUpload.length; i++) {
+          const resized = await resizeImageToBase64(toUpload[i]);
+          const res = await callApi({
+            action: "upload_image",
+            base64: resized.base64,
+            mimeType: resized.mimeType,
+            fileName: resized.fileName
+          });
+          if (res.imageUrl) {
+            currentProductImages.push(res.imageUrl);
+          }
+        }
+        renderProductImagesPreview();
+        showToast(`Đã tải lên ${toUpload.length} ảnh`);
+      } catch (err) {
+        showToast("Lỗi tải ảnh: " + err.message);
+      } finally {
+        inputEl.value = "";
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Lưu sản phẩm";
+      }
+    }
+
     function openProductModal(id = "") {
       populateCategorySuggestions();
       const p = allProducts.find(item => item.id === id);
@@ -2104,6 +2247,114 @@
     }
 
     function closeProductModal() { document.getElementById("productModal").classList.remove("open"); }
+
+    async function saveProductForm(e) {
+      e.preventDefault();
+      const btn = document.getElementById("saveProdBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+
+      const isItem = document.getElementById("pProductType").value === "item";
+      const product = {
+        id: document.getElementById("pId").value,
+        productType: isItem ? "item" : "paper",
+        name: document.getElementById("pName").value.trim(),
+        category: document.getElementById("pCategory").value.trim(),
+        baseUnit: document.getElementById("pBaseUnit").value.trim() || (isItem ? "bộ" : "tờ"),
+        stock: Number(document.getElementById("pStock").value || 0),
+        unsizedStock: isItem ? 0 : Number(document.getElementById("pUnsizedStock").value || 0),
+        packUnit: isItem ? "" : document.getElementById("pPackUnit").value.trim(),
+        packSize: isItem ? 1 : Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
+        packPrice: isItem ? 0 : Number(document.getElementById("pPackPrice").value || 0),
+        unitPrice: Number(document.getElementById("pUnitPrice").value || 0),
+        visible: document.getElementById("pVisible").checked,
+        specs: document.getElementById("pSpecs").value.trim(),
+        imageUrl: currentProductImages.slice(0, 3).join(", ")
+      };
+
+      try {
+        const res = await callApi({ action: "save_product", product });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        closeProductModal();
+        showToast("Đã lưu sản phẩm");
+      } catch (err) {
+        showToast("Lỗi lưu sản phẩm: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu sản phẩm";
+      }
+    }
+
+    async function deleteProduct(id, btnEl) {
+      if (!confirm("Xóa vĩnh viễn sản phẩm này khỏi kho?")) return;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "Đang xóa...";
+      }
+      try {
+        const res = await callApi({ action: "delete_product", id });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        showToast("Đã xóa sản phẩm");
+      } catch (err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Xóa";
+        }
+        showToast("Lỗi xóa sản phẩm: " + err.message);
+      }
+    }
+
+    // --- FAQS (HỎI - ĐÁP) ---
+    function renderFaqs() {
+      const container = document.getElementById("faqsList");
+      if (!container) return;
+
+      if (!allFaqs.length) {
+        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có câu hỏi thường gặp nào. Bấm "+ Thêm câu hỏi" ở trên để tạo mới.</div>`;
+        return;
+      }
+
+      container.innerHTML = allFaqs.map(f => {
+        const isActive = Boolean(f.active);
+        const safeId = escapeAttrJs(f.id);
+        return `
+          <div class="card ${isActive ? '' : 'hidden-prod'}">
+            <div class="card-top">
+              <div>
+                <div style="font-size:13.5px; font-weight:700; color:var(--primary);">${escapeHtml(f.question)}</div>
+                <div style="font-size:13px; color:var(--text); margin-top:5px; white-space:pre-line;">${escapeHtml(f.answer)}</div>
+              </div>
+              <span class="badge ${isActive ? 'badge-ok' : 'badge-muted'}" style="flex-shrink:0;">${isActive ? 'Đang bật' : 'Đã tắt'}</span>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:8px;">
+              <button type="button" class="btn btn-soft btn-sm" onclick="toggleFaqActive('${safeId}')">${isActive ? 'Tắt tạm' : 'Bật lại'}</button>
+              <button type="button" class="btn btn-soft btn-sm" onclick="openFaqModal('${safeId}')">Sửa</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteFaq('${safeId}', this)">Xóa</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function toggleFaqActive(id) {
+      const f = allFaqs.find(item => item.id === id);
+      if (!f) return;
+      const prev = Boolean(f.active);
+      f.active = !prev;
+      renderFaqs();
+      showToast(f.active ? "Đã bật câu hỏi cho AI" : "Đã tạm tắt câu hỏi");
+
+      try {
+        const res = await callApi({ action: "save_faq", faq: f });
+        allFaqs = res.faqs || allFaqs;
+        renderFaqs();
+      } catch (err) {
+        f.active = prev;
+        renderFaqs();
+        showToast("Lỗi đồng bộ: " + err.message);
+      }
+    }
+
     function openFaqModal(id = "", prefillQ = "", prefillA = "") {
       const f = id ? allFaqs.find(item => item.id === id) : null;
       document.getElementById("faqModalTitle").textContent = f ? "Sửa mục Hỏi - Đáp" : "Thêm câu hỏi thường gặp";
@@ -2115,148 +2366,6 @@
     }
 
     function closeFaqModal() { document.getElementById("faqModal").classList.remove("open"); }
-
-    // --- CHAT LOGS (LỊCH SỬ TƯ VẤN KHÁCH HÀNG) ---
-    function formatChatSourceBadge(source) {
-      const s = String(source || "");
-      if (s.startsWith("ai:")) {
-        return `<span class="badge badge-info">${escapeHtml(s.replace("ai:", ""))}</span>`;
-      }
-      return `<span class="badge badge-muted">Nội bộ</span>`;
-    }
-
-    function renderChatLogs() {
-      const container = document.getElementById("chatLogsList");
-      const statsEl = document.getElementById("chatStats");
-      if (!container || !statsEl) return;
-
-      const searchNorm = normalizeText(document.getElementById("chatSearchInput")?.value || "");
-      const filteredLogs = searchNorm
-        ? allChatLogs.filter(c => normalizeText(`${c.userMessage} ${c.botReply} ${c.sessionId}`).includes(searchNorm))
-        : allChatLogs;
-
-      const sessionMap = new Map();
-      filteredLogs.forEach(item => {
-        const sid = item.sessionId || "unknown";
-        if (!sessionMap.has(sid)) {
-          sessionMap.set(sid, {
-            sessionId: sid,
-            latestTime: item.createdAt || "",
-            turns: []
-          });
-        }
-        // allChatLogs đang xếp mới nhất lên trên -> unshift để các câu trong cùng 1 phiên theo đúng trình tự thời gian từ trên xuống
-        sessionMap.get(sid).turns.unshift(item);
-      });
-
-      const sessions = Array.from(sessionMap.values());
-      const aiCount = filteredLogs.filter(c => String(c.source || "").startsWith("ai:")).length;
-
-      statsEl.innerHTML = `
-        <div class="stat-box"><div class="stat-label">Phiên trò chuyện</div><div class="stat-val">${sessions.length} phiên</div></div>
-        <div class="stat-box"><div class="stat-label">Tổng lượt hỏi</div><div class="stat-val">${filteredLogs.length} câu</div></div>
-        <div class="stat-box"><div class="stat-label">Trả lời bằng Gemini AI</div><div class="stat-val">${aiCount} câu</div></div>
-      `;
-
-      if (!sessions.length) {
-        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có lịch sử trò chuyện nào được lưu.</div>`;
-        return;
-      }
-
-      container.innerHTML = sessions.map(sess => {
-        const safeSid = escapeAttrJs(sess.sessionId);
-        const turnsHtml = sess.turns.map(t => {
-          const safeQ = escapeAttrJs(t.userMessage);
-          const safeA = escapeAttrJs(t.botReply);
-          return `
-            <div class="chat-turn-box">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-                <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
-                <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml((t.createdAt || "").split(" ")[1] || t.createdAt)}</span>
-              </div>
-              <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
-                <div>${formatChatSourceBadge(t.source)}</div>
-                <button type="button" class="btn btn-soft btn-sm" style="font-size:11px; padding:4px 8px;" onclick="openFaqModal('', '${safeQ}', '${safeA}')">+ Lưu vào Hỏi - Đáp</button>
-              </div>
-            </div>
-          `;
-        }).join("");
-
-        return `
-          <div class="card">
-            <div class="card-top" style="border-bottom:1px solid var(--border); padding-bottom:8px;">
-              <div>
-                <strong style="font-size:13.5px; color:var(--primary);">Phiên #${escapeHtml(sess.sessionId.slice(-6))}</strong>
-                <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(sess.latestTime)} • ${sess.turns.length} lượt hỏi</span>
-              </div>
-              <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
-            </div>
-            <div>${turnsHtml}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    async function deleteChatSession(sessionId, btnEl) {
-      if (btnEl && btnEl.dataset.armed !== "1") {
-        btnEl.dataset.armed = "1";
-        btnEl.textContent = "Bấm lần nữa để xóa";
-        setTimeout(() => {
-          if (btnEl) {
-            btnEl.dataset.armed = "";
-            btnEl.textContent = "Xóa phiên";
-          }
-        }, 3000);
-        return;
-      }
-
-      if (btnEl) {
-        btnEl.disabled = true;
-        btnEl.textContent = "Đang xóa...";
-      }
-      try {
-        const res = await callApi({ action: "delete_chat_session", sessionId });
-        allChatLogs = res.chatLogs || [];
-        renderChatLogs();
-        showToast("Đã xóa phiên trò chuyện");
-      } catch (err) {
-        showToast("Lỗi xóa: " + err.message);
-        if (btnEl) {
-          btnEl.disabled = false;
-          btnEl.textContent = "Xóa phiên";
-        }
-      }
-    }
-
-    async function confirmClearAllChats(btnEl) {
-      if (btnEl && btnEl.dataset.armed !== "1") {
-        btnEl.dataset.armed = "1";
-        btnEl.textContent = "Bấm lần nữa để xác nhận xóa hết";
-        setTimeout(() => {
-          if (btnEl) {
-            btnEl.dataset.armed = "";
-            btnEl.textContent = "Xóa toàn bộ lịch sử";
-          }
-        }, 3500);
-        return;
-      }
-
-      btnEl.disabled = true;
-      btnEl.textContent = "Đang xóa...";
-      try {
-        const res = await callApi({ action: "clear_all_chats" });
-        allChatLogs = res.chatLogs || [];
-        renderChatLogs();
-        showToast("Đã xóa toàn bộ lịch sử chat");
-      } catch (err) {
-        showToast("Lỗi xóa lịch sử: " + err.message);
-      } finally {
-        btnEl.disabled = false;
-        btnEl.dataset.armed = "";
-        btnEl.textContent = "Xóa toàn bộ lịch sử";
-      }
-    }
 
     async function saveFaqForm(e) {
       e.preventDefault();
@@ -2301,6 +2410,217 @@
           btnEl.textContent = "Xóa";
         }
         showToast("Lỗi xóa: " + err.message);
+      }
+    }
+
+    // --- CHAT LOGS (LỊCH SỬ TƯ VẤN KHÁCH HÀNG) ---
+    function formatChatSourceBadge(source) {
+      const s = String(source || "");
+      if (s.startsWith("ai:")) {
+        return `<span class="badge badge-info">${escapeHtml(s.replace("ai:", ""))}</span>`;
+      }
+      return `<span class="badge badge-muted">Nội bộ</span>`;
+    }
+
+    function setChatFilterMode(mode) {
+      chatFilterMode = mode;
+      renderChatLogs();
+    }
+
+    function jumpToOrderFromChat(orderId) {
+      const ordersTabBtn = document.querySelector(".nav-tabs .nav-tab");
+      if (ordersTabBtn) switchTab("orders", ordersTabBtn);
+      orderFilter = "Tất cả";
+      const searchInp = document.getElementById("orderSearchInput");
+      if (searchInp) searchInp.value = orderId;
+      renderOrders();
+      showToast(`Đang hiển thị đơn #${orderId}`);
+    }
+
+    function renderChatLogs() {
+      const container = document.getElementById("chatLogsList");
+      const statsEl = document.getElementById("chatStats");
+      const filterEl = document.getElementById("chatFilterStrip");
+      if (!container || !statsEl) return;
+
+      // Bổ sung liên kết chéo từ danh sách đơn hàng hiện có nếu sheet LichSuChat chưa kịp cập nhật
+      const sessionToOrderMap = {};
+      allOrders.forEach(o => {
+        if (o.sessionId) sessionToOrderMap[o.sessionId] = o;
+      });
+
+      const enrichedLogs = allChatLogs.map(item => {
+        const matchedOrder = item.orderId
+          ? allOrders.find(o => o.orderId === item.orderId)
+          : sessionToOrderMap[item.sessionId];
+        return {
+          ...item,
+          resolvedOrderId: item.orderId || (matchedOrder ? matchedOrder.orderId : ""),
+          resolvedCustomerName: item.customerName || (matchedOrder ? matchedOrder.customerName : ""),
+          resolvedPhone: item.phone || (matchedOrder ? String(matchedOrder.phone || "").replace(/^'/, "") : ""),
+          resolvedSocial: item.socialHandle || (matchedOrder ? `${matchedOrder.socialHandle} (${matchedOrder.platform})` : "")
+        };
+      });
+
+      const searchNorm = normalizeText(document.getElementById("chatSearchInput")?.value || "");
+      const searchedLogs = searchNorm
+        ? enrichedLogs.filter(c => normalizeText(`${c.userMessage} ${c.botReply} ${c.sessionId} ${c.resolvedOrderId} ${c.resolvedCustomerName} ${c.resolvedPhone} ${c.resolvedSocial}`).includes(searchNorm))
+        : enrichedLogs;
+
+      const sessionMap = new Map();
+      searchedLogs.forEach(item => {
+        const sid = item.sessionId || "unknown";
+        if (!sessionMap.has(sid)) {
+          sessionMap.set(sid, {
+            sessionId: sid,
+            latestTime: item.createdAt || "",
+            orderId: "",
+            customerName: "",
+            phone: "",
+            socialHandle: "",
+            turns: []
+          });
+        }
+        const sess = sessionMap.get(sid);
+        if (!sess.orderId && item.resolvedOrderId) sess.orderId = item.resolvedOrderId;
+        if (!sess.customerName && item.resolvedCustomerName) sess.customerName = item.resolvedCustomerName;
+        if (!sess.phone && item.resolvedPhone) sess.phone = item.resolvedPhone;
+        if (!sess.socialHandle && item.resolvedSocial) sess.socialHandle = item.resolvedSocial;
+        sess.turns.unshift(item);
+      });
+
+      const allSessions = Array.from(sessionMap.values());
+      const orderedSessions = allSessions.filter(s => Boolean(s.orderId || s.customerName));
+      const sessions = chatFilterMode === "ordered" ? orderedSessions : allSessions;
+      const aiCount = searchedLogs.filter(c => String(c.source || "").startsWith("ai:")).length;
+
+      statsEl.innerHTML = `
+        <div class="stat-box"><div class="stat-label">Phiên trò chuyện</div><div class="stat-val">${allSessions.length} phiên</div></div>
+        <div class="stat-box"><div class="stat-label">Khách đã đặt đơn</div><div class="stat-val">${orderedSessions.length} khách</div></div>
+        <div class="stat-box"><div class="stat-label">Trả lời bằng Gemini AI</div><div class="stat-val">${aiCount} câu</div></div>
+      `;
+
+      if (filterEl) {
+        filterEl.innerHTML = [
+          { key: "all", label: `Tất cả phiên (${allSessions.length})` },
+          { key: "ordered", label: `Khách đã đặt đơn (${orderedSessions.length})` }
+        ].map(f => `<button type="button" class="filter-chip ${chatFilterMode === f.key ? 'active' : ''}" onclick="setChatFilterMode('${f.key}')">${f.label}</button>`).join("");
+      }
+
+      if (!sessions.length) {
+        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có lịch sử trò chuyện nào phù hợp.</div>`;
+        return;
+      }
+
+      container.innerHTML = sessions.map(sess => {
+        const safeSid = escapeAttrJs(sess.sessionId);
+        const hasCustomer = Boolean(sess.orderId || sess.customerName);
+        const custParts = [
+          sess.customerName ? `👤 ${escapeHtml(sess.customerName)}` : "",
+          sess.phone ? escapeHtml(sess.phone) : "",
+          sess.socialHandle ? escapeHtml(sess.socialHandle) : ""
+        ].filter(Boolean).join(" • ");
+
+        const customerBannerHtml = hasCustomer ? `
+          <div class="chat-customer-banner">
+            <span>${custParts || "Khách đã đặt đơn"}</span>
+            ${sess.orderId ? `<button type="button" class="btn btn-primary btn-sm" style="padding:3px 9px; font-size:11.5px;" onclick="jumpToOrderFromChat('${escapeAttrJs(sess.orderId)}')">Xem đơn #${escapeHtml(sess.orderId)}</button>` : ""}
+          </div>
+        ` : "";
+
+        const turnsHtml = sess.turns.map(t => {
+          const safeQ = escapeAttrJs(t.userMessage);
+          const safeA = escapeAttrJs(t.botReply);
+          return `
+            <div class="chat-turn-box">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
+                <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml((t.createdAt || "").split(" ")[1] || t.createdAt)}</span>
+              </div>
+              <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                <div>${formatChatSourceBadge(t.source)}</div>
+                <button type="button" class="btn btn-soft btn-sm" style="font-size:11px; padding:4px 8px;" onclick="openFaqModal('', '${safeQ}', '${safeA}')">+ Lưu vào Hỏi - Đáp</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="card">
+            <div class="card-top" style="border-bottom:1px solid var(--border); padding-bottom:8px;">
+              <div>
+                <strong style="font-size:13.5px; color:var(--primary);">Phiên #${escapeHtml(sess.sessionId.slice(-6))}</strong>
+                <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(sess.latestTime)} • ${sess.turns.length} lượt hỏi</span>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
+            </div>
+            ${customerBannerHtml}
+            <div>${turnsHtml}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function deleteChatSession(sessionId, btnEl) {
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Bấm lần nữa để xóa";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa phiên";
+          }
+        }, 3000);
+        return;
+      }
+
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "Đang xóa...";
+      }
+      try {
+        const res = await callApi({ action: "delete_chat_session", sessionId });
+        allChatLogs = res.chatLogs || [];
+        renderChatLogs();
+        renderOrders();
+        showToast("Đã xóa phiên trò chuyện");
+      } catch (err) {
+        showToast("Lỗi xóa: " + err.message);
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Xóa phiên";
+        }
+      }
+    }
+
+    async function confirmClearAllChats(btnEl) {
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Bấm lần nữa để xác nhận xóa hết";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa toàn bộ lịch sử";
+          }
+        }, 3500);
+        return;
+      }
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Đang xóa...";
+      try {
+        const res = await callApi({ action: "clear_all_chats" });
+        allChatLogs = res.chatLogs || [];
+        renderChatLogs();
+        renderOrders();
+        showToast("Đã xóa toàn bộ lịch sử chat");
+      } catch (err) {
+        showToast("Lỗi xóa lịch sử: " + err.message);
+      } finally {
+        btnEl.disabled = false;
+        btnEl.dataset.armed = "";
+        btnEl.textContent = "Xóa toàn bộ lịch sử";
       }
     }
 
