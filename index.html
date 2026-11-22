@@ -1473,13 +1473,13 @@
         if (shipInp) shipInp.value = shopShipCost;
       }
 
-      const policySrc = data.shippingPolicy || data;
+      const policySrc = data.shipConfig || data.shippingPolicy || data;
       const custShipFee = policySrc.customerShipFee !== undefined
         ? Math.max(0, Number(policySrc.customerShipFee))
         : (policySrc.defaultShipFee !== undefined ? Math.max(0, Number(policySrc.defaultShipFee)) : 15000);
-      const freeshipThresh = policySrc.freeshipThreshold !== undefined
-        ? Math.max(0, Number(policySrc.freeshipThreshold))
-        : 200000;
+      const freeshipThresh = policySrc.freeshipMinOrder !== undefined
+        ? Math.max(0, Number(policySrc.freeshipMinOrder))
+        : (policySrc.freeshipThreshold !== undefined ? Math.max(0, Number(policySrc.freeshipThreshold)) : 200000);
       const freeshipKitVal = policySrc.freeshipKit !== undefined ? Boolean(policySrc.freeshipKit) : true;
       const freeshipEnabledVal = policySrc.freeshipEnabled !== undefined ? Boolean(policySrc.freeshipEnabled) : true;
 
@@ -1701,11 +1701,17 @@
       `).join("") + `</div>`;
     }
 
-    function renderOrders() {
+    function getOrderCourierShip(o) {
+      if (o && o.shopShipFee !== null && o.shopShipFee !== undefined && o.shopShipFee !== "" && !isNaN(Number(o.shopShipFee))) {
+        return Math.max(0, Number(o.shopShipFee));
+      }
+      return Math.max(0, Number(shopShipCost || 0));
+    }
+
+    function getBaseFilteredOrders() {
       const searchQ = normalizeText(document.getElementById("orderSearchInput")?.value || "");
       const monthFilter = document.getElementById("orderMonthFilter")?.value || "";
-
-      const baseFiltered = allOrders.filter(o => {
+      return allOrders.filter(o => {
         if (monthFilter && extractOrderMonth(o.createdAt) !== monthFilter) return false;
         if (searchQ) {
           const hay = normalizeText(`${o.orderId} ${o.customerName} ${o.phone} ${o.socialHandle} ${o.address} ${o.itemsSummary} ${o.trackingCode}`);
@@ -1713,13 +1719,16 @@
         }
         return true;
       });
+    }
 
+    function renderOrderStats() {
+      const baseFiltered = getBaseFilteredOrders();
       const pendingCount = baseFiltered.filter(o => o.status === "Chờ xác nhận").length;
       const validOrders = baseFiltered.filter(o => o.status !== "Đã hủy");
       const netGoodsRev = validOrders.reduce((s, o) => s + Math.max(0, Number(o.subtotal || 0) - Number(o.discountAmount || 0)), 0);
       const totalRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0);
       const customerPaidShip = validOrders.reduce((s, o) => s + Number(o.shipFee || 0), 0);
-      const totalCourierShip = validOrders.reduce((s, o) => s + Math.max(shopShipCost, Number(o.shipFee || 0)), 0);
+      const totalCourierShip = validOrders.reduce((s, o) => s + getOrderCourierShip(o), 0);
       const shopSubsidizedShip = Math.max(0, totalCourierShip - customerPaidShip);
       const freeshipCount = validOrders.filter(o => Number(o.shipFee || 0) === 0).length;
 
@@ -1737,7 +1746,7 @@
         <div class="stat-box">
           <div class="stat-label">Phí ship tiệm trả</div>
           <div class="stat-val">${fmtVND(shopSubsidizedShip)}</div>
-          <div class="stat-sub">${freeshipCount} đơn freeship × ${fmtVND(shopShipCost)}</div>
+          <div class="stat-sub">${freeshipCount} đơn freeship • Hãng thu ${fmtVND(totalCourierShip)}</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Tổng ship</div>
@@ -1745,6 +1754,12 @@
           <div class="stat-sub">Khách trả ${fmtVND(customerPaidShip)} • Tiệm bù ${fmtVND(shopSubsidizedShip)}</div>
         </div>
       `;
+      return validOrders;
+    }
+
+    function renderOrders() {
+      const baseFiltered = getBaseFilteredOrders();
+      const validOrders = renderOrderStats();
 
       renderTopProductsChart(validOrders);
 
@@ -1868,10 +1883,12 @@
             <!-- Ô nhập nhanh mã vận đơn + Nút tự động nhận diện tra cứu -->
             <div class="tracking-row">
               <span style="font-size:12px; color:var(--muted); white-space:nowrap;">Vận đơn:</span>
-              <input type="text" id="trackInp_${escapeHtml(o.orderId)}" aria-label="Mã vận đơn đơn ${escapeHtml(o.orderId)}" class="input" value="${escapeHtml(o.trackingCode || "")}" placeholder="Dán mã SPX / GHN / GHTK..." oninput="updateTrackingBtnUi('${safeOrderId}', this.value); queueSaveTrackingCode('${safeOrderId}', this.value)" />
+              <input type="text" id="trackInp_${escapeHtml(o.orderId)}" aria-label="Mã vận đơn đơn ${escapeHtml(o.orderId)}" class="input" value="${escapeHtml(o.trackingCode || "")}" placeholder="Dán mã SPX / GHN / GHTK..." oninput="updateTrackingBtnUi('${safeOrderId}', this.value); queueSaveOrderQuickFields('${safeOrderId}')" />
               <button type="button" id="trackBtn_${escapeHtml(o.orderId)}" class="track-lookup-btn" ${trackInfo.hasCode ? "" : "disabled"} onclick="openTrackingLookup('${safeOrderId}')">
                 ${trackInfo.hasCode ? `Tra ${escapeHtml(trackInfo.carrier)} ↗` : "Tra vận đơn"}
               </button>
+              <span style="font-size:12px; color:var(--muted); white-space:nowrap;">Ship tiệm trả:</span>
+              <input type="number" id="shopShipInp_${escapeHtml(o.orderId)}" aria-label="Phí ship tiệm trả đơn ${escapeHtml(o.orderId)}" class="input" style="max-width:115px;" min="0" step="1000" value="${o.shopShipFee !== null && o.shopShipFee !== undefined ? escapeHtml(o.shopShipFee) : ""}" placeholder="${escapeHtml(shopShipCost)}" oninput="queueSaveOrderQuickFields('${safeOrderId}')" />
             </div>
 
             <!-- Khối điều khiển cố định chống xô lệch trên điện thoại -->
@@ -1992,11 +2009,20 @@
       `;
     }
 
-    function queueSaveTrackingCode(orderId, val) {
+    function queueSaveOrderQuickFields(orderId) {
+      const o = allOrders.find(item => item.orderId === orderId);
+      if (!o) return;
+
+      const trackVal = (document.getElementById("trackInp_" + orderId)?.value || "").trim();
+      const rawShipVal = (document.getElementById("shopShipInp_" + orderId)?.value || "").trim();
+      const parsedShopShip = rawShipVal === "" ? null : Math.max(0, Number(rawShipVal));
+
+      o.trackingCode = trackVal;
+      o.shopShipFee = parsedShopShip;
+      renderOrderStats();
+
       if (trackingDebounceTimers[orderId]) clearTimeout(trackingDebounceTimers[orderId]);
       trackingDebounceTimers[orderId] = setTimeout(async () => {
-        const o = allOrders.find(item => item.orderId === orderId);
-        if (!o) return;
         try {
           let items = [];
           try { items = JSON.parse(o.itemsJson || "[]"); } catch (e) {}
@@ -2016,14 +2042,16 @@
             shipFee: Number(o.shipFee || 0),
             total: Number(o.total || 0),
             paymentMethod: o.paymentMethod || "COD",
-            trackingCode: val.trim(),
+            trackingCode: trackVal,
+            shopShipFee: parsedShopShip,
             note: o.note || ""
           };
           const res = await callApi({ action: "update_order", order: updatedPayload });
-          allOrders = res.orders || allOrders;
-          showToast(`Đã lưu mã vận đơn cho #${orderId}`);
+          if (res.orders) allOrders = res.orders;
+          renderOrderStats();
+          showToast(`Đã lưu vận đơn & phí ship cho #${orderId}`);
         } catch (err) {
-          showToast("Lỗi lưu mã vận đơn: " + err.message);
+          showToast("Lỗi lưu thông tin đơn: " + err.message);
         }
       }, 900);
     }
@@ -2077,6 +2105,7 @@
           total: Number(o.total || 0),
           paymentMethod: nextPay,
           trackingCode: o.trackingCode || "",
+          shopShipFee: o.shopShipFee !== undefined ? o.shopShipFee : null,
           note: o.note || ""
         };
         const res = await callApi({ action: "update_order", order: updatedPayload });
@@ -2364,8 +2393,11 @@
         ? `${mainHandleVal} | Dự phòng: ${backupPlatformVal}: ${backupHandleVal}`
         : mainHandleVal;
 
+      const editingOrderId = document.getElementById("editOrderId").value;
+      const existingOrder = allOrders.find(item => item.orderId === editingOrderId);
+
       const payload = {
-        orderId: document.getElementById("editOrderId").value,
+        orderId: editingOrderId,
         customerName: document.getElementById("editCustName").value.trim(),
         phone: document.getElementById("editCustPhone").value.trim(),
         address: document.getElementById("editCustAddress").value.trim(),
@@ -2376,6 +2408,7 @@
         ...totals,
         paymentMethod: document.getElementById("editPaymentMethod").value,
         trackingCode: document.getElementById("editTrackingCode").value.trim(),
+        shopShipFee: existingOrder && existingOrder.shopShipFee !== undefined ? existingOrder.shopShipFee : null,
         note: document.getElementById("editOrderNote").value.trim()
       };
 
@@ -3072,11 +3105,13 @@
         await callApi({
           action: "save_settings",
           customerShipFee,
+          freeshipMinOrder: freeshipThreshold,
           freeshipThreshold,
           freeshipKit,
           freeshipEnabled,
           shippingPolicy: {
             customerShipFee,
+            freeshipMinOrder: freeshipThreshold,
             freeshipThreshold,
             freeshipKit,
             freeshipEnabled
