@@ -58,27 +58,54 @@
 
     .nav-tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       background: var(--card);
       border-bottom: 1px solid var(--border);
     }
 
     .nav-tab {
-      padding: 11px 6px;
+      padding: 11px 4px;
       border: none;
       background: transparent;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--muted);
       border-bottom: 2px solid transparent;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .nav-tab.active {
       color: var(--primary);
       border-bottom-color: var(--primary);
       background: var(--surface);
+    }
+
+    .chat-turn-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 11px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .chat-turn-box:last-child { margin-bottom: 0; }
+    .chat-user-line {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .chat-bot-line {
+      font-size: 12.8px;
+      color: #4A3D34;
+      background: #FFFFFF;
+      border-left: 3px solid var(--primary);
+      padding: 6px 9px;
+      border-radius: 6px;
+      white-space: pre-line;
     }
 
     .content { padding: 16px; flex: 1; }
@@ -530,6 +557,7 @@
         <button class="nav-tab active" onclick="switchTab('orders', this)">Đơn hàng</button>
         <button class="nav-tab" onclick="switchTab('inventory', this)">Kho giấy</button>
         <button class="nav-tab" onclick="switchTab('faqs', this)">Hỏi - Đáp</button>
+        <button class="nav-tab" onclick="switchTab('chats', this)">Lịch sử chat</button>
         <button class="nav-tab" onclick="switchTab('settings', this)">Cài đặt</button>
       </div>
 
@@ -573,7 +601,17 @@
         <div id="faqsList"></div>
       </div>
 
-      <!-- TAB 4: CÀI ĐẶT & EMAIL -->
+      <!-- TAB 4: LỊCH SỬ CHAT KHÁCH HÀNG -->
+      <div id="tab-chats" class="content" style="display:none;">
+        <div id="chatStats" class="stats-row" style="grid-template-columns: repeat(3, 1fr);"></div>
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <input id="chatSearchInput" type="search" class="input" style="flex:1; min-width:200px;" placeholder="Tìm câu hỏi khách hoặc nội dung tiệm trả lời..." oninput="renderChatLogs()" />
+          <button id="clearChatsBtn" type="button" class="btn btn-danger btn-sm" onclick="confirmClearAllChats(this)">Xóa toàn bộ lịch sử</button>
+        </div>
+        <div id="chatLogsList"></div>
+      </div>
+
+      <!-- TAB 5: CÀI ĐẶT & EMAIL -->
       <div id="tab-settings" class="content" style="display:none;">
         <div class="card">
           <h3 style="font-size:15px; margin-bottom:8px;">1. Email nhận thông báo đơn hàng mới</h3>
@@ -847,6 +885,7 @@
     let allProducts = [];
     let allFaqs = [];
     let allOrders = [];
+    let allChatLogs = [];
     let orderFilter = "Tất cả";
     let productFilter = "all";
     let currentProductImages = [];
@@ -997,6 +1036,9 @@
         paymentMethod: o.paymentMethod || "COD",
         trackingCode: o.trackingCode || ""
       }));
+      if (Array.isArray(data.chatLogs)) {
+        allChatLogs = data.chatLogs;
+      }
 
       if (data.notifyEmail !== undefined) {
         document.getElementById("notifyEmailInput").value = data.notifyEmail || "";
@@ -1009,12 +1051,13 @@
       renderOrders();
       renderProducts();
       renderFaqs();
+      renderChatLogs();
     }
 
     function switchTab(tab, btn) {
       document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      ["orders", "inventory", "faqs", "settings"].forEach(t => {
+      ["orders", "inventory", "faqs", "chats", "settings"].forEach(t => {
         document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
       });
     }
@@ -2061,159 +2104,159 @@
     }
 
     function closeProductModal() { document.getElementById("productModal").classList.remove("open"); }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function uploadProductImages(input) {
-      const files = Array.from(input.files || []);
-      if (!files.length) return;
-
-      const remainingSlots = 3 - currentProductImages.length;
-      if (remainingSlots <= 0) {
-        showToast("Đã đủ 3 ảnh. Hãy xóa bớt nếu muốn thay ảnh mới.");
-        input.value = "";
-        return;
-      }
-
-      const toUpload = files.slice(0, remainingSlots);
-      const btn = document.getElementById("saveProdBtn");
-      btn.disabled = true;
-
-      try {
-        for (let i = 0; i < toUpload.length; i++) {
-          btn.textContent = `Đang tải ảnh ${i + 1}/${toUpload.length} lên Drive...`;
-          const base64 = await fileToBase64(toUpload[i]);
-          const res = await callApi({
-            action: "upload_image",
-            base64,
-            mimeType: toUpload[i].type,
-            fileName: toUpload[i].name
-          });
-          if (res.imageUrl) {
-            currentProductImages.push(res.imageUrl);
-            renderProductImagesPreview();
-          }
-        }
-        showToast(`Đã tải lên ${toUpload.length} ảnh`);
-      } catch (err) {
-        showToast("Lỗi tải ảnh: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Lưu sản phẩm";
-        input.value = "";
-      }
-    }
-
-    async function saveProductForm(e) {
-      e.preventDefault();
-      const pendingUrl = document.getElementById("pImageUrlInput").value.trim();
-      if (pendingUrl && currentProductImages.length < 3) {
-        currentProductImages.push(pendingUrl);
-      }
-
-      const productType = document.getElementById("pProductType").value === "item" ? "item" : "paper";
-      const isItem = productType === "item";
-
-      const product = {
-        id: document.getElementById("pId").value,
-        name: document.getElementById("pName").value.trim(),
-        category: document.getElementById("pCategory").value.trim(),
-        productType,
-        baseUnit: document.getElementById("pBaseUnit").value.trim() || (isItem ? "bộ" : "tờ"),
-        stock: Number(document.getElementById("pStock").value || 0),
-        unsizedStock: isItem ? 0 : Number(document.getElementById("pUnsizedStock").value || 0),
-        packUnit: isItem ? "" : document.getElementById("pPackUnit").value.trim(),
-        packSize: isItem ? 1 : Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
-        packPrice: isItem ? 0 : Number(document.getElementById("pPackPrice").value || 0),
-        unitPrice: Number(document.getElementById("pUnitPrice").value || 0),
-        visible: document.getElementById("pVisible").checked,
-        specs: document.getElementById("pSpecs").value.trim(),
-        imageUrl: currentProductImages.slice(0, 3).join(", "),
-        imageUrls: currentProductImages.slice(0, 3)
-      };
-
-      const btn = document.getElementById("saveProdBtn");
-      btn.disabled = true;
-      btn.textContent = "Đang lưu...";
-
-      try {
-        const res = await callApi({ action: "save_product", product });
-        applyAllData({ products: res.products || [], orders: allOrders, faqs: allFaqs });
-        closeProductModal();
-        showToast("Đã lưu sản phẩm vào kho");
-      } catch (err) {
-        showToast("Lỗi lưu: " + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Lưu sản phẩm";
-      }
-    }
-
-    async function deleteProduct(id, btnEl) {
-      if (!confirm("Xóa sản phẩm này khỏi kho?")) return;
-      if (btnEl) {
-        btnEl.disabled = true;
-        btnEl.textContent = "Đang xóa...";
-      }
-      try {
-        const res = await callApi({ action: "delete_product", id });
-        applyAllData({ products: res.products || [], orders: allOrders, faqs: allFaqs });
-        showToast("Đã xóa sản phẩm");
-      } catch (err) {
-        if (btnEl) {
-          btnEl.disabled = false;
-          btnEl.textContent = "Xóa";
-        }
-        showToast("Lỗi xóa: " + err.message);
-      }
-    }
-
-    // --- FAQS ---
-    function renderFaqs() {
-      const container = document.getElementById("faqsList");
-      if (!allFaqs.length) {
-        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có mục hỏi đáp nào.</div>`;
-        return;
-      }
-
-      container.innerHTML = allFaqs.map(f => {
-        const safeFaqId = escapeAttrJs(f.id);
-        return `
-          <div class="card">
-            <div class="card-top">
-              <div>
-                <strong>Hỏi: ${escapeHtml(f.question)}</strong>
-                <p style="font-size:13px; color:var(--text); margin-top:4px;">Đáp: ${escapeHtml(f.answer)}</p>
-              </div>
-              <span class="badge ${f.active ? 'badge-ok' : 'badge-warn'}">${f.active ? 'Đang bật' : 'Tạm tắt'}</span>
-            </div>
-            <div style="display:flex; gap:8px; justify-content:flex-end;">
-              <button class="btn btn-soft btn-sm" onclick="openFaqModal('${safeFaqId}')">Sửa</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteFaq('${safeFaqId}', this)">Xóa</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function openFaqModal(id = "") {
-      const f = allFaqs.find(item => item.id === id);
+    function openFaqModal(id = "", prefillQ = "", prefillA = "") {
+      const f = id ? allFaqs.find(item => item.id === id) : null;
       document.getElementById("faqModalTitle").textContent = f ? "Sửa mục Hỏi - Đáp" : "Thêm câu hỏi thường gặp";
       document.getElementById("fId").value = f ? f.id : "";
-      document.getElementById("fQuestion").value = f ? f.question : "";
-      document.getElementById("fAnswer").value = f ? f.answer : "";
+      document.getElementById("fQuestion").value = f ? f.question : prefillQ;
+      document.getElementById("fAnswer").value = f ? f.answer : prefillA;
       document.getElementById("fActive").checked = f ? Boolean(f.active) : true;
       document.getElementById("faqModal").classList.add("open");
     }
 
     function closeFaqModal() { document.getElementById("faqModal").classList.remove("open"); }
+
+    // --- CHAT LOGS (LỊCH SỬ TƯ VẤN KHÁCH HÀNG) ---
+    function formatChatSourceBadge(source) {
+      const s = String(source || "");
+      if (s.startsWith("ai:")) {
+        return `<span class="badge badge-info">${escapeHtml(s.replace("ai:", ""))}</span>`;
+      }
+      return `<span class="badge badge-muted">Nội bộ</span>`;
+    }
+
+    function renderChatLogs() {
+      const container = document.getElementById("chatLogsList");
+      const statsEl = document.getElementById("chatStats");
+      if (!container || !statsEl) return;
+
+      const searchNorm = normalizeText(document.getElementById("chatSearchInput")?.value || "");
+      const filteredLogs = searchNorm
+        ? allChatLogs.filter(c => normalizeText(`${c.userMessage} ${c.botReply} ${c.sessionId}`).includes(searchNorm))
+        : allChatLogs;
+
+      const sessionMap = new Map();
+      filteredLogs.forEach(item => {
+        const sid = item.sessionId || "unknown";
+        if (!sessionMap.has(sid)) {
+          sessionMap.set(sid, {
+            sessionId: sid,
+            latestTime: item.createdAt || "",
+            turns: []
+          });
+        }
+        // allChatLogs đang xếp mới nhất lên trên -> unshift để các câu trong cùng 1 phiên theo đúng trình tự thời gian từ trên xuống
+        sessionMap.get(sid).turns.unshift(item);
+      });
+
+      const sessions = Array.from(sessionMap.values());
+      const aiCount = filteredLogs.filter(c => String(c.source || "").startsWith("ai:")).length;
+
+      statsEl.innerHTML = `
+        <div class="stat-box"><div class="stat-label">Phiên trò chuyện</div><div class="stat-val">${sessions.length} phiên</div></div>
+        <div class="stat-box"><div class="stat-label">Tổng lượt hỏi</div><div class="stat-val">${filteredLogs.length} câu</div></div>
+        <div class="stat-box"><div class="stat-label">Trả lời bằng Gemini AI</div><div class="stat-val">${aiCount} câu</div></div>
+      `;
+
+      if (!sessions.length) {
+        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có lịch sử trò chuyện nào được lưu.</div>`;
+        return;
+      }
+
+      container.innerHTML = sessions.map(sess => {
+        const safeSid = escapeAttrJs(sess.sessionId);
+        const turnsHtml = sess.turns.map(t => {
+          const safeQ = escapeAttrJs(t.userMessage);
+          const safeA = escapeAttrJs(t.botReply);
+          return `
+            <div class="chat-turn-box">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
+                <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml((t.createdAt || "").split(" ")[1] || t.createdAt)}</span>
+              </div>
+              <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                <div>${formatChatSourceBadge(t.source)}</div>
+                <button type="button" class="btn btn-soft btn-sm" style="font-size:11px; padding:4px 8px;" onclick="openFaqModal('', '${safeQ}', '${safeA}')">+ Lưu vào Hỏi - Đáp</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="card">
+            <div class="card-top" style="border-bottom:1px solid var(--border); padding-bottom:8px;">
+              <div>
+                <strong style="font-size:13.5px; color:var(--primary);">Phiên #${escapeHtml(sess.sessionId.slice(-6))}</strong>
+                <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(sess.latestTime)} • ${sess.turns.length} lượt hỏi</span>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
+            </div>
+            <div>${turnsHtml}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function deleteChatSession(sessionId, btnEl) {
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Bấm lần nữa để xóa";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa phiên";
+          }
+        }, 3000);
+        return;
+      }
+
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "Đang xóa...";
+      }
+      try {
+        const res = await callApi({ action: "delete_chat_session", sessionId });
+        allChatLogs = res.chatLogs || [];
+        renderChatLogs();
+        showToast("Đã xóa phiên trò chuyện");
+      } catch (err) {
+        showToast("Lỗi xóa: " + err.message);
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Xóa phiên";
+        }
+      }
+    }
+
+    async function confirmClearAllChats(btnEl) {
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Bấm lần nữa để xác nhận xóa hết";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa toàn bộ lịch sử";
+          }
+        }, 3500);
+        return;
+      }
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Đang xóa...";
+      try {
+        const res = await callApi({ action: "clear_all_chats" });
+        allChatLogs = res.chatLogs || [];
+        renderChatLogs();
+        showToast("Đã xóa toàn bộ lịch sử chat");
+      } catch (err) {
+        showToast("Lỗi xóa lịch sử: " + err.message);
+      } finally {
+        btnEl.disabled = false;
+        btnEl.dataset.armed = "";
+        btnEl.textContent = "Xóa toàn bộ lịch sử";
+      }
+    }
 
     async function saveFaqForm(e) {
       e.preventDefault();
