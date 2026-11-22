@@ -777,6 +777,45 @@
           </div>
         </div>
 
+        <!-- Cài đặt Chính sách Phí ship & Freeship áp dụng cho khách -->
+        <div class="card">
+          <div class="card-top">
+            <strong style="font-size:14.5px; color:var(--primary);">Chính sách Phí ship &amp; Freeship áp dụng cho khách</strong>
+            <span id="freeshipStatusBadge" class="badge badge-ok">Đang bật Freeship</span>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+            Điều chỉnh phí vận chuyển thu khách, ngưỡng đơn được Freeship (VD: 200.000đ hoặc 150.000đ), ưu đãi Freeship Bộ kit hoặc tạm tắt toàn bộ Freeship.
+          </p>
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="customerShipFeeInput">Phí ship thu khách (VNĐ)</label>
+              <input type="number" id="customerShipFeeInput" min="0" step="1000" class="input" value="15000" oninput="updateCustomerShipPolicyPreview()" />
+            </div>
+            <div class="form-group">
+              <label for="freeshipThresholdInput">Mốc Freeship cho đơn hàng từ (VNĐ)</label>
+              <input type="number" id="freeshipThresholdInput" min="0" step="10000" class="input" value="200000" oninput="updateCustomerShipPolicyPreview()" />
+            </div>
+          </div>
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="freeshipKitInput">Freeship khi khách mua Bộ kit</label>
+              <select id="freeshipKitInput" class="select" onchange="updateCustomerShipPolicyPreview()">
+                <option value="true">Bật — Miễn phí ship cho Bộ kit</option>
+                <option value="false">Tắt — Tính phí ship như đơn thường</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="freeshipEnabledInput">Chế độ Freeship tổng</label>
+              <select id="freeshipEnabledInput" class="select" onchange="updateCustomerShipPolicyPreview()">
+                <option value="true">Đang bật Freeship</option>
+                <option value="false">Tắt Freeship (luôn thu phí ship)</option>
+              </select>
+            </div>
+          </div>
+          <div id="customerShipPolicyPreview" style="background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:8px 11px; font-size:12px; color:var(--text); margin-bottom:10px;"></div>
+          <button type="button" id="saveCustomerShipPolicyBtn" class="btn btn-primary btn-sm" onclick="saveCustomerShipPolicy()">Lưu chính sách ship &amp; freeship</button>
+        </div>
+
         <!-- Cài đặt Chi phí ship thực tế của tiệm -->
         <div class="card">
           <div class="card-top">
@@ -947,7 +986,7 @@
     </div>
   </div>
 
-  <!-- MODAL: CHỈNH SỬA ĐƠN HÀNG (THÔNG TIN KHÁCH + SẢN PHẨM + CHIẾT KHẤU + MÃ VẬN ĐƠN + THANH TOÁN) -->
+  <!-- MODAL: CHỈNH SỬA ĐƠN HÀNG (THÔNG TIN KHÁCH + KÊNH DỰ PHÒNG + SẢN PHẨM + CHIẾT KHẤU + MÃ VẬN ĐƠN + THANH TOÁN) -->
   <div class="modal-backdrop" id="editOrderModal" onclick="if(event.target===this) closeEditOrderModal()">
     <div class="modal-card">
       <div class="modal-header">
@@ -976,15 +1015,33 @@
         <div class="grid-2">
           <div class="form-group">
             <label for="editPlatform">Kênh liên hệ</label>
-            <select id="editPlatform" class="select">
+            <select id="editPlatform" class="select" onchange="toggleEditBackupPlatformFields()">
               <option value="Instagram">Instagram</option>
               <option value="Threads">Threads</option>
               <option value="Facebook">Facebook</option>
+              <option value="Zalo">Zalo</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="editSocialHandle">Tài khoản liên hệ</label>
-            <input type="text" id="editSocialHandle" class="input" />
+            <label for="editSocialHandle" id="lblEditSocialHandle">Tài khoản liên hệ</label>
+            <input type="text" id="editSocialHandle" class="input" placeholder="Nhập username hoặc link..." />
+          </div>
+        </div>
+
+        <!-- Khối tài khoản dự phòng (tự động hiện khi chọn kênh Zalo) -->
+        <div id="editBackupPlatformRow" class="grid-2" style="display:none; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 10px;">
+          <div class="form-group">
+            <label for="editBackupPlatform">Kênh liên hệ dự phòng</label>
+            <select id="editBackupPlatform" class="select">
+              <option value="Instagram">Instagram</option>
+              <option value="Threads">Threads</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Zalo">Zalo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editBackupHandle">Tài khoản dự phòng</label>
+            <input type="text" id="editBackupHandle" class="input" placeholder="VD: @ten_instagram..." />
           </div>
         </div>
 
@@ -1196,7 +1253,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // HÀM TIỆN ÍCH CHUNG
+    // HÀM TIỆN ÍCH CHUNG & CHUẨN HÓA KÊNH LIÊN HỆ
     // -------------------------------------------------------------------------
     function escapeHtml(str) {
       return String(str ?? "")
@@ -1226,6 +1283,63 @@
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d")
         .trim();
+    }
+
+    function normalizePlatformName(raw) {
+      const s = String(raw || "").trim().toLowerCase();
+      if (!s) return "Instagram";
+      if (s.includes("zalo")) return "Zalo";
+      if (s.includes("thread")) return "Threads";
+      if (s.includes("facebook") || s === "fb") return "Facebook";
+      if (s.includes("instagram") || s === "ig" || s === "insta") return "Instagram";
+      return "Instagram";
+    }
+
+    function parseSocialHandleWithBackup(rawHandle, mainPlatform) {
+      const raw = String(rawHandle || "").trim();
+      const parts = raw.split(/\s*\|\s*Dự phòng\s*:\s*/i);
+      const mainHandle = (parts[0] || "").trim();
+      const backupRaw = (parts[1] || "").trim();
+
+      if (!backupRaw) {
+        return {
+          mainHandle,
+          hasBackup: false,
+          backupPlatform: "Instagram",
+          backupHandle: ""
+        };
+      }
+
+      let backupPlatform = normalizePlatformName(mainPlatform) === "Instagram" ? "Threads" : "Instagram";
+      let backupHandle = backupRaw;
+
+      const prefixColonMatch = backupRaw.match(/^(Instagram|Threads|Facebook|Zalo|IG|FB|Insta)\s*[:\-–]\s*(.+)$/i);
+      const prefixSpaceMatch = backupRaw.match(/^(Instagram|Threads|Facebook|Zalo|IG|FB|Insta)\s+(.+)$/i);
+      const suffixParenMatch = backupRaw.match(/^(.+?)\s*\((Instagram|Threads|Facebook|Zalo|IG|FB|Insta)\)$/i);
+
+      if (prefixColonMatch) {
+        backupPlatform = normalizePlatformName(prefixColonMatch[1]);
+        backupHandle = prefixColonMatch[2].trim();
+      } else if (prefixSpaceMatch) {
+        backupPlatform = normalizePlatformName(prefixSpaceMatch[1]);
+        backupHandle = prefixSpaceMatch[2].trim();
+      } else if (suffixParenMatch) {
+        backupHandle = suffixParenMatch[1].trim();
+        backupPlatform = normalizePlatformName(suffixParenMatch[2]);
+      } else if (/^https?:\/\//i.test(backupRaw)) {
+        const lowerUrl = backupRaw.toLowerCase();
+        if (lowerUrl.includes("zalo.me")) backupPlatform = "Zalo";
+        else if (lowerUrl.includes("threads.")) backupPlatform = "Threads";
+        else if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.com")) backupPlatform = "Facebook";
+        else if (lowerUrl.includes("instagram.com")) backupPlatform = "Instagram";
+      }
+
+      return {
+        mainHandle,
+        hasBackup: Boolean(backupHandle),
+        backupPlatform,
+        backupHandle
+      };
     }
 
     let toastTimer = null;
@@ -1358,6 +1472,26 @@
         const shipInp = document.getElementById("shopShipCostInput");
         if (shipInp) shipInp.value = shopShipCost;
       }
+
+      const policySrc = data.shippingPolicy || data;
+      const custShipFee = policySrc.customerShipFee !== undefined
+        ? Math.max(0, Number(policySrc.customerShipFee))
+        : (policySrc.defaultShipFee !== undefined ? Math.max(0, Number(policySrc.defaultShipFee)) : 15000);
+      const freeshipThresh = policySrc.freeshipThreshold !== undefined
+        ? Math.max(0, Number(policySrc.freeshipThreshold))
+        : 200000;
+      const freeshipKitVal = policySrc.freeshipKit !== undefined ? Boolean(policySrc.freeshipKit) : true;
+      const freeshipEnabledVal = policySrc.freeshipEnabled !== undefined ? Boolean(policySrc.freeshipEnabled) : true;
+
+      const custShipInp = document.getElementById("customerShipFeeInput");
+      const threshInp = document.getElementById("freeshipThresholdInput");
+      const kitSel = document.getElementById("freeshipKitInput");
+      const enabledSel = document.getElementById("freeshipEnabledInput");
+      if (custShipInp) custShipInp.value = custShipFee;
+      if (threshInp) threshInp.value = freeshipThresh;
+      if (kitSel) kitSel.value = freeshipKitVal ? "true" : "false";
+      if (enabledSel) enabledSel.value = freeshipEnabledVal ? "true" : "false";
+      updateCustomerShipPolicyPreview();
 
       populateMonthFilter();
       populateCategorySuggestions();
@@ -1506,6 +1640,13 @@
       const clean = raw.replace(/^@+/, "").trim();
       const plat = String(platform || "").toLowerCase();
 
+      if (plat.includes("zalo")) {
+        const digits = clean.replace(/\D/g, "");
+        if (digits.length >= 9) {
+          return `https://zalo.me/${digits}`;
+        }
+        return `https://zalo.me/${encodeURIComponent(clean)}`;
+      }
       if (plat.includes("instagram")) {
         return `https://www.instagram.com/${encodeURIComponent(clean)}/`;
       }
@@ -1631,7 +1772,13 @@
         const codToCollect = isPaid ? 0 : Number(o.total || 0);
         const discountAmt = Number(o.discountAmount || 0);
         const safeOrderId = escapeAttrJs(o.orderId);
-        const socialUrl = buildCustomerSocialUrl(o.platform, o.socialHandle);
+
+        const normPlatform = normalizePlatformName(o.platform);
+        const parsedSocial = parseSocialHandleWithBackup(o.socialHandle, normPlatform);
+        const socialUrl = buildCustomerSocialUrl(normPlatform, parsedSocial.mainHandle);
+        const backupSocialUrl = parsedSocial.hasBackup
+          ? buildCustomerSocialUrl(parsedSocial.backupPlatform, parsedSocial.backupHandle)
+          : "";
         const trackInfo = detectTrackingCarrier(o.trackingCode);
 
         const payBadgeClass = isPaid ? "badge-ok" : (isPendingTransfer ? "badge-warn" : "badge-info");
@@ -1679,14 +1826,25 @@
                 </div>
               </div>
 
-              <!-- Dòng 4: Tài khoản MXH + Nút nhắn tin cho khách -->
+              <!-- Dòng 4: Tài khoản MXH chính + Nút nhắn tin cho khách -->
               <div class="cust-info-row">
-                <div class="cust-info-text">💬 <span style="color:var(--accent); font-weight:600;">${escapeHtml(o.platform)}: ${escapeHtml(o.socialHandle)}</span></div>
+                <div class="cust-info-text">💬 <span style="color:var(--accent); font-weight:600;">${escapeHtml(normPlatform)}: ${escapeHtml(parsedSocial.mainHandle)}</span></div>
                 <div class="cust-info-btns">
-                  <button type="button" class="mini-pill-btn" onclick="copyTextToClipboard('${escapeAttrJs(o.socialHandle)}', 'Đã copy tên tài khoản')">Copy</button>
-                  ${socialUrl ? `<a href="${escapeHtml(socialUrl)}" target="_blank" rel="noopener noreferrer" class="mini-pill-btn msg-btn" onclick="copyTextToClipboard('${escapeAttrJs(o.socialHandle)}', 'Đã copy tài khoản & mở trang khách')">Nhắn tin ↗</a>` : ""}
+                  <button type="button" class="mini-pill-btn" onclick="copyTextToClipboard('${escapeAttrJs(parsedSocial.mainHandle)}', 'Đã copy tên tài khoản')">Copy</button>
+                  ${socialUrl ? `<a href="${escapeHtml(socialUrl)}" target="_blank" rel="noopener noreferrer" class="mini-pill-btn msg-btn" onclick="copyTextToClipboard('${escapeAttrJs(parsedSocial.mainHandle)}', 'Đã copy tài khoản & mở trang khách')">Nhắn tin ↗</a>` : ""}
                 </div>
               </div>
+
+              <!-- Dòng 5 (nếu có): Tài khoản dự phòng tách riêng -->
+              ${parsedSocial.hasBackup ? `
+              <div class="cust-info-row">
+                <div class="cust-info-text">↳ <span style="color:var(--muted); font-weight:600;">Dự phòng (${escapeHtml(parsedSocial.backupPlatform)}):</span> <span style="color:var(--accent); font-weight:600;">${escapeHtml(parsedSocial.backupHandle)}</span></div>
+                <div class="cust-info-btns">
+                  <button type="button" class="mini-pill-btn" onclick="copyTextToClipboard('${escapeAttrJs(parsedSocial.backupHandle)}', 'Đã copy tài khoản dự phòng')">Copy</button>
+                  ${backupSocialUrl ? `<a href="${escapeHtml(backupSocialUrl)}" target="_blank" rel="noopener noreferrer" class="mini-pill-btn msg-btn" onclick="copyTextToClipboard('${escapeAttrJs(parsedSocial.backupHandle)}', 'Đã copy tài khoản dự phòng & mở trang khách')">Nhắn ${escapeHtml(parsedSocial.backupPlatform)} dự phòng ↗</a>` : ""}
+                </div>
+              </div>
+              ` : ""}
 
               <!-- Khung sản phẩm liệt kê xuống dòng -->
               <div class="order-items-box">
@@ -1979,17 +2137,35 @@
     // -------------------------------------------------------------------------
     // CHỈNH SỬA ĐƠN HÀNG (MODAL)
     // -------------------------------------------------------------------------
+    function toggleEditBackupPlatformFields() {
+      const plat = normalizePlatformName(document.getElementById("editPlatform").value);
+      const isZalo = plat === "Zalo";
+      const row = document.getElementById("editBackupPlatformRow");
+      const lbl = document.getElementById("lblEditSocialHandle");
+      const inp = document.getElementById("editSocialHandle");
+      if (row) row.style.display = isZalo ? "grid" : "none";
+      if (lbl) lbl.textContent = isZalo ? "Số Zalo chính" : "Tài khoản liên hệ";
+      if (inp) inp.placeholder = isZalo ? "Nhập số điện thoại Zalo..." : "Nhập username hoặc link...";
+    }
+
     function openEditOrderModal(orderId) {
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
+
+      const normPlat = normalizePlatformName(o.platform);
+      const parsedSocial = parseSocialHandleWithBackup(o.socialHandle, normPlat);
 
       document.getElementById("editOrderTitle").textContent = `Chỉnh sửa đơn #${o.orderId}`;
       document.getElementById("editOrderId").value = o.orderId;
       document.getElementById("editCustName").value = o.customerName || "";
       document.getElementById("editCustPhone").value = String(o.phone || "").replace(/^'/, "");
       document.getElementById("editCustAddress").value = o.address || "";
-      document.getElementById("editPlatform").value = o.platform || "Instagram";
-      document.getElementById("editSocialHandle").value = o.socialHandle || "";
+      document.getElementById("editPlatform").value = normPlat;
+      document.getElementById("editSocialHandle").value = parsedSocial.mainHandle;
+      document.getElementById("editBackupPlatform").value = parsedSocial.backupPlatform || "Instagram";
+      document.getElementById("editBackupHandle").value = parsedSocial.backupHandle || "";
+      toggleEditBackupPlatformFields();
+
       document.getElementById("editDiscountType").value = o.discountType || "amount";
       document.getElementById("editDiscountValue").value = Number(o.discountValue || 0);
       document.getElementById("editShipFee").value = Number(o.shipFee || 0);
@@ -2180,13 +2356,21 @@
       const totals = recalcEditOrderTotals();
       const itemsSummary = editingOrderItems.map(i => `${i.name} (${i.qty} ${i.unitLabel || "phần"})`).join("; ");
 
+      const selectedPlatform = normalizePlatformName(document.getElementById("editPlatform").value);
+      const mainHandleVal = document.getElementById("editSocialHandle").value.trim();
+      const backupPlatformVal = normalizePlatformName(document.getElementById("editBackupPlatform").value);
+      const backupHandleVal = document.getElementById("editBackupHandle").value.trim();
+      const combinedSocialHandle = (selectedPlatform === "Zalo" && backupHandleVal)
+        ? `${mainHandleVal} | Dự phòng: ${backupPlatformVal}: ${backupHandleVal}`
+        : mainHandleVal;
+
       const payload = {
         orderId: document.getElementById("editOrderId").value,
         customerName: document.getElementById("editCustName").value.trim(),
         phone: document.getElementById("editCustPhone").value.trim(),
         address: document.getElementById("editCustAddress").value.trim(),
-        platform: document.getElementById("editPlatform").value,
-        socialHandle: document.getElementById("editSocialHandle").value.trim(),
+        platform: selectedPlatform,
+        socialHandle: combinedSocialHandle,
         items: editingOrderItems,
         itemsSummary,
         ...totals,
@@ -2766,7 +2950,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // TAB 5: CÀI ĐẶT (VIETQR, TELEGRAM, PHÍ SHIP, EMAIL, GEMINI AI)
+    // TAB 5: CÀI ĐẶT (VIETQR, TELEGRAM, CHÍNH SÁCH FREESHIP, PHÍ SHIP, EMAIL, AI)
     // -------------------------------------------------------------------------
     async function saveBankSettings() {
       const btn = document.getElementById("saveBankBtn");
@@ -2848,6 +3032,63 @@
       } finally {
         btn.disabled = false;
         btn.textContent = "Gửi tin nhắn test";
+      }
+    }
+
+    function updateCustomerShipPolicyPreview() {
+      const custShipFee = Math.max(0, Number(document.getElementById("customerShipFeeInput")?.value || 0));
+      const freeshipThresh = Math.max(0, Number(document.getElementById("freeshipThresholdInput")?.value || 0));
+      const freeshipKit = document.getElementById("freeshipKitInput")?.value === "true";
+      const freeshipEnabled = document.getElementById("freeshipEnabledInput")?.value === "true";
+
+      const badge = document.getElementById("freeshipStatusBadge");
+      const preview = document.getElementById("customerShipPolicyPreview");
+
+      if (badge) {
+        badge.className = freeshipEnabled ? "badge badge-ok" : "badge badge-hidden";
+        badge.textContent = freeshipEnabled ? "Đang bật Freeship" : "Đã tắt Freeship";
+      }
+
+      if (preview) {
+        if (!freeshipEnabled) {
+          preview.innerHTML = `Áp dụng cho khách: <strong>Tắt Freeship</strong> — Tất cả đơn hàng tính phí ship <strong>${fmtVND(custShipFee)}</strong>.`;
+        } else {
+          const kitNote = freeshipKit ? "Có Freeship cho Bộ kit" : "Không Freeship riêng cho Bộ kit";
+          preview.innerHTML = `Áp dụng cho khách: Phí ship <strong>${fmtVND(custShipFee)}</strong> • Freeship đơn từ <strong>${fmtVND(freeshipThresh)}</strong> • <strong>${kitNote}</strong>.`;
+        }
+      }
+    }
+
+    async function saveCustomerShipPolicy() {
+      const btn = document.getElementById("saveCustomerShipPolicyBtn");
+      const customerShipFee = Math.max(0, Number(document.getElementById("customerShipFeeInput").value || 0));
+      const freeshipThreshold = Math.max(0, Number(document.getElementById("freeshipThresholdInput").value || 0));
+      const freeshipKit = document.getElementById("freeshipKitInput").value === "true";
+      const freeshipEnabled = document.getElementById("freeshipEnabledInput").value === "true";
+
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        await callApi({
+          action: "save_settings",
+          customerShipFee,
+          freeshipThreshold,
+          freeshipKit,
+          freeshipEnabled,
+          shippingPolicy: {
+            customerShipFee,
+            freeshipThreshold,
+            freeshipKit,
+            freeshipEnabled
+          }
+        });
+        updateCustomerShipPolicyPreview();
+        showToast("Đã lưu chính sách Phí ship & Freeship cho khách");
+      } catch (err) {
+        showToast("Lỗi lưu chính sách ship: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu chính sách ship & freeship";
       }
     }
 
