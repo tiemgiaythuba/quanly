@@ -115,7 +115,11 @@
       font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+      transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+    .btn:disabled {
+      opacity: 0.58;
+      cursor: not-allowed;
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-accent { background: var(--accent); color: #fff; }
@@ -204,6 +208,131 @@
       margin-bottom: 8px;
     }
 
+    /* 3-Tier Order Card */
+    .order-tier-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 9px;
+      flex-wrap: wrap;
+    }
+    .order-tier-2 {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .field-copy-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .copy-icon-btn {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .copy-icon-btn:active { background: var(--border); }
+
+    .msg-social-btn {
+      background: #E8F0E9;
+      border: 1px solid #C8DBC9;
+      color: #2E5A36;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .order-items-box {
+      margin-top: 4px;
+      background: var(--soft);
+      padding: 8px 11px;
+      border-radius: 9px;
+    }
+    .order-items-list {
+      list-style: disc;
+      padding-left: 17px;
+      margin-top: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 12.8px;
+    }
+
+    .order-tier-3 {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .finance-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      background: #FAF7F2;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+    }
+
+    .tracking-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .track-status-hint {
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      min-width: 68px;
+      text-align: right;
+      color: var(--muted);
+    }
+    .track-status-hint.saving { color: var(--warn-text); }
+    .track-status-hint.saved { color: var(--accent); }
+    .track-status-hint.err { color: var(--danger); }
+
+    .order-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .order-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .order-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
     .badge {
       display: inline-block;
       padding: 3px 8px;
@@ -223,14 +352,69 @@
     .form-field label { font-size: 12px; font-weight: 600; }
     .form-field small { font-size: 11px; color: var(--muted); }
 
-    .tracking-bar {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border);
+    /* Product Type Selector */
+    .type-selector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
     }
+    .type-option-card {
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      border-radius: 10px;
+      padding: 9px 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .type-option-card.active {
+      border-color: var(--primary);
+      background: var(--soft);
+    }
+    .type-option-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .type-option-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Searchable Catalog Picker inside Order Modal */
+    .catalog-picker-wrap {
+      position: relative;
+      margin-top: 8px;
+    }
+    .catalog-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: var(--card);
+      border: 1px solid var(--primary);
+      border-radius: 10px;
+      max-height: 210px;
+      overflow-y: auto;
+      box-shadow: 0 8px 22px rgba(45, 36, 30, 0.16);
+      z-index: 30;
+      display: none;
+    }
+    .catalog-dropdown.open { display: block; }
+    .catalog-pick-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+    .catalog-pick-item:last-child { border-bottom: none; }
+    .catalog-pick-item:hover { background: var(--soft); }
 
     .img-preview-grid {
       display: grid;
@@ -313,6 +497,10 @@
       pointer-events: none;
       transition: opacity 0.2s;
       z-index: 100;
+      white-space: nowrap;
+      max-width: 92vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .toast.show { opacity: 1; }
   </style>
@@ -331,7 +519,7 @@
         <p>Nhập mật khẩu quản trị đã cài trong Apps Script</p>
         <form onsubmit="handleLogin(event)">
           <input id="adminPass" type="password" class="input" placeholder="Mật khẩu chủ tiệm..." style="margin-bottom:12px;" required />
-          <button type="submit" class="btn btn-primary" style="width:100%;">Vào trang quản lý</button>
+          <button id="loginSubmitBtn" type="submit" class="btn btn-primary" style="width:100%;">Vào trang quản lý</button>
         </form>
       </div>
     </div>
@@ -394,21 +582,21 @@
             <input id="notifyEmailInput" type="email" class="input" placeholder="Nhập email nhận thông báo..." />
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="btn btn-primary btn-sm" onclick="saveNotifyEmail()">Lưu Email</button>
-            <button class="btn btn-soft btn-sm" onclick="testSendEmail()">Gửi email test thử</button>
+            <button id="saveEmailBtn" class="btn btn-primary btn-sm" onclick="saveNotifyEmail()">Lưu Email</button>
+            <button id="testEmailBtn" class="btn btn-soft btn-sm" onclick="testSendEmail()">Gửi email test thử</button>
           </div>
         </div>
 
         <div class="card">
-          <h3 style="font-size:15px; margin-bottom:8px;">2. Chế độ phản hồi Chatbot</h3>
+          <h3 style="font-size:15px; margin-bottom:8px;">2. Chế độ phản hồi Chatbot (Ưu tiên Gemini AI)</h3>
           <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">
-            Hệ thống luôn ưu tiên bộ xử lý thông minh nội bộ (trả lời trong 0.1 giây, không bao giờ lỗi 503). Khi bật thêm Gemini AI, các câu hỏi mở sẽ được diễn đạt tự nhiên hơn (và tự động lùi về bộ xử lý nội bộ nếu máy chủ Google quá tải).
+            Khi bật, toàn bộ câu hỏi của khách hàng sẽ được gửi trực tiếp cho <strong>Gemini AI</strong> phân tích ngữ cảnh, đối chiếu Bảng Hỏi - Đáp và Kho giấy để trả lời tự nhiên, chính xác nhất (tự động lùi về bộ xử lý nội bộ nếu máy chủ Google quá tải).
           </p>
           <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; margin-bottom:10px; cursor:pointer;">
             <input id="aiEnabledCheckbox" type="checkbox" checked onchange="toggleAiMode(this.checked)" />
-            <span>Bật hỗ trợ diễn đạt bằng Gemini AI (tự động dự phòng khi quá tải)</span>
+            <span>Ưu tiên dùng Gemini AI trả lời mọi câu hỏi của khách</span>
           </label>
-          <button class="btn btn-accent btn-sm" onclick="runAiDiagnostic()">Chạy kiểm tra phản hồi ngay</button>
+          <button id="diagAiBtn" class="btn btn-accent btn-sm" onclick="runAiDiagnostic()">Chạy kiểm tra phản hồi AI ngay</button>
           <pre id="aiDiagResult" style="margin-top:10px; background:var(--soft); padding:10px; border-radius:8px; font-size:12px; white-space:pre-wrap; display:none;"></pre>
         </div>
       </div>
@@ -424,14 +612,31 @@
       </div>
       <form onsubmit="saveProductForm(event)">
         <input type="hidden" id="pId" />
+        <input type="hidden" id="pProductType" value="paper" />
+
+        <div class="form-field">
+          <label>Phân loại sản phẩm *</label>
+          <div class="type-selector-grid">
+            <button type="button" id="typeBtnPaper" class="type-option-card active" onclick="setProductType('paper')">
+              <div class="type-option-title">Loại 1 — Giấy thủ công</div>
+              <div class="type-option-desc">Bán gói & lẻ, có gia keo</div>
+            </button>
+            <button type="button" id="typeBtnItem" class="type-option-card" onclick="setProductType('item')">
+              <div class="type-option-title">Loại 2 — Sản phẩm hoàn chỉnh</div>
+              <div class="type-option-desc">Bộ kit, sổ tay, dụng cụ</div>
+            </button>
+          </div>
+        </div>
+
         <div class="form-field">
           <label>Tên sản phẩm *</label>
-          <input id="pName" class="input" placeholder="VD: Giấy A5 vỏ quýt" required />
+          <input id="pName" class="input" placeholder="VD: Giấy A5 vỏ quýt hoặc Bộ kit làm giấy A6" required />
         </div>
         <div class="grid-2">
           <div class="form-field">
             <label>Nhóm sản phẩm *</label>
-            <input id="pCategory" class="input" placeholder="VD: Giấy A5, Bao thư, Bộ kit..." required />
+            <input id="pCategory" list="categorySuggestions" class="input" placeholder="Chọn hoặc gõ nhóm mới..." required />
+            <datalist id="categorySuggestions"></datalist>
           </div>
           <div class="form-field">
             <label>Đơn vị *</label>
@@ -439,14 +644,14 @@
           </div>
         </div>
 
-        <div style="background:var(--soft); padding:10px; border-radius:10px; margin-bottom:10px;">
-          <div style="font-size:12px; font-weight:700; margin-bottom:8px; color:var(--primary);">Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)</div>
-          <div class="grid-2">
+        <div id="stockSectionBox" style="background:var(--soft); padding:10px; border-radius:10px; margin-bottom:10px;">
+          <div id="stockSectionTitle" style="font-size:12px; font-weight:700; margin-bottom:8px; color:var(--primary);">Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)</div>
+          <div id="stockInputsGrid" class="grid-2">
             <div class="form-field" style="margin-bottom:4px;">
-              <label>1. Sẵn sàng giao *</label>
+              <label id="pStockLabel">1. Sẵn sàng giao *</label>
               <input id="pStock" type="number" min="0" class="input" placeholder="VD: 120" oninput="updatePackPreview()" required />
             </div>
-            <div class="form-field" style="margin-bottom:4px;">
+            <div id="unsizedStockField" class="form-field" style="margin-bottom:4px;">
               <label>2. Chưa gia keo</label>
               <input id="pUnsizedStock" type="number" min="0" class="input" placeholder="VD: 50" oninput="updatePackPreview()" />
             </div>
@@ -454,9 +659,9 @@
           <small id="packConvertPreview" style="color:var(--accent); font-weight:600; display:block; margin-top:4px;"></small>
         </div>
 
-        <div style="background:var(--soft); padding:10px; border-radius:10px; margin-bottom:10px;">
-          <div style="font-size:12px; font-weight:700; margin-bottom:8px; color:var(--primary);">Cài đặt quy đổi đóng gói & bảng giá</div>
-          <div class="grid-2">
+        <div id="pricingSectionBox" style="background:var(--soft); padding:10px; border-radius:10px; margin-bottom:10px;">
+          <div id="pricingSectionTitle" style="font-size:12px; font-weight:700; margin-bottom:8px; color:var(--primary);">Cài đặt quy đổi đóng gói & bảng giá</div>
+          <div id="packConfigRow" class="grid-2">
             <div class="form-field">
               <label>Tên đơn vị gói</label>
               <input id="pPackUnit" class="input" placeholder="VD: gói (để trống nếu bán lẻ)" oninput="updatePackPreview()" />
@@ -466,14 +671,14 @@
               <input id="pPackSize" type="number" min="1" class="input" value="10" oninput="updatePackPreview()" />
             </div>
           </div>
-          <div class="grid-2">
-            <div class="form-field" style="margin-bottom:0;">
+          <div id="priceConfigRow" class="grid-2">
+            <div id="packPriceField" class="form-field" style="margin-bottom:0;">
               <label>Giá theo gói (VNĐ)</label>
               <input id="pPackPrice" type="number" min="0" class="input" placeholder="VD: 65000 (0 nếu không bán gói)" />
             </div>
             <div class="form-field" style="margin-bottom:0;">
-              <label>Giá lẻ từng tờ/cái (VNĐ)</label>
-              <input id="pUnitPrice" type="number" min="0" class="input" placeholder="VD: 8000 (0 nếu không bán lẻ)" />
+              <label id="pUnitPriceLabel">Giá lẻ từng tờ/cái (VNĐ)</label>
+              <input id="pUnitPrice" type="number" min="0" class="input" placeholder="VD: 8000" />
             </div>
           </div>
         </div>
@@ -570,10 +775,12 @@
           <div style="font-size:12.5px; font-weight:700; color:var(--primary); margin-bottom:8px;">Sản phẩm & Giá trong đơn</div>
           <div id="editOrderItemsList"></div>
 
-          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <select id="addCatalogItemSelect" class="select" style="flex:1; min-width:180px; font-size:12.5px;"></select>
-            <button type="button" class="btn btn-accent btn-sm" onclick="addCatalogItemToEditOrder()">+ Thêm từ kho</button>
-            <button type="button" class="btn btn-soft btn-sm" onclick="addCustomItemToEditOrder()">+ Món ngoài</button>
+          <div class="catalog-picker-wrap">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input id="catalogSearchInput" type="search" class="input" style="font-size:12.5px; padding:7px 10px;" placeholder="🔍 Tìm nhanh sản phẩm (vd: quyt, kit, a5)..." onfocus="renderCatalogSearchDropdown()" oninput="renderCatalogSearchDropdown()" autocomplete="off" />
+              <button type="button" class="btn btn-soft btn-sm" style="white-space:nowrap;" onclick="addCustomItemToEditOrder()">+ Món ngoài</button>
+            </div>
+            <div id="catalogSearchResults" class="catalog-dropdown"></div>
           </div>
         </div>
 
@@ -626,7 +833,7 @@
           <input id="fActive" type="checkbox" checked />
           <label for="fActive" style="margin:0;">Đang bật cho AI sử dụng</label>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Lưu mục Hỏi - Đáp</button>
+        <button id="saveFaqBtn" type="submit" class="btn btn-primary" style="width:100%;">Lưu mục Hỏi - Đáp</button>
       </form>
     </div>
   </div>
@@ -644,6 +851,7 @@
     let productFilter = "all";
     let currentProductImages = [];
     let editingOrderItems = [];
+    const trackingDebounceTimers = {};
 
     function fmtVND(n) { return Number(n || 0).toLocaleString("vi-VN") + "đ"; }
 
@@ -654,6 +862,14 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function escapeAttrJs(str) {
+      return String(str ?? "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;")
+        .replace(/\r?\n/g, " ");
     }
 
     function normalizeText(str) {
@@ -675,12 +891,10 @@
 
     function extractMonthKey(dateStr) {
       const s = String(dateStr || "").trim();
-      // Match dd/MM/yyyy or d/M/yyyy
       let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (m) {
         return `${m[3]}-${m[2].padStart(2, "0")}`;
       }
-      // Match yyyy-MM-dd
       m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
       if (m) {
         return `${m[1]}-${m[2].padStart(2, "0")}`;
@@ -701,6 +915,20 @@
       setTimeout(() => t.classList.remove("show"), 2500);
     }
 
+    function copyText(text, msg = "Đã copy") {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg));
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast(msg);
+      }
+    }
+
     async function callApi(payload) {
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
@@ -714,7 +942,12 @@
 
     async function handleLogin(e) {
       e.preventDefault();
+      const btn = document.getElementById("loginSubmitBtn");
       adminPassword = document.getElementById("adminPass").value.trim();
+
+      btn.disabled = true;
+      btn.textContent = "Đang đăng nhập...";
+
       try {
         const data = await callApi({ action: "admin_login" });
         document.getElementById("loginView").style.display = "none";
@@ -724,22 +957,32 @@
         showToast("Đăng nhập thành công");
       } catch (err) {
         alert(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Vào trang quản lý";
       }
     }
 
     async function loadAllData() {
+      const btn = document.getElementById("refreshBtn");
+      btn.disabled = true;
+      btn.textContent = "↻ Đang tải...";
       try {
         const data = await callApi({ action: "get_all" });
         applyAllData(data);
         showToast("Đã cập nhật dữ liệu mới nhất");
       } catch (err) {
         showToast("Lỗi tải dữ liệu: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "↻ Làm mới";
       }
     }
 
     function applyAllData(data) {
       allProducts = (data.products || []).map(p => ({
         ...p,
+        productType: p.productType === "item" ? "item" : "paper",
         stock: Number(p.stock || 0),
         unsizedStock: Number(p.unsizedStock || 0),
         imageUrls: parseImages(p)
@@ -762,6 +1005,7 @@
         document.getElementById("aiEnabledCheckbox").checked = Boolean(data.aiEnabled);
       }
       populateMonthFilter();
+      populateCategorySuggestions();
       renderOrders();
       renderProducts();
       renderFaqs();
@@ -773,6 +1017,57 @@
       ["orders", "inventory", "faqs", "settings"].forEach(t => {
         document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
       });
+    }
+
+    // --- SMART MESSAGING HELPER ---
+    function openCustomerMessage(platform, socialHandle) {
+      const raw = String(socialHandle || "").trim();
+      if (!raw) {
+        showToast("Khách chưa để lại tên tài khoản liên hệ");
+        return;
+      }
+
+      // 1. Nếu khách dán sẵn URL (https://...) -> mở trực tiếp
+      if (/^https?:\/\//i.test(raw)) {
+        window.open(raw, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const plat = normalizeText(platform);
+      const hasSpaces = /\s/.test(raw);
+      const cleanNoAt = raw.replace(/^@+/, "").trim();
+
+      if (plat.indexOf("instagram") !== -1) {
+        if (!hasSpaces && cleanNoAt) {
+          window.open(`https://ig.me/m/${encodeURIComponent(cleanNoAt)}`, "_blank", "noopener,noreferrer");
+        } else {
+          copyText(raw, "Đã copy tên khách & mở Instagram Direct");
+          window.open("https://www.instagram.com/direct/inbox/", "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
+      if (plat.indexOf("threads") !== -1) {
+        if (!hasSpaces && cleanNoAt) {
+          window.open(`https://www.threads.net/@${encodeURIComponent(cleanNoAt)}`, "_blank", "noopener,noreferrer");
+        } else {
+          copyText(raw, "Đã copy tên khách & mở Threads");
+          window.open("https://www.threads.net/", "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
+      if (plat.indexOf("facebook") !== -1) {
+        if (!hasSpaces && cleanNoAt) {
+          window.open(`https://m.me/${encodeURIComponent(cleanNoAt)}`, "_blank", "noopener,noreferrer");
+        } else {
+          copyText(raw, "Đã copy tên khách & mở tìm kiếm Facebook");
+          window.open(`https://www.facebook.com/search/top?q=${encodeURIComponent(raw)}`, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
+      copyText(raw, `Đã copy tài khoản ${platform}: ${raw}`);
     }
 
     // --- ORDERS ---
@@ -795,7 +1090,6 @@
       const searchRaw = document.getElementById("orderSearchInput")?.value || "";
       const searchNorm = normalizeText(searchRaw);
 
-      // Lọc theo tháng & từ khóa tìm kiếm trước để cập nhật thống kê + số đếm từng tab trạng thái
       const baseFiltered = allOrders.filter(o => {
         if (monthFilter && extractMonthKey(o.createdAt) !== monthFilter) return false;
         if (searchNorm) {
@@ -825,12 +1119,11 @@
         <div class="stat-box"><div class="stat-label">Tổng phí ship</div><div class="stat-val">${fmtVND(totalShip)}</div></div>
       `;
 
-      // Render các nút lọc trạng thái có tô màu cố định mục đang chọn
       const statuses = ["Tất cả", "Chờ xác nhận", "Đã xác nhận", "Đang giao", "Hoàn thành", "Đã hủy"];
       document.getElementById("orderFilterStrip").innerHTML = statuses.map(s => {
         const cnt = s === "Tất cả" ? baseFiltered.length : baseFiltered.filter(o => o.status === s).length;
         const activeCls = orderFilter === s ? "active" : "";
-        return `<button type="button" class="filter-chip ${activeCls}" onclick="filterOrders('${s}')">${s} (${cnt})</button>`;
+        return `<button type="button" class="filter-chip ${activeCls}" onclick="filterOrders('${escapeAttrJs(s)}')">${s} (${cnt})</button>`;
       }).join("");
 
       const filtered = orderFilter === "Tất cả" ? baseFiltered : baseFiltered.filter(o => o.status === orderFilter);
@@ -843,18 +1136,35 @@
       container.innerHTML = filtered.map(o => {
         const statusOptions = ["Chờ xác nhận", "Đã xác nhận", "Đang giao", "Hoàn thành", "Đã hủy"]
           .map(s => `<option value="${s}" ${o.status === s ? "selected" : ""}>${s}</option>`).join("");
-        const cleanPhone = String(o.phone || "").replace(/^'/, "");
+        const cleanPhone = String(o.phone || "").replace(/^'/, "").trim();
         const isPaid = o.paymentMethod === "Đã thanh toán CK";
         const codToCollect = isPaid ? 0 : Number(o.total || 0);
         const discountAmt = Number(o.discountAmount || 0);
         const shipFee = Number(o.shipFee || 0);
 
+        const safeOrderId = escapeAttrJs(o.orderId);
+        const safeName = escapeAttrJs(o.customerName || "");
+        const safePhone = escapeAttrJs(cleanPhone);
+        const safeAddr = escapeAttrJs(o.address || "");
+        const safePlat = escapeAttrJs(o.platform || "");
+        const safeHandle = escapeAttrJs(o.socialHandle || "");
+
+        // Tách từng món hàng xuống dòng theo dấu ;
+        const itemLines = String(o.itemsSummary || "")
+          .split(";")
+          .map(s => s.trim())
+          .filter(Boolean);
+        const itemsListHtml = itemLines.length
+          ? `<ul class="order-items-list">${itemLines.map(line => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
+          : `<div>${escapeHtml(o.itemsSummary)}</div>`;
+
         return `
           <div class="card">
-            <div class="card-top">
+            <!-- TẦNG 1: Header -->
+            <div class="order-tier-1">
               <div>
-                <strong>#${escapeHtml(o.orderId)} — ${escapeHtml(o.customerName)}</strong>
-                <div style="font-size:12px; color:var(--muted);">${escapeHtml(o.createdAt)} • SĐT: ${escapeHtml(cleanPhone)}</div>
+                <strong style="font-size:14px; color:var(--primary);">#${escapeHtml(o.orderId)}</strong>
+                <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(o.createdAt)}</span>
               </div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
                 <span class="badge ${isPaid ? 'badge-ok' : 'badge-info'}">${isPaid ? 'Đã thanh toán CK' : 'COD'}</span>
@@ -862,39 +1172,63 @@
               </div>
             </div>
 
-            <div style="font-size:13px; margin-bottom:6px;">
-              <div><strong>Liên hệ:</strong> ${escapeHtml(o.platform)} — <strong>${escapeHtml(o.socialHandle)}</strong></div>
-              <div><strong>Địa chỉ:</strong> ${escapeHtml(o.address)}</div>
-              <div style="margin-top:4px; background:var(--soft); padding:7px 9px; border-radius:8px; white-space:pre-line;"><strong>Đơn giấy:</strong> ${escapeHtml(o.itemsSummary)}</div>
-              ${o.note ? `<div style="margin-top:4px; color:var(--warn-text);"><strong>Ghi chú:</strong> ${escapeHtml(o.note)}</div>` : ""}
-            </div>
-
-            <div style="font-size:12.5px; color:var(--muted); display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
-              ${discountAmt > 0 ? `<span style="color:var(--accent);">Giảm giá: -${fmtVND(discountAmt)}</span>` : ""}
-              <span>Phí ship: ${fmtVND(shipFee)}</span>
-              <span>Tổng đơn: <strong style="color:var(--text);">${fmtVND(o.total)}</strong></span>
-            </div>
-
-            <!-- Ô nhập mã vận đơn sau khi gửi -->
-            <div class="tracking-bar">
-              <span style="font-size:12px; font-weight:600; white-space:nowrap;">Vận đơn:</span>
-              <input id="track_${escapeHtml(o.orderId)}" class="input" style="padding:5px 9px; font-size:12.5px;" placeholder="Nhập mã vận đơn sau khi gửi..." value="${escapeHtml(o.trackingCode)}" />
-              <button type="button" class="btn btn-soft btn-sm" style="white-space:nowrap;" onclick="saveQuickTracking('${escapeHtml(o.orderId)}')">Lưu</button>
-              ${o.trackingCode ? `<button type="button" class="btn btn-soft btn-sm" style="white-space:nowrap;" onclick="copyText('${escapeHtml(o.trackingCode)}', 'Đã copy mã vận đơn')">Copy</button>` : ""}
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;">
-              <div>
-                <strong style="color:var(--primary); font-size:13.5px;">Thu hộ COD: ${fmtVND(codToCollect)}</strong>
+            <!-- TẦNG 2: Thông tin giao hàng & Danh sách món -->
+            <div class="order-tier-2">
+              <div class="field-copy-row">
+                <div><strong>Người nhận:</strong> ${escapeHtml(o.customerName)}</div>
+                <button type="button" class="copy-icon-btn" onclick="copyText('${safeName}', 'Đã copy tên người nhận')" title="Copy tên">📋</button>
               </div>
-              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" class="btn btn-soft btn-sm" onclick="toggleOrderPayment('${escapeHtml(o.orderId)}')">${isPaid ? 'Đổi sang COD' : 'Đánh dấu Đã CK'}</button>
-                <button type="button" class="btn btn-soft btn-sm" onclick="openOrderEditModal('${escapeHtml(o.orderId)}')">Sửa đơn</button>
-                <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderShipping('${escapeHtml(o.orderId)}')">Copy vận chuyển</button>
-                <select class="select" style="padding:5px 8px; font-size:12px; width:auto;" onchange="changeOrderStatus('${escapeHtml(o.orderId)}', this.value)">
-                  ${statusOptions}
-                </select>
-                <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder('${escapeHtml(o.orderId)}')">Xóa</button>
+
+              <div class="field-copy-row">
+                <div><strong>SĐT:</strong> <a href="tel:${escapeHtml(cleanPhone)}" style="color:var(--text); text-decoration:none; font-weight:600;">${escapeHtml(cleanPhone)}</a></div>
+                <button type="button" class="copy-icon-btn" onclick="copyText('${safePhone}', 'Đã copy số điện thoại')" title="Copy SĐT">📋</button>
+              </div>
+
+              <div class="field-copy-row">
+                <div><strong>Địa chỉ:</strong> ${escapeHtml(o.address)}</div>
+                <button type="button" class="copy-icon-btn" onclick="copyText('${safeAddr}', 'Đã copy địa chỉ')" title="Copy địa chỉ">📋</button>
+              </div>
+
+              <div class="field-copy-row" style="align-items:center;">
+                <div><strong>Liên hệ:</strong> ${escapeHtml(o.platform)} — <strong>${escapeHtml(o.socialHandle)}</strong></div>
+                <button type="button" class="msg-social-btn" onclick="openCustomerMessage('${safePlat}', '${safeHandle}')">Nhắn tin</button>
+              </div>
+
+              <div class="order-items-box">
+                <strong style="font-size:12px; color:var(--primary);">Danh sách món:</strong>
+                ${itemsListHtml}
+              </div>
+
+              ${o.note ? `<div style="margin-top:2px; color:var(--warn-text); font-size:12.5px;"><strong>Ghi chú:</strong> ${escapeHtml(o.note)}</div>` : ""}
+            </div>
+
+            <!-- TẦNG 3: Tài chính, Vận đơn tự lưu & Thanh công cụ -->
+            <div class="order-tier-3">
+              <div class="finance-row">
+                ${discountAmt > 0 ? `<span style="color:var(--accent);">Giảm: <strong>-${fmtVND(discountAmt)}</strong></span>` : ""}
+                <span>Phí ship: <strong>${fmtVND(shipFee)}</strong></span>
+                <span>Tổng đơn: <strong>${fmtVND(o.total)}</strong></span>
+                <span style="color:var(--primary); font-size:13.5px;">Thu hộ COD: <strong>${fmtVND(codToCollect)}</strong></span>
+              </div>
+
+              <div class="tracking-bar">
+                <span style="font-size:12px; font-weight:600; white-space:nowrap;">Vận đơn:</span>
+                <input id="track_${escapeHtml(o.orderId)}" class="input" style="padding:5px 9px; font-size:12.5px;" placeholder="Nhập mã vận đơn (tự động lưu)..." value="${escapeHtml(o.trackingCode)}" oninput="scheduleTrackingAutoSave('${safeOrderId}')" onchange="saveTrackingAuto('${safeOrderId}')" onkeydown="if(event.key==='Enter'){event.preventDefault(); saveTrackingAuto('${safeOrderId}');}" />
+                <span id="trackStatus_${escapeHtml(o.orderId)}" class="track-status-hint">${o.trackingCode ? "✓ Đã lưu" : ""}</span>
+              </div>
+
+              <div class="order-toolbar">
+                <div class="order-toolbar-left">
+                  <button type="button" class="btn btn-soft btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">${isPaid ? 'Đổi sang COD' : 'Đổi sang Đã CK'}</button>
+                  <button type="button" class="btn btn-soft btn-sm" onclick="openOrderEditModal('${safeOrderId}')">Sửa</button>
+                  <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderShipping('${safeOrderId}')">Copy tất cả</button>
+                </div>
+                <div class="order-toolbar-right">
+                  <select class="select" style="padding:5px 8px; font-size:12px; width:auto;" onchange="changeOrderStatus('${safeOrderId}', this.value)">
+                    ${statusOptions}
+                  </select>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder('${safeOrderId}', this)" title="Xóa đơn">🗑</button>
+                </div>
               </div>
             </div>
           </div>
@@ -902,8 +1236,9 @@
       }).join("");
     }
 
-    function copyText(text, msg = "Đã copy") {
-      navigator.clipboard.writeText(text).then(() => showToast(msg));
+    function getLiveTrackingValue(orderId, fallbackVal = "") {
+      const input = document.getElementById("track_" + orderId);
+      return input ? input.value.trim() : String(fallbackVal || "").trim();
     }
 
     function copyOrderShipping(orderId) {
@@ -912,59 +1247,180 @@
       const cleanPhone = String(o.phone || "").replace(/^'/, "");
       const isPaid = o.paymentMethod === "Đã thanh toán CK";
       const codText = isPaid ? "0đ (Khách đã chuyển khoản)" : fmtVND(o.total);
-      const trackPart = o.trackingCode ? ` | Mã vận đơn: ${o.trackingCode}` : "";
+      const liveTrack = getLiveTrackingValue(orderId, o.trackingCode);
+      const trackPart = liveTrack ? ` | Mã vận đơn: ${liveTrack}` : "";
       const shipCopy = `${o.customerName} | ${cleanPhone} | ${o.address} | Thu hộ COD: ${codText}${trackPart} | Hàng: ${o.itemsSummary}`;
-      copyText(shipCopy, "Đã copy thông tin gửi vận chuyển");
+      copyText(shipCopy, "Đã copy toàn bộ thông tin đơn hàng");
     }
 
-    async function saveQuickTracking(orderId) {
+    function scheduleTrackingAutoSave(orderId) {
+      const statusEl = document.getElementById("trackStatus_" + orderId);
+      if (statusEl) {
+        statusEl.className = "track-status-hint";
+        statusEl.textContent = "Chờ lưu...";
+      }
+      if (trackingDebounceTimers[orderId]) {
+        clearTimeout(trackingDebounceTimers[orderId]);
+      }
+      trackingDebounceTimers[orderId] = setTimeout(() => {
+        saveTrackingAuto(orderId);
+      }, 800);
+    }
+
+    async function saveTrackingAuto(orderId) {
+      if (trackingDebounceTimers[orderId]) {
+        clearTimeout(trackingDebounceTimers[orderId]);
+        delete trackingDebounceTimers[orderId];
+      }
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
+
       const input = document.getElementById("track_" + orderId);
-      const trackingCode = input ? input.value.trim() : "";
+      const statusEl = document.getElementById("trackStatus_" + orderId);
+      const nextCode = input ? input.value.trim() : "";
+
+      if (nextCode === String(o.trackingCode || "").trim()) {
+        if (statusEl) {
+          statusEl.className = "track-status-hint saved";
+          statusEl.textContent = nextCode ? "✓ Đã lưu" : "";
+        }
+        return;
+      }
+
+      if (statusEl) {
+        statusEl.className = "track-status-hint saving";
+        statusEl.textContent = "Đang lưu...";
+      }
+
+      const prevCode = o.trackingCode;
+      o.trackingCode = nextCode;
+
       try {
         const res = await callApi({
           action: "update_order",
-          order: { ...o, trackingCode }
+          order: { ...o, trackingCode: nextCode }
         });
-        if (res.orders) applyAllData({ ...res, products: res.products || allProducts, faqs: allFaqs });
-        showToast("Đã lưu mã vận đơn");
+        if (res.orders) {
+          allOrders = res.orders.map(item => ({
+            ...item,
+            shipFee: Number(item.shipFee || 0),
+            discountType: item.discountType || "amount",
+            discountValue: Number(item.discountValue || 0),
+            discountAmount: Number(item.discountAmount || 0),
+            paymentMethod: item.paymentMethod || "COD",
+            trackingCode: item.trackingCode || ""
+          }));
+        }
+        const freshStatusEl = document.getElementById("trackStatus_" + orderId);
+        if (freshStatusEl) {
+          freshStatusEl.className = "track-status-hint saved";
+          freshStatusEl.textContent = "✓ Đã lưu";
+        }
       } catch (err) {
+        o.trackingCode = prevCode;
+        const errStatusEl = document.getElementById("trackStatus_" + orderId);
+        if (errStatusEl) {
+          errStatusEl.className = "track-status-hint err";
+          errStatusEl.textContent = "⚠ Lỗi lưu";
+        }
         showToast("Lỗi lưu vận đơn: " + err.message);
       }
     }
 
+    // Optimistic UI: Đổi COD / Đã CK
     async function toggleOrderPayment(orderId) {
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
-      const nextPayment = o.paymentMethod === "Đã thanh toán CK" ? "COD" : "Đã thanh toán CK";
+      const prevPayment = o.paymentMethod;
+      const prevTracking = o.trackingCode;
+      const liveTracking = getLiveTrackingValue(orderId, o.trackingCode);
+      const nextPayment = prevPayment === "Đã thanh toán CK" ? "COD" : "Đã thanh toán CK";
+
+      // Cập nhật lạc quan ngay lập tức (0ms)
+      o.paymentMethod = nextPayment;
+      o.trackingCode = liveTracking;
+      renderOrders();
+      showToast(`Đã chuyển sang: ${nextPayment}`);
+
       try {
         const res = await callApi({
           action: "update_order",
-          order: { ...o, paymentMethod: nextPayment }
+          order: { ...o, paymentMethod: nextPayment, trackingCode: liveTracking }
         });
-        if (res.orders) applyAllData({ ...res, products: res.products || allProducts, faqs: allFaqs });
-        showToast(`Đã chuyển sang: ${nextPayment}`);
+        if (res.orders) {
+          applyAllData({ orders: res.orders, products: res.products || allProducts, faqs: allFaqs });
+        }
       } catch (err) {
-        showToast("Lỗi: " + err.message);
+        // Hoàn tác nếu lỗi mạng
+        o.paymentMethod = prevPayment;
+        o.trackingCode = prevTracking;
+        renderOrders();
+        showToast("Không đồng bộ được, đã hoàn tác: " + err.message);
       }
     }
 
-    async function changeOrderStatus(orderId, status) {
+    // Optimistic UI: Đổi trạng thái đơn (kèm dự tính hoàn/trừ kho lạc quan 2 chiều)
+    async function changeOrderStatus(orderId, nextStatus) {
+      const o = allOrders.find(item => item.orderId === orderId);
+      if (!o) return;
+      const prevStatus = o.status;
+      if (prevStatus === nextStatus) return;
+
+      const liveTracking = getLiveTrackingValue(orderId, o.trackingCode);
+      o.status = nextStatus;
+      o.trackingCode = liveTracking;
+
+      const isCancelling = (nextStatus === "Đã hủy" && prevStatus !== "Đã hủy");
+      const isRestoring = (prevStatus === "Đã hủy" && nextStatus !== "Đã hủy");
+      const stockSnapshot = allProducts.map(p => ({ id: p.id, stock: p.stock }));
+
+      if (isCancelling || isRestoring) {
+        let items = [];
+        try { items = JSON.parse(o.itemsJson || "[]"); } catch (e) {}
+        items.forEach(it => {
+          const units = Number(it.baseUnits || 0);
+          if (units > 0 && it.id && it.buyMode !== "custom") {
+            const p = allProducts.find(prod => prod.id === it.id);
+            if (p) {
+              p.stock = isCancelling ? (p.stock + units) : Math.max(0, p.stock - units);
+            }
+          }
+        });
+      }
+
+      // Cập nhật giao diện tức thì (0ms)
+      renderOrders();
+      renderProducts();
+      showToast(isCancelling ? "Đã hủy đơn & hoàn trả tồn kho" : (isRestoring ? "Đã khôi phục đơn & trừ lại kho" : "Đã cập nhật trạng thái đơn"));
+
       try {
-        const res = await callApi({ action: "update_order_status", orderId, status });
+        const res = await callApi({ action: "update_order_status", orderId, status: nextStatus });
         applyAllData({
           orders: res.orders || allOrders,
           products: res.products || allProducts,
           faqs: allFaqs
         });
-        showToast(status === "Đã hủy" ? "Đã hủy đơn & hoàn trả tồn kho" : "Đã cập nhật trạng thái đơn");
       } catch (err) {
-        showToast("Lỗi: " + err.message);
+        // Hoàn tác nếu kết nối thất bại
+        o.status = prevStatus;
+        stockSnapshot.forEach(snap => {
+          const p = allProducts.find(prod => prod.id === snap.id);
+          if (p) p.stock = snap.stock;
+        });
+        renderOrders();
+        renderProducts();
+        showToast("Lỗi cập nhật trạng thái, đã hoàn tác: " + err.message);
       }
     }
-    async function deleteOrder(orderId) {
+
+    async function deleteOrder(orderId, btnEl) {
       if (!confirm(`Xóa vĩnh viễn đơn #${orderId}?\n(Nếu đơn chưa hủy, số lượng giấy sẽ được tự động hoàn lại vào kho)`)) return;
+
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "...";
+      }
+
       try {
         const res = await callApi({ action: "delete_order", orderId });
         applyAllData({
@@ -974,10 +1430,124 @@
         });
         showToast("Đã xóa đơn hàng");
       } catch (err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "🗑";
+        }
         showToast("Lỗi xóa đơn: " + err.message);
       }
     }
-    // --- CHỈNH SỬA ĐƠN HÀNG (SẢN PHẨM, GIÁ, GIẢM GIÁ, PHÍ SHIP, COD/CK, VẬN ĐƠN) ---
+
+    // --- TÌM KIẾM NHANH SẢN PHẨM KHI TẠO / SỬA ĐƠN HÀNG ---
+    function getCatalogPickableOptions() {
+      const opts = [];
+      allProducts.forEach(p => {
+        const hasPack = p.productType !== "item" && Number(p.packPrice) > 0 && Number(p.packSize) > 1;
+        const hasUnit = Number(p.unitPrice) > 0;
+        const stockText = p.stock > 0 ? `Tồn: ${p.stock} ${p.baseUnit}` : "Hết sẵn";
+
+        if (hasPack) {
+          opts.push({
+            id: p.id,
+            mode: "pack",
+            name: p.name,
+            category: p.category,
+            label: `${p.packUnit || "gói"} (${p.packSize} ${p.baseUnit})`,
+            price: Number(p.packPrice),
+            stockText,
+            outOfStock: p.stock < Number(p.packSize)
+          });
+        }
+        if (hasUnit) {
+          opts.push({
+            id: p.id,
+            mode: "unit",
+            name: p.name,
+            category: p.category,
+            label: p.productType === "item" ? p.baseUnit : `lẻ 1 ${p.baseUnit}`,
+            price: Number(p.unitPrice),
+            stockText,
+            outOfStock: p.stock <= 0
+          });
+        }
+      });
+      return opts;
+    }
+
+    function renderCatalogSearchDropdown() {
+      const input = document.getElementById("catalogSearchInput");
+      const dropdown = document.getElementById("catalogSearchResults");
+      if (!input || !dropdown) return;
+
+      const qNorm = normalizeText(input.value);
+      const allOpts = getCatalogPickableOptions();
+
+      if (!allOpts.length) {
+        dropdown.innerHTML = `<div style="padding:10px; font-size:12px; color:var(--muted);">Kho hiện chưa có sản phẩm nào được cài giá bán.</div>`;
+        dropdown.classList.add("open");
+        return;
+      }
+
+      const matched = qNorm
+        ? allOpts.filter(opt => normalizeText(`${opt.name} ${opt.category} ${opt.label}`).includes(qNorm))
+        : allOpts;
+
+      if (!matched.length) {
+        dropdown.innerHTML = `<div style="padding:10px; font-size:12px; color:var(--muted);">Không tìm thấy sản phẩm khớp "${escapeHtml(input.value)}".</div>`;
+        dropdown.classList.add("open");
+        return;
+      }
+
+      dropdown.innerHTML = matched.map(opt => `
+        <div class="catalog-pick-item" onclick="pickCatalogOptionToEditOrder('${escapeAttrJs(opt.id)}', '${escapeAttrJs(opt.mode)}')">
+          <div>
+            <div style="font-weight:600; color:var(--text);">${escapeHtml(opt.name)} <span style="font-weight:400; color:var(--muted);">(${escapeHtml(opt.label)})</span></div>
+            <div style="font-size:11.5px; color:var(--primary); font-weight:600;">${fmtVND(opt.price)}</div>
+          </div>
+          <span class="badge ${opt.outOfStock ? 'badge-warn' : 'badge-ok'}">${escapeHtml(opt.stockText)}</span>
+        </div>
+      `).join("");
+      dropdown.classList.add("open");
+    }
+
+    function pickCatalogOptionToEditOrder(id, mode) {
+      const p = allProducts.find(item => item.id === id);
+      if (!p) return;
+
+      const isPack = mode === "pack";
+      const unitLabel = isPack ? `${p.packUnit || "gói"} (${p.packSize} ${p.baseUnit})` : p.baseUnit;
+      const price = isPack ? Number(p.packPrice || 0) : Number(p.unitPrice || 0);
+      const baseUnits = isPack ? Number(p.packSize || 1) : 1;
+
+      editingOrderItems.push({
+        id: p.id,
+        name: p.name,
+        buyMode: mode,
+        unitLabel,
+        qty: 1,
+        price,
+        baseUnits
+      });
+
+      const input = document.getElementById("catalogSearchInput");
+      const dropdown = document.getElementById("catalogSearchResults");
+      if (input) input.value = "";
+      if (dropdown) dropdown.classList.remove("open");
+
+      renderEditOrderItems();
+      recalcEditOrderTotals();
+      showToast(`Đã thêm ${p.name} (${unitLabel})`);
+    }
+
+    document.addEventListener("click", (e) => {
+      const wrap = document.querySelector(".catalog-picker-wrap");
+      const dropdown = document.getElementById("catalogSearchResults");
+      if (dropdown && wrap && !wrap.contains(e.target)) {
+        dropdown.classList.remove("open");
+      }
+    });
+
+    // --- CHỈNH SỬA & TẠO ĐƠN HÀNG ---
     function openNewOrderModal() {
       document.getElementById("orderEditTitle").textContent = "Tạo đơn hàng mới";
       document.getElementById("editOrderId").value = "";
@@ -993,25 +1563,16 @@
       document.getElementById("editDiscountValue").value = 0;
       document.getElementById("editShipFee").value = 15000;
       document.getElementById("saveOrderEditBtn").textContent = "Tạo đơn hàng";
+      document.getElementById("catalogSearchInput").value = "";
+      document.getElementById("catalogSearchResults").classList.remove("open");
 
       editingOrderItems = [];
-
-      const sel = document.getElementById("addCatalogItemSelect");
-      const opts = [];
-      allProducts.forEach(p => {
-        if (Number(p.packPrice) > 0 && Number(p.packSize) > 1) {
-          opts.push(`<option value="${escapeHtml(p.id)}|pack">${escapeHtml(p.name)} — ${escapeHtml(p.packUnit || 'gói')} (${fmtVND(p.packPrice)})</option>`);
-        }
-        if (Number(p.unitPrice) > 0) {
-          opts.push(`<option value="${escapeHtml(p.id)}|unit">${escapeHtml(p.name)} — lẻ ${escapeHtml(p.baseUnit)} (${fmtVND(p.unitPrice)})</option>`);
-        }
-      });
-      sel.innerHTML = opts.join("");
 
       renderEditOrderItems();
       recalcEditOrderTotals();
       document.getElementById("orderEditModal").classList.add("open");
     }
+
     function openOrderEditModal(orderId) {
       const o = allOrders.find(item => item.orderId === orderId);
       if (!o) return;
@@ -1025,13 +1586,14 @@
       document.getElementById("editPlatform").value = o.platform || "Instagram";
       document.getElementById("editSocialHandle").value = o.socialHandle || "";
       document.getElementById("editPaymentMethod").value = o.paymentMethod || "COD";
-      document.getElementById("editTrackingCode").value = o.trackingCode || "";
+      document.getElementById("editTrackingCode").value = getLiveTrackingValue(orderId, o.trackingCode);
       document.getElementById("editNote").value = o.note || "";
       document.getElementById("editDiscountType").value = o.discountType || "amount";
       document.getElementById("editDiscountValue").value = Number(o.discountValue || 0);
       document.getElementById("editShipFee").value = Number(o.shipFee || 0);
+      document.getElementById("catalogSearchInput").value = "";
+      document.getElementById("catalogSearchResults").classList.remove("open");
 
-      // Parse danh sách món trong đơn (nếu backend trả về itemsJson hoặc fallback từ itemsSummary)
       let parsedItems = [];
       if (Array.isArray(o.items) && o.items.length) {
         parsedItems = o.items.map(it => ({ ...it }));
@@ -1050,19 +1612,6 @@
         }];
       }
       editingOrderItems = parsedItems;
-
-      // Populate dropdown thêm sản phẩm từ kho
-      const sel = document.getElementById("addCatalogItemSelect");
-      const opts = [];
-      allProducts.forEach(p => {
-        if (Number(p.packPrice) > 0 && Number(p.packSize) > 1) {
-          opts.push(`<option value="${escapeHtml(p.id)}|pack">${escapeHtml(p.name)} — ${escapeHtml(p.packUnit || 'gói')} (${fmtVND(p.packPrice)})</option>`);
-        }
-        if (Number(p.unitPrice) > 0) {
-          opts.push(`<option value="${escapeHtml(p.id)}|unit">${escapeHtml(p.name)} — lẻ ${escapeHtml(p.baseUnit)} (${fmtVND(p.unitPrice)})</option>`);
-        }
-      });
-      sel.innerHTML = opts.join("");
 
       renderEditOrderItems();
       recalcEditOrderTotals();
@@ -1107,7 +1656,7 @@
     function updateEditItemField(idx, field, val) {
       if (!editingOrderItems[idx]) return;
       editingOrderItems[idx][field] = val;
-      if (field === "qty" && editingOrderItems[idx].id) {
+      if (field === "qty" && editingOrderItems[idx].id && editingOrderItems[idx].buyMode !== "custom") {
         const p = allProducts.find(prod => prod.id === editingOrderItems[idx].id);
         if (p) {
           const perUnit = editingOrderItems[idx].buyMode === "pack" ? Number(p.packSize || 1) : 1;
@@ -1119,31 +1668,6 @@
 
     function removeEditOrderItem(idx) {
       editingOrderItems.splice(idx, 1);
-      renderEditOrderItems();
-      recalcEditOrderTotals();
-    }
-
-    function addCatalogItemToEditOrder() {
-      const val = document.getElementById("addCatalogItemSelect").value;
-      if (!val) return;
-      const [id, mode] = val.split("|");
-      const p = allProducts.find(item => item.id === id);
-      if (!p) return;
-
-      const isPack = mode === "pack";
-      const unitLabel = isPack ? `${p.packUnit || "gói"} (${p.packSize} ${p.baseUnit})` : p.baseUnit;
-      const price = isPack ? Number(p.packPrice || 0) : Number(p.unitPrice || 0);
-      const baseUnits = isPack ? Number(p.packSize || 1) : 1;
-
-      editingOrderItems.push({
-        id: p.id,
-        name: p.name,
-        buyMode: mode,
-        unitLabel,
-        qty: 1,
-        price,
-        baseUnits
-      });
       renderEditOrderItems();
       recalcEditOrderTotals();
     }
@@ -1228,8 +1752,9 @@
       };
 
       const btn = document.getElementById("saveOrderEditBtn");
+      const origLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = "Đang lưu...";
+      btn.textContent = "Đang xử lý...";
 
       try {
         if (!orderId) {
@@ -1252,11 +1777,69 @@
         showToast("Lỗi lưu đơn: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = "Lưu thay đổi đơn hàng";
+        btn.textContent = origLabel;
       }
     }
 
     // --- PRODUCTS ---
+    function populateCategorySuggestions() {
+      const dl = document.getElementById("categorySuggestions");
+      if (!dl) return;
+      const defaults = ["Giấy A5", "Giấy A4", "Giấy A6", "Bao thư", "Bộ kit", "Sổ tay", "Dụng cụ"];
+      const existing = allProducts.map(p => String(p.category || "").trim()).filter(Boolean);
+      const merged = [...new Set([...existing, ...defaults])];
+      dl.innerHTML = merged.map(c => `<option value="${escapeHtml(c)}"></option>`).join("");
+    }
+
+    function setProductType(type) {
+      const isItem = type === "item";
+      document.getElementById("pProductType").value = isItem ? "item" : "paper";
+
+      document.getElementById("typeBtnPaper").classList.toggle("active", !isItem);
+      document.getElementById("typeBtnItem").classList.toggle("active", isItem);
+
+      const unsizedField = document.getElementById("unsizedStockField");
+      const stockGrid = document.getElementById("stockInputsGrid");
+      const packConfigRow = document.getElementById("packConfigRow");
+      const packPriceField = document.getElementById("packPriceField");
+      const priceConfigRow = document.getElementById("priceConfigRow");
+
+      if (isItem) {
+        // Loại 2: Sản phẩm hoàn chỉnh / Bộ kit / Dụng cụ -> ẩn Chưa gia keo & Quy đổi đóng gói
+        unsizedField.style.display = "none";
+        stockGrid.className = "";
+        document.getElementById("stockSectionTitle").textContent = "Tồn kho & Giá bán sản phẩm";
+        document.getElementById("pStockLabel").textContent = "Số lượng tồn kho *";
+        document.getElementById("packConvertPreview").style.display = "none";
+
+        packConfigRow.style.display = "none";
+        packPriceField.style.display = "none";
+        priceConfigRow.className = "";
+        document.getElementById("pricingSectionTitle").textContent = "Giá bán lẻ";
+        document.getElementById("pUnitPriceLabel").textContent = "Giá bán (VNĐ) *";
+        if (!document.getElementById("pId").value && document.getElementById("pBaseUnit").value === "tờ") {
+          document.getElementById("pBaseUnit").value = "bộ";
+        }
+      } else {
+        // Loại 1: Giấy thủ công (Bán gói & lẻ)
+        unsizedField.style.display = "flex";
+        stockGrid.className = "grid-2";
+        document.getElementById("stockSectionTitle").textContent = "Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)";
+        document.getElementById("pStockLabel").textContent = "1. Sẵn sàng giao *";
+        document.getElementById("packConvertPreview").style.display = "block";
+
+        packConfigRow.style.display = "grid";
+        packPriceField.style.display = "flex";
+        priceConfigRow.className = "grid-2";
+        document.getElementById("pricingSectionTitle").textContent = "Cài đặt quy đổi đóng gói & bảng giá";
+        document.getElementById("pUnitPriceLabel").textContent = "Giá lẻ từng tờ/cái (VNĐ)";
+        if (!document.getElementById("pId").value && document.getElementById("pBaseUnit").value === "bộ") {
+          document.getElementById("pBaseUnit").value = "tờ";
+        }
+      }
+      updatePackPreview();
+    }
+
     function filterProducts(mode) {
       productFilter = mode;
       renderProducts();
@@ -1285,7 +1868,8 @@
       }
 
       container.innerHTML = list.map(p => {
-        const hasPack = Number(p.packPrice) > 0 && Number(p.packSize) > 1;
+        const isItem = p.productType === "item";
+        const hasPack = !isItem && Number(p.packPrice) > 0 && Number(p.packSize) > 1;
         const packs = hasPack ? Math.floor(p.stock / p.packSize) : 0;
         const rem = hasPack ? (p.stock % p.packSize) : 0;
         const readyText = hasPack
@@ -1295,6 +1879,7 @@
         const isVis = p.visible !== false;
         const unsized = Number(p.unsizedStock || 0);
         const imgs = parseImages(p);
+        const safeProdId = escapeAttrJs(p.id);
 
         return `
           <div class="card ${isVis ? '' : 'hidden-prod'}">
@@ -1305,22 +1890,22 @@
                   <strong>${escapeHtml(p.name)}</strong> <span style="font-size:12px; color:var(--muted);">(${escapeHtml(p.category)})</span>
                   <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
                     <span class="badge ${isVis ? 'badge-ok' : 'badge-muted'}">${isVis ? 'Đang hiện' : 'Đang ẩn'}</span>
-                    <span class="badge ${lowStock}">Sẵn sàng: ${readyText}</span>
-                    <span class="badge ${unsized > 0 ? 'badge-warn' : 'badge-muted'}">Chưa gia keo: ${unsized} ${escapeHtml(p.baseUnit)}</span>
+                    <span class="badge ${lowStock}">${isItem ? 'Tồn kho' : 'Sẵn sàng'}: ${readyText}</span>
+                    ${!isItem ? `<span class="badge ${unsized > 0 ? 'badge-warn' : 'badge-muted'}">Chưa gia keo: ${unsized} ${escapeHtml(p.baseUnit)}</span>` : ""}
                     ${imgs.length > 1 ? `<span class="badge badge-info">${imgs.length} ảnh</span>` : ""}
                   </div>
                   <div style="font-size:12.5px; margin-top:5px;">
                     ${hasPack ? `<span>Giá gói: <strong>${fmtVND(p.packPrice)}</strong>/${escapeHtml(p.packUnit || "gói")} (${p.packSize} ${escapeHtml(p.baseUnit)})</span> • ` : ""}
-                    ${Number(p.unitPrice) > 0 ? `<span>Giá lẻ: <strong>${fmtVND(p.unitPrice)}</strong>/${escapeHtml(p.baseUnit)}</span>` : ""}
+                    ${Number(p.unitPrice) > 0 ? `<span>${isItem ? 'Giá bán' : 'Giá lẻ'}: <strong>${fmtVND(p.unitPrice)}</strong>/${escapeHtml(p.baseUnit)}</span>` : ""}
                   </div>
                 </div>
               </div>
             </div>
             <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-              ${unsized > 0 ? `<button type="button" class="btn btn-accent btn-sm" onclick="finishSizingPrompt('${escapeHtml(p.id)}')">✓ Gia keo xong</button>` : ""}
-              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVisibility('${escapeHtml(p.id)}', ${!isVis})">${isVis ? 'Ẩn khỏi web' : 'Bật hiển thị'}</button>
-              <button type="button" class="btn btn-soft btn-sm" onclick="openProductModal('${escapeHtml(p.id)}')">Sửa</button>
-              <button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${escapeHtml(p.id)}')">Xóa</button>
+              ${(!isItem && unsized > 0) ? `<button type="button" class="btn btn-accent btn-sm" onclick="finishSizingPrompt('${safeProdId}')">✓ Gia keo xong</button>` : ""}
+              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVisibility('${safeProdId}', ${!isVis})">${isVis ? 'Ẩn khỏi web' : 'Bật hiển thị'}</button>
+              <button type="button" class="btn btn-soft btn-sm" onclick="openProductModal('${safeProdId}')">Sửa</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${safeProdId}', this)">Xóa</button>
             </div>
           </div>
         `;
@@ -1339,39 +1924,64 @@
         return;
       }
 
+      const prevStock = Number(p.stock || 0);
+      const prevUnsized = maxVal;
+
+      // Optimistic UI
+      p.stock = prevStock + moved;
+      p.unsizedStock = prevUnsized - moved;
+      renderProducts();
+      showToast(`Đã chuyển ${moved} ${p.baseUnit} sang Sẵn sàng giao`);
+
       const updatedProduct = {
         ...p,
-        stock: Number(p.stock || 0) + moved,
-        unsizedStock: maxVal - moved,
         imageUrl: parseImages(p).join(", ")
       };
 
       try {
         const res = await callApi({ action: "save_product", product: updatedProduct });
         applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
-        showToast(`Đã chuyển ${moved} ${p.baseUnit} sang Sẵn sàng giao`);
       } catch (err) {
-        showToast("Lỗi cập nhật: " + err.message);
+        p.stock = prevStock;
+        p.unsizedStock = prevUnsized;
+        renderProducts();
+        showToast("Lỗi cập nhật, đã hoàn tác: " + err.message);
       }
     }
 
+    // Optimistic UI: Ẩn / Hiện sản phẩm
     async function toggleVisibility(id, nextVisible) {
+      const p = allProducts.find(item => item.id === id);
+      if (!p) return;
+      const prevVisible = p.visible;
+
+      p.visible = nextVisible;
+      renderProducts();
+      showToast(nextVisible ? "Đã bật hiển thị sản phẩm trên web" : "Đã ẩn sản phẩm khỏi web khách");
+
       try {
         const res = await callApi({ action: "toggle_product_visibility", id, visible: nextVisible });
         applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
-        showToast(nextVisible ? "Đã bật hiển thị sản phẩm trên web" : "Đã ẩn sản phẩm khỏi web khách");
       } catch (err) {
-        showToast("Lỗi: " + err.message);
+        p.visible = prevVisible;
+        renderProducts();
+        showToast("Lỗi đồng bộ, đã hoàn tác: " + err.message);
       }
     }
 
     function updatePackPreview() {
+      const isItem = document.getElementById("pProductType").value === "item";
+      const el = document.getElementById("packConvertPreview");
+      if (isItem) {
+        el.style.display = "none";
+        return;
+      }
+      el.style.display = "block";
       const stock = Number(document.getElementById("pStock").value || 0);
       const unsized = Number(document.getElementById("pUnsizedStock").value || 0);
       const baseUnit = document.getElementById("pBaseUnit").value.trim() || "tờ";
       const packUnit = document.getElementById("pPackUnit").value.trim();
       const packSize = Math.max(1, Number(document.getElementById("pPackSize").value || 1));
-      const el = document.getElementById("packConvertPreview");
 
       if (packUnit && packSize > 1) {
         const packs = Math.floor(stock / packSize);
@@ -1424,7 +2034,10 @@
     }
 
     function openProductModal(id = "") {
+      populateCategorySuggestions();
       const p = allProducts.find(item => item.id === id);
+      const pType = p ? (p.productType === "item" ? "item" : "paper") : "paper";
+
       document.getElementById("prodModalTitle").textContent = p ? "Sửa sản phẩm" : "Thêm sản phẩm mới";
       document.getElementById("pId").value = p ? p.id : "";
       document.getElementById("pName").value = p ? p.name : "";
@@ -1441,8 +2054,9 @@
       document.getElementById("pImageUrlInput").value = "";
       document.getElementById("pImageFile").value = "";
       currentProductImages = p ? parseImages(p) : [];
+
+      setProductType(pType);
       renderProductImagesPreview();
-      updatePackPreview();
       document.getElementById("productModal").classList.add("open");
     }
 
@@ -1499,28 +2113,35 @@
 
     async function saveProductForm(e) {
       e.preventDefault();
-      // Nếu người dùng gõ link vào ô input nhưng chưa bấm "+ Thêm link"
       const pendingUrl = document.getElementById("pImageUrlInput").value.trim();
       if (pendingUrl && currentProductImages.length < 3) {
         currentProductImages.push(pendingUrl);
       }
 
+      const productType = document.getElementById("pProductType").value === "item" ? "item" : "paper";
+      const isItem = productType === "item";
+
       const product = {
         id: document.getElementById("pId").value,
         name: document.getElementById("pName").value.trim(),
         category: document.getElementById("pCategory").value.trim(),
-        baseUnit: document.getElementById("pBaseUnit").value.trim() || "tờ",
+        productType,
+        baseUnit: document.getElementById("pBaseUnit").value.trim() || (isItem ? "bộ" : "tờ"),
         stock: Number(document.getElementById("pStock").value || 0),
-        unsizedStock: Number(document.getElementById("pUnsizedStock").value || 0),
-        packUnit: document.getElementById("pPackUnit").value.trim(),
-        packSize: Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
-        packPrice: Number(document.getElementById("pPackPrice").value || 0),
+        unsizedStock: isItem ? 0 : Number(document.getElementById("pUnsizedStock").value || 0),
+        packUnit: isItem ? "" : document.getElementById("pPackUnit").value.trim(),
+        packSize: isItem ? 1 : Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
+        packPrice: isItem ? 0 : Number(document.getElementById("pPackPrice").value || 0),
         unitPrice: Number(document.getElementById("pUnitPrice").value || 0),
         visible: document.getElementById("pVisible").checked,
         specs: document.getElementById("pSpecs").value.trim(),
         imageUrl: currentProductImages.slice(0, 3).join(", "),
         imageUrls: currentProductImages.slice(0, 3)
       };
+
+      const btn = document.getElementById("saveProdBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
 
       try {
         const res = await callApi({ action: "save_product", product });
@@ -1529,16 +2150,27 @@
         showToast("Đã lưu sản phẩm vào kho");
       } catch (err) {
         showToast("Lỗi lưu: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu sản phẩm";
       }
     }
 
-    async function deleteProduct(id) {
+    async function deleteProduct(id, btnEl) {
       if (!confirm("Xóa sản phẩm này khỏi kho?")) return;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "Đang xóa...";
+      }
       try {
         const res = await callApi({ action: "delete_product", id });
         applyAllData({ products: res.products || [], orders: allOrders, faqs: allFaqs });
         showToast("Đã xóa sản phẩm");
       } catch (err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Xóa";
+        }
         showToast("Lỗi xóa: " + err.message);
       }
     }
@@ -1551,21 +2183,24 @@
         return;
       }
 
-      container.innerHTML = allFaqs.map(f => `
-        <div class="card">
-          <div class="card-top">
-            <div>
-              <strong>Hỏi: ${escapeHtml(f.question)}</strong>
-              <p style="font-size:13px; color:var(--text); margin-top:4px;">Đáp: ${escapeHtml(f.answer)}</p>
+      container.innerHTML = allFaqs.map(f => {
+        const safeFaqId = escapeAttrJs(f.id);
+        return `
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <strong>Hỏi: ${escapeHtml(f.question)}</strong>
+                <p style="font-size:13px; color:var(--text); margin-top:4px;">Đáp: ${escapeHtml(f.answer)}</p>
+              </div>
+              <span class="badge ${f.active ? 'badge-ok' : 'badge-warn'}">${f.active ? 'Đang bật' : 'Tạm tắt'}</span>
             </div>
-            <span class="badge ${f.active ? 'badge-ok' : 'badge-warn'}">${f.active ? 'Đang bật' : 'Tạm tắt'}</span>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button class="btn btn-soft btn-sm" onclick="openFaqModal('${safeFaqId}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteFaq('${safeFaqId}', this)">Xóa</button>
+            </div>
           </div>
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="btn btn-soft btn-sm" onclick="openFaqModal('${escapeHtml(f.id)}')">Sửa</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteFaq('${escapeHtml(f.id)}')">Xóa</button>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     function openFaqModal(id = "") {
@@ -1582,6 +2217,10 @@
 
     async function saveFaqForm(e) {
       e.preventDefault();
+      const btn = document.getElementById("saveFaqBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+
       const faq = {
         id: document.getElementById("fId").value,
         question: document.getElementById("fQuestion").value.trim(),
@@ -1596,30 +2235,47 @@
         showToast("Đã lưu mục Hỏi - Đáp");
       } catch (err) {
         showToast("Lỗi lưu: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu mục Hỏi - Đáp";
       }
     }
 
-    async function deleteFaq(id) {
+    async function deleteFaq(id, btnEl) {
       if (!confirm("Xóa câu hỏi này?")) return;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "Đang xóa...";
+      }
       try {
         const res = await callApi({ action: "delete_faq", id });
         allFaqs = res.faqs || [];
         renderFaqs();
         showToast("Đã xóa mục Hỏi - Đáp");
       } catch (err) {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Xóa";
+        }
         showToast("Lỗi xóa: " + err.message);
       }
     }
 
     // --- SETTINGS ---
     async function saveNotifyEmail() {
+      const btn = document.getElementById("saveEmailBtn");
       const notifyEmail = document.getElementById("notifyEmailInput").value.trim();
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
       try {
         const res = await callApi({ action: "save_settings", notifyEmail });
         document.getElementById("notifyEmailInput").value = res.notifyEmail;
         showToast("Đã lưu email nhận thông báo");
       } catch (err) {
         showToast("Lỗi: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu Email";
       }
     }
 
@@ -1633,23 +2289,41 @@
     }
 
     async function testSendEmail() {
+      const btn = document.getElementById("testEmailBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang gửi...";
       try {
         const res = await callApi({ action: "test_email" });
         showToast("Đã gửi email test tới " + res.sentTo);
       } catch (err) {
         alert("Lỗi gửi email: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Gửi email test thử";
       }
     }
 
     async function runAiDiagnostic() {
+      const btn = document.getElementById("diagAiBtn");
       const box = document.getElementById("aiDiagResult");
+      btn.disabled = true;
+      btn.textContent = "Đang kiểm tra...";
       box.style.display = "block";
-      box.textContent = "Đang kiểm tra phản hồi Chatbot...";
+      box.textContent = "Đang gửi câu hỏi thử tới Gemini AI...";
       try {
         const res = await callApi({ action: "test_ai" });
-        box.textContent = `HOẠT ĐỘNG TỐT (Nguồn: ${res.source || "local"})\nCâu trả lời thử: ${res.data.reply}`;
+        const src = res.source || "local";
+        const testPrompt = "Giấy A5 vỏ quýt kích thước có chuẩn không, viết bút mực có lem không và mua 5 gói thì giá bao nhiêu?";
+        if (src.startsWith("ai:")) {
+          box.textContent = `✓ GEMINI AI ĐANG HOẠT ĐỘNG CHÍNH (Model: ${src.replace("ai:", "")})\n\nCâu hỏi thử: "${testPrompt}"\n\nAI trả lời:\n${res.data.reply}`;
+        } else {
+          box.textContent = `⚠ CHƯA GỌI ĐƯỢC GEMINI AI (${src})\nNguyên nhân: ${res.aiError || "Chưa rõ"}\n\n👉 Cách bật: Vào Apps Script > Cài đặt dự án (biểu tượng bánh răng) > Thuộc tính tập lệnh > Thêm thuộc tính GEMINI_API_KEY = [mã API Key của bạn], sau đó Triển khai > Quản lý các bản triển khai > Tạo phiên bản mới.\n\nCâu trả lời dự phòng nội bộ:\n${res.data.reply}`;
+        }
       } catch (err) {
         box.textContent = `LỖI:\n${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Chạy kiểm tra phản hồi AI ngay";
       }
     }
   </script>
