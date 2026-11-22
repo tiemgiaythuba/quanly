@@ -701,13 +701,24 @@
         <div class="card">
           <h3 style="font-size:15px; margin-bottom:8px;">2. Chế độ phản hồi Chatbot (Ưu tiên Gemini AI)</h3>
           <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">
-            Khi bật, toàn bộ câu hỏi của khách hàng sẽ được gửi trực tiếp cho <strong>Gemini AI</strong> phân tích ngữ cảnh, đối chiếu Bảng Hỏi - Đáp và Kho giấy để trả lời tự nhiên, chính xác nhất (tự động lùi về bộ xử lý nội bộ nếu máy chủ Google quá tải).
+            Khi bật, toàn bộ câu hỏi của khách hàng sẽ được gửi trực tiếp cho <strong>Gemini AI</strong> phân tích ngữ cảnh, đối chiếu Bảng Hỏi - Đáp và Kho giấy để trả lời tự nhiên, chính xác nhất.
           </p>
+          <div id="geminiKeyStatusBox" style="font-size:12px; padding:7px 10px; border-radius:8px; background:var(--soft); margin-bottom:10px;"></div>
+          <div class="form-field">
+            <label>Cập nhật Gemini API Key mới (tùy chọn — để trống nếu giữ nguyên key cũ)</label>
+            <input id="geminiApiKeyInput" type="password" class="input" placeholder="Dán API Key bắt đầu bằng AIzaSy... từ Google AI Studio" autocomplete="off" />
+          </div>
           <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; margin-bottom:10px; cursor:pointer;">
             <input id="aiEnabledCheckbox" type="checkbox" checked onchange="toggleAiMode(this.checked)" />
             <span>Ưu tiên dùng Gemini AI trả lời mọi câu hỏi của khách</span>
           </label>
-          <button id="diagAiBtn" class="btn btn-accent btn-sm" onclick="runAiDiagnostic()">Chạy kiểm tra phản hồi AI ngay</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="saveAiKeyBtn" class="btn btn-primary btn-sm" onclick="saveGeminiKeySetting()">Lưu cấu hình AI</button>
+            <button id="diagAiBtn" class="btn btn-accent btn-sm" onclick="runAiDiagnostic()">Chạy kiểm tra phản hồi AI ngay</button>
+          </div>
+          <div style="font-size:11.5px; color:var(--muted); margin-top:8px;">
+            * Lưu ý: Nếu bạn vừa cập nhật code trong Google Apps Script, hãy nhớ bấm <strong>Triển khai &gt; Quản lý các bản triển khai &gt; Chỉnh sửa &gt; Chọn "Phiên bản mới"</strong> để áp dụng lên web khách.
+          </div>
           <pre id="aiDiagResult" style="margin-top:10px; background:var(--soft); padding:10px; border-radius:8px; font-size:12px; white-space:pre-wrap; display:none;"></pre>
         </div>
 
@@ -1211,6 +1222,20 @@
       }
     }
 
+    function updateGeminiKeyStatusUi(info) {
+      const box = document.getElementById("geminiKeyStatusBox");
+      if (!box) return;
+      if (info && info.hasKey) {
+        box.innerHTML = `✅ <strong>Đã cài GEMINI_API_KEY:</strong> <code>${escapeHtml(info.masked || "***")}</code>`;
+        box.style.color = "#2E5A36";
+        box.style.background = "#E8F0E9";
+      } else {
+        box.innerHTML = `⚠️ <strong>Chưa có GEMINI_API_KEY:</strong> Chatbot đang dùng bộ trả lời nội bộ. Bạn hãy dán API Key bên dưới và bấm Lưu nhé.`;
+        box.style.color = "#9C5A1E";
+        box.style.background = "#FDF3E7";
+      }
+    }
+
     function applyAllData(data) {
       allProducts = (data.products || []).map(p => ({
         ...p,
@@ -1249,6 +1274,9 @@
       }
       if (data.aiEnabled !== undefined) {
         document.getElementById("aiEnabledCheckbox").checked = Boolean(data.aiEnabled);
+      }
+      if (data.geminiKeyInfo !== undefined) {
+        updateGeminiKeyStatusUi(data.geminiKeyInfo);
       }
       if (data.bankConfig) {
         document.getElementById("bankIdInput").value = data.bankConfig.bankId || "";
@@ -2133,21 +2161,21 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       container.innerHTML = editingOrderItems.map((it, idx) => `
         <div class="edit-item-row">
           <div style="display:flex; gap:6px; margin-bottom:6px;">
-            <input class="input" style="padding:6px 8px; font-size:12.5px;" placeholder="Tên sản phẩm" value="${escapeHtml(it.name)}" onchange="updateEditItemField(${idx}, 'name', this.value)" />
+            <input class="input" style="padding:6px 8px; font-size:12.5px;" value="${escapeHtml(it.name)}" placeholder="Tên món..." oninput="updateEditItemField(${idx}, 'name', this.value)" />
             <button type="button" class="btn btn-danger btn-sm" onclick="removeEditOrderItem(${idx})">✕</button>
           </div>
           <div class="grid-3">
             <div>
               <small style="font-size:10.5px; color:var(--muted);">Đơn vị</small>
-              <input class="input" style="padding:5px 8px; font-size:12px;" value="${escapeHtml(it.unitLabel || '')}" onchange="updateEditItemField(${idx}, 'unitLabel', this.value)" />
+              <input class="input" style="padding:5px 8px; font-size:12px;" value="${escapeHtml(it.unitLabel || "")}" oninput="updateEditItemField(${idx}, 'unitLabel', this.value)" />
             </div>
             <div>
               <small style="font-size:10.5px; color:var(--muted);">Số lượng</small>
-              <input type="number" min="1" class="input" style="padding:5px 8px; font-size:12px;" value="${Number(it.qty || 1)}" oninput="updateEditItemField(${idx}, 'qty', Number(this.value || 1))" />
+              <input type="number" min="1" class="input" style="padding:5px 8px; font-size:12px;" value="${Number(it.qty || 1)}" oninput="updateEditItemField(${idx}, 'qty', Number(this.value))" />
             </div>
             <div>
               <small style="font-size:10.5px; color:var(--muted);">Đơn giá (đ)</small>
-              <input type="number" min="0" class="input" style="padding:5px 8px; font-size:12px;" value="${Number(it.price || 0)}" oninput="updateEditItemField(${idx}, 'price', Number(this.value || 0))" />
+              <input type="number" min="0" class="input" style="padding:5px 8px; font-size:12px;" value="${Number(it.price || 0)}" oninput="updateEditItemField(${idx}, 'price', Number(this.value))" />
             </div>
           </div>
         </div>
@@ -2156,13 +2184,17 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
 
     function updateEditItemField(idx, field, val) {
       if (!editingOrderItems[idx]) return;
-      editingOrderItems[idx][field] = val;
-      if (field === "qty" && editingOrderItems[idx].id && editingOrderItems[idx].buyMode !== "custom") {
-        const p = allProducts.find(prod => prod.id === editingOrderItems[idx].id);
-        if (p) {
-          const perUnit = editingOrderItems[idx].buyMode === "pack" ? Number(p.packSize || 1) : 1;
-          editingOrderItems[idx].baseUnits = Number(val || 1) * perUnit;
+      const item = editingOrderItems[idx];
+      if (field === "qty") {
+        const prevQty = Math.max(1, Number(item.qty || 1));
+        const nextQty = Math.max(1, Number(val || 1));
+        if (item.buyMode !== "custom" && Number(item.baseUnits || 0) > 0) {
+          const perUnit = Number(item.baseUnits) / prevQty;
+          item.baseUnits = Math.round(perUnit * nextQty);
         }
+        item.qty = nextQty;
+      } else {
+        item[field] = val;
       }
       recalcEditOrderTotals();
     }
@@ -2176,7 +2208,7 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
     function addCustomItemToEditOrder() {
       editingOrderItems.push({
         id: "",
-        name: "Sản phẩm tùy chỉnh",
+        name: "Món phát sinh / Điều chỉnh",
         buyMode: "custom",
         unitLabel: "phần",
         qty: 1,
@@ -2187,33 +2219,29 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       recalcEditOrderTotals();
     }
 
-    function calcEditedTotals() {
-      const subtotal = editingOrderItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 1), 0);
-      const discountType = document.getElementById("editDiscountType").value;
-      const discountValue = Math.max(0, Number(document.getElementById("editDiscountValue").value || 0));
-      let discountAmount = 0;
-      if (discountType === "percent") {
-        const pct = Math.min(100, discountValue);
-        discountAmount = Math.round(subtotal * pct / 100);
-      } else {
-        discountAmount = Math.min(subtotal, discountValue);
-      }
+    function recalcEditOrderTotals() {
+      const subtotal = editingOrderItems.reduce((s, it) => s + Number(it.price || 0) * Math.max(1, Number(it.qty || 1)), 0);
+      const discType = document.getElementById("editDiscountType").value;
+      const discVal = Math.max(0, Number(document.getElementById("editDiscountValue").value || 0));
+      let discountAmount = discType === "percent" ? Math.round(subtotal * Math.min(100, discVal) / 100) : discVal;
+      discountAmount = Math.min(subtotal, discountAmount);
+
       const shipFee = Math.max(0, Number(document.getElementById("editShipFee").value || 0));
       const total = Math.max(0, subtotal - discountAmount + shipFee);
-      const paymentMethod = document.getElementById("editPaymentMethod").value;
-      const codAmount = paymentMethod === "Đã thanh toán CK" ? 0 : total;
-      return { subtotal, discountType, discountValue, discountAmount, shipFee, total, paymentMethod, codAmount };
-    }
+      const isPaid = document.getElementById("editPaymentMethod").value === "Đã thanh toán CK";
 
-    function recalcEditOrderTotals() {
-      const { subtotal, discountAmount, shipFee, total, codAmount } = calcEditedTotals();
       document.getElementById("editOrderSummaryBox").innerHTML = `
         <div style="display:flex; justify-content:space-between;"><span>Tiền hàng:</span><strong>${fmtVND(subtotal)}</strong></div>
         <div style="display:flex; justify-content:space-between; color:var(--accent);"><span>Giảm giá:</span><strong>-${fmtVND(discountAmount)}</strong></div>
         <div style="display:flex; justify-content:space-between;"><span>Phí ship:</span><strong>${fmtVND(shipFee)}</strong></div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--primary);"><span>Tổng giá trị đơn:</span><strong>${fmtVND(total)}</strong></div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--warn-text);"><span>Tiền thu hộ COD:</span><strong>${fmtVND(codAmount)}</strong></div>
+        <div style="display:flex; justify-content:space-between; font-size:14.5px; color:var(--primary); margin-top:2px;">
+          <span>Tổng đơn:</span><strong>${fmtVND(total)}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:${isPaid ? 'var(--accent)' : 'var(--warn-text)'};">
+          <span>Số tiền thu hộ COD:</span><strong>${isPaid ? '0đ (Khách đã CK)' : fmtVND(total)}</strong>
+        </div>
       `;
+      return { subtotal, discType, discVal, discountAmount, shipFee, total };
     }
 
     async function saveOrderEditForm(e) {
@@ -2223,63 +2251,53 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
         return;
       }
 
-      const orderId = document.getElementById("editOrderId").value;
-      const oldOrder = allOrders.find(item => item.orderId === orderId) || {};
-      const { subtotal, discountType, discountValue, discountAmount, shipFee, total, paymentMethod } = calcEditedTotals();
-
-      const itemsSummary = editingOrderItems
-        .map(i => `${i.name}: ${i.qty} ${i.unitLabel} (${fmtVND(Number(i.price || 0) * Number(i.qty || 1))})`)
-        .join("; ");
-
-      const updatedOrder = {
-        ...oldOrder,
-        orderId,
-        customerName: document.getElementById("editCustName").value.trim(),
-        phone: document.getElementById("editCustPhone").value.trim(),
-        address: document.getElementById("editCustAddress").value.trim(),
-        platform: document.getElementById("editPlatform").value,
-        socialHandle: document.getElementById("editSocialHandle").value.trim(),
-        paymentMethod,
-        trackingCode: document.getElementById("editTrackingCode").value.trim(),
-        note: document.getElementById("editNote").value.trim(),
-        items: editingOrderItems,
-        itemsSummary,
-        subtotal,
-        discountType,
-        discountValue,
-        discountAmount,
-        shipFee,
-        total
-      };
-
       const btn = document.getElementById("saveOrderEditBtn");
-      const origLabel = btn.textContent;
+      const orderId = document.getElementById("editOrderId").value.trim();
+      const isCreating = !orderId;
       btn.disabled = true;
-      btn.textContent = "Đang xử lý...";
+      btn.textContent = isCreating ? "Đang tạo đơn..." : "Đang lưu thay đổi...";
 
       try {
-        if (!orderId) {
+        const calc = recalcEditOrderTotals();
+        const itemsSummary = editingOrderItems.map(i => `${i.name} (${i.qty} ${i.unitLabel})`).join("; ");
+
+        const updatedOrder = {
+          orderId,
+          customerName: document.getElementById("editCustName").value.trim(),
+          phone: document.getElementById("editCustPhone").value.trim(),
+          address: document.getElementById("editCustAddress").value.trim(),
+          platform: document.getElementById("editPlatform").value,
+          socialHandle: document.getElementById("editSocialHandle").value.trim(),
+          paymentMethod: document.getElementById("editPaymentMethod").value,
+          trackingCode: document.getElementById("editTrackingCode").value.trim(),
+          note: document.getElementById("editNote").value.trim(),
+          items: editingOrderItems,
+          itemsSummary,
+          subtotal: calc.subtotal,
+          discountType: calc.discType,
+          discountValue: calc.discVal,
+          discountAmount: calc.discountAmount,
+          shipFee: calc.shipFee,
+          total: calc.total
+        };
+
+        if (isCreating) {
           await callApi({ action: "create_order", order: updatedOrder });
           const fresh = await callApi({ action: "get_all" });
           applyAllData(fresh);
           closeOrderEditModal();
-          showToast("Đã tạo đơn hàng mới & trừ kho");
+          showToast("Đã tạo đơn hàng mới thành công");
         } else {
           const res = await callApi({ action: "update_order", order: updatedOrder });
-          applyAllData({
-            orders: res.orders || allOrders,
-            products: res.products || allProducts,
-            faqs: allFaqs,
-            chatLogs: res.chatLogs || allChatLogs
-          });
+          applyAllData({ orders: res.orders, products: res.products || allProducts, faqs: allFaqs, chatLogs: res.chatLogs || allChatLogs });
           closeOrderEditModal();
-          showToast("Đã cập nhật đơn hàng");
+          showToast("Đã cập nhật đơn hàng & đồng bộ kho");
         }
       } catch (err) {
         showToast("Lỗi lưu đơn: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = origLabel;
+        btn.textContent = isCreating ? "Tạo đơn hàng" : "Lưu thay đổi đơn hàng";
       }
     }
 
@@ -2287,10 +2305,10 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
     function populateCategorySuggestions() {
       const dl = document.getElementById("categorySuggestions");
       if (!dl) return;
-      const defaults = ["Giấy A5", "Giấy A4", "Giấy A6", "Bao thư", "Bộ kit", "Sổ tay", "Dụng cụ"];
+      const defaults = ["Giấy A4", "Giấy A5", "Giấy A6", "Bao thư", "Bộ kit làm giấy", "Sổ tay"];
       const existing = allProducts.map(p => String(p.category || "").trim()).filter(Boolean);
-      const merged = [...new Set([...existing, ...defaults])];
-      dl.innerHTML = merged.map(c => `<option value="${escapeHtml(c)}"></option>`).join("");
+      const uniqueCats = [...new Set([...defaults, ...existing])];
+      dl.innerHTML = uniqueCats.map(c => `<option value="${escapeHtml(c)}"></option>`).join("");
     }
 
     function setProductType(type) {
@@ -2300,41 +2318,51 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       document.getElementById("typeBtnPaper").classList.toggle("active", !isItem);
       document.getElementById("typeBtnItem").classList.toggle("active", isItem);
 
-      const unsizedField = document.getElementById("unsizedStockField");
+      const stockTitle = document.getElementById("stockSectionTitle");
       const stockGrid = document.getElementById("stockInputsGrid");
+      const stockLabel = document.getElementById("pStockLabel");
+      const unsizedField = document.getElementById("unsizedStockField");
+
+      const pricingTitle = document.getElementById("pricingSectionTitle");
       const packConfigRow = document.getElementById("packConfigRow");
-      const packPriceField = document.getElementById("packPriceField");
       const priceConfigRow = document.getElementById("priceConfigRow");
+      const packPriceField = document.getElementById("packPriceField");
+      const unitPriceLabel = document.getElementById("pUnitPriceLabel");
 
       if (isItem) {
-        unsizedField.style.display = "none";
+        stockTitle.textContent = "Số lượng tồn kho hiện có";
         stockGrid.className = "";
-        document.getElementById("stockSectionTitle").textContent = "Tồn kho & Giá bán sản phẩm";
-        document.getElementById("pStockLabel").textContent = "Số lượng tồn kho *";
-        document.getElementById("packConvertPreview").style.display = "none";
+        stockLabel.textContent = "Số lượng sẵn sàng giao *";
+        unsizedField.style.display = "none";
+        document.getElementById("pUnsizedStock").value = 0;
 
+        pricingTitle.textContent = "Giá bán sản phẩm";
         packConfigRow.style.display = "none";
-        packPriceField.style.display = "none";
         priceConfigRow.className = "";
-        document.getElementById("pricingSectionTitle").textContent = "Giá bán lẻ";
-        document.getElementById("pUnitPriceLabel").textContent = "Giá bán (VNĐ) *";
-        if (!document.getElementById("pId").value && document.getElementById("pBaseUnit").value === "tờ") {
+        packPriceField.style.display = "none";
+        unitPriceLabel.textContent = "Giá bán (VNĐ) *";
+        document.getElementById("pPackUnit").value = "";
+        document.getElementById("pPackSize").value = 1;
+        document.getElementById("pPackPrice").value = 0;
+        if (document.getElementById("pBaseUnit").value === "tờ") {
           document.getElementById("pBaseUnit").value = "bộ";
         }
       } else {
-        unsizedField.style.display = "flex";
+        stockTitle.textContent = "Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)";
         stockGrid.className = "grid-2";
-        document.getElementById("stockSectionTitle").textContent = "Phân loại số lượng tồn kho (tính theo tờ/cái lẻ)";
-        document.getElementById("pStockLabel").textContent = "1. Sẵn sàng giao *";
-        document.getElementById("packConvertPreview").style.display = "block";
+        stockLabel.textContent = "1. Sẵn sàng giao *";
+        unsizedField.style.display = "flex";
 
+        pricingTitle.textContent = "Cài đặt quy đổi đóng gói & bảng giá";
         packConfigRow.style.display = "grid";
-        packPriceField.style.display = "flex";
         priceConfigRow.className = "grid-2";
-        document.getElementById("pricingSectionTitle").textContent = "Cài đặt quy đổi đóng gói & bảng giá";
-        document.getElementById("pUnitPriceLabel").textContent = "Giá lẻ từng tờ/cái (VNĐ)";
-        if (!document.getElementById("pId").value && document.getElementById("pBaseUnit").value === "bộ") {
+        packPriceField.style.display = "flex";
+        unitPriceLabel.textContent = "Giá lẻ từng tờ/cái (VNĐ)";
+        if (document.getElementById("pBaseUnit").value === "bộ") {
           document.getElementById("pBaseUnit").value = "tờ";
+        }
+        if (Number(document.getElementById("pPackSize").value || 1) <= 1) {
+          document.getElementById("pPackSize").value = 10;
         }
       }
       updatePackPreview();
@@ -2345,113 +2373,116 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       renderProducts();
     }
 
-    function renderInventoryAlerts() {
-      const box = document.getElementById("inventoryAlerts");
-      if (!box) return;
-
-      const visibleProds = allProducts.filter(p => p.visible !== false);
-      const outOrLow = visibleProds.filter(p => {
+    function renderProducts() {
+      const alertsBox = document.getElementById("inventoryAlerts");
+      const lowStockItems = allProducts.filter(p => {
+        if (p.visible === false) return false;
         const threshold = (p.productType !== "item" && Number(p.packSize) > 1) ? Number(p.packSize) * 2 : 5;
         return Number(p.stock || 0) < threshold;
       });
-      const hasUnsized = allProducts.filter(p => p.productType !== "item" && Number(p.unsizedStock || 0) > 0);
+      const unsizedItems = allProducts.filter(p => p.visible !== false && Number(p.unsizedStock || 0) > 0);
 
-      if (!outOrLow.length && !hasUnsized.length) {
-        box.innerHTML = "";
-        return;
+      let alertHtml = "";
+      if (lowStockItems.length > 0) {
+        const names = lowStockItems.map(p => `<strong>${escapeHtml(p.name)}</strong> (còn ${p.stock} ${escapeHtml(p.baseUnit)})`).join(", ");
+        alertHtml += `<div class="inventory-alert-box"><div>⚠ <strong>Sắp hết hàng sẵn sàng giao:</strong> ${names}</div></div>`;
       }
-
-      const lines = [];
-      if (outOrLow.length) {
-        const names = outOrLow.map(p => `${p.name} (${p.stock === 0 ? "Hết sẵn" : `còn ${p.stock} ${p.baseUnit}`})`).join(", ");
-        lines.push(`<div><strong>⚠ Sắp hết / hết sẵn sàng (${outOrLow.length} mẫu):</strong> ${escapeHtml(names)}</div>`);
+      if (unsizedItems.length > 0) {
+        const uNames = unsizedItems.map(p => `<strong>${escapeHtml(p.name)}</strong> (${p.unsizedStock} ${escapeHtml(p.baseUnit)})`).join(", ");
+        alertHtml += `<div class="inventory-alert-box" style="background:#E8F0E9; border-color:#C8DBC9; color:#2E5A36;"><div>🧪 <strong>Đang đợi gia keo:</strong> ${uNames} — bấm <em>✓ Gia keo xong</em> trên thẻ để chuyển sang kho sẵn sàng.</div></div>`;
       }
-      if (hasUnsized.length) {
-        const names = hasUnsized.map(p => `${p.name} (${p.unsizedStock} ${p.baseUnit})`).join(", ");
-        lines.push(`<div><strong>🌿 Chờ hoàn thiện gia keo (${hasUnsized.length} mẫu):</strong> ${escapeHtml(names)}</div>`);
-      }
+      alertsBox.innerHTML = alertHtml;
 
-      box.innerHTML = `<div class="inventory-alert-box">${lines.join("")}</div>`;
-    }
+      const visibleCnt = allProducts.filter(p => p.visible !== false).length;
+      const hiddenCnt = allProducts.length - visibleCnt;
+      const paperCnt = allProducts.filter(p => p.productType !== "item").length;
+      const itemCnt = allProducts.filter(p => p.productType === "item").length;
 
-    function renderProducts() {
-      renderInventoryAlerts();
+      document.getElementById("productFilterStrip").innerHTML = `
+        <button type="button" class="filter-chip ${productFilter === 'all' ? 'active' : ''}" onclick="filterProducts('all')">Tất cả (${allProducts.length})</button>
+        <button type="button" class="filter-chip ${productFilter === 'paper' ? 'active' : ''}" onclick="filterProducts('paper')">Giấy thủ công (${paperCnt})</button>
+        <button type="button" class="filter-chip ${productFilter === 'item' ? 'active' : ''}" onclick="filterProducts('item')">Sản phẩm hoàn chỉnh (${itemCnt})</button>
+        <button type="button" class="filter-chip ${productFilter === 'visible' ? 'active' : ''}" onclick="filterProducts('visible')">Đang hiện (${visibleCnt})</button>
+        <button type="button" class="filter-chip ${productFilter === 'hidden' ? 'active' : ''}" onclick="filterProducts('hidden')">Đang ẩn (${hiddenCnt})</button>
+      `;
 
-      const pFilters = [
-        { key: "all", label: `Tất cả (${allProducts.length})` },
-        { key: "visible", label: `Đang hiện (${allProducts.filter(p => p.visible !== false).length})` },
-        { key: "hidden", label: `Đang ẩn (${allProducts.filter(p => p.visible === false).length})` }
-      ];
-      document.getElementById("productFilterStrip").innerHTML = pFilters.map(f =>
-        `<button type="button" class="filter-chip ${productFilter === f.key ? 'active' : ''}" onclick="filterProducts('${f.key}')">${f.label}</button>`
-      ).join("");
-
-      const container = document.getElementById("productsList");
-      const list = allProducts.filter(p => {
+      const filtered = allProducts.filter(p => {
+        if (productFilter === "paper") return p.productType !== "item";
+        if (productFilter === "item") return p.productType === "item";
         if (productFilter === "visible") return p.visible !== false;
         if (productFilter === "hidden") return p.visible === false;
         return true;
       });
 
-      if (!list.length) {
-        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Không có sản phẩm nào trong mục này.</div>`;
+      const container = document.getElementById("productsList");
+      if (!filtered.length) {
+        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có sản phẩm nào trong mục này.</div>`;
         return;
       }
 
-      container.innerHTML = list.map(p => {
+      container.innerHTML = filtered.map(p => {
         const isItem = p.productType === "item";
-        const hasPack = !isItem && Number(p.packPrice) > 0 && Number(p.packSize) > 1;
-        const packs = hasPack ? Math.floor(p.stock / p.packSize) : 0;
-        const rem = hasPack ? (p.stock % p.packSize) : 0;
-        const readyText = hasPack
-          ? `${p.stock} ${p.baseUnit} (= ${packs} ${p.packUnit || "gói"}${rem > 0 ? " + " + rem + " lẻ" : ""})`
-          : `${p.stock} ${p.baseUnit}`;
-        const lowStock = p.stock <= 0 ? "badge-danger" : (p.stock < (hasPack ? p.packSize * 2 : 5) ? "badge-warn" : "badge-ok");
         const isVis = p.visible !== false;
-        const unsized = Number(p.unsizedStock || 0);
+        const hasPack = !isItem && Number(p.packPrice) > 0 && Number(p.packSize) > 1;
+        const packCount = hasPack ? Math.floor(p.stock / p.packSize) : 0;
         const imgs = parseImages(p);
-        const safeProdId = escapeAttrJs(p.id);
+        const safeIdAttr = escapeAttrJs(p.id);
+        const hasUnsized = !isItem && Number(p.unsizedStock || 0) > 0;
+        const threshold = hasPack ? Number(p.packSize) * 2 : 5;
+        const isLow = isVis && Number(p.stock || 0) < threshold;
+
+        const priceLine = isItem
+          ? `Giá bán: <strong>${fmtVND(p.unitPrice)}/${escapeHtml(p.baseUnit)}</strong>`
+          : [
+              hasPack ? `Gói ${p.packSize} ${escapeHtml(p.baseUnit)}: <strong>${fmtVND(p.packPrice)}</strong>` : "",
+              Number(p.unitPrice) > 0 ? `Lẻ: <strong>${fmtVND(p.unitPrice)}/${escapeHtml(p.baseUnit)}</strong>` : ""
+            ].filter(Boolean).join(" • ");
 
         return `
           <div class="card ${isVis ? '' : 'hidden-prod'}">
             <div class="card-top">
-              <div style="display:flex; gap:10px; align-items:flex-start;">
-                ${imgs.length ? `<img src="${escapeHtml(imgs[0])}" alt="" style="width:52px; height:52px; object-fit:cover; border-radius:10px; border:1px solid var(--border); flex-shrink:0;" />` : ""}
+              <div style="display:flex; gap:10px; align-items:center;">
+                ${imgs[0] ? `<img src="${escapeHtml(imgs[0])}" style="width:52px; height:52px; object-fit:cover; border-radius:9px; border:1px solid var(--border);" onerror="this.style.display='none';" />` : ""}
                 <div>
-                  <strong>${escapeHtml(p.name)}</strong> <span style="font-size:12px; color:var(--muted);">(${escapeHtml(p.category)})</span>
-                  <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
-                    <span class="badge ${isVis ? 'badge-ok' : 'badge-muted'}">${isVis ? 'Đang hiện' : 'Đang ẩn'}</span>
-                    <span class="badge ${lowStock}">${isItem ? 'Tồn kho' : 'Sẵn sàng'}: ${readyText}</span>
-                    ${!isItem ? `<span class="badge ${unsized > 0 ? 'badge-warn' : 'badge-muted'}">Chưa gia keo: ${unsized} ${escapeHtml(p.baseUnit)}</span>` : ""}
-                    ${imgs.length > 1 ? `<span class="badge badge-info">${imgs.length} ảnh</span>` : ""}
-                  </div>
-                  <div style="font-size:12.5px; margin-top:5px;">
-                    ${hasPack ? `<span>Giá gói: <strong>${fmtVND(p.packPrice)}</strong>/${escapeHtml(p.packUnit || "gói")} (${p.packSize} ${escapeHtml(p.baseUnit)})</span> • ` : ""}
-                    ${Number(p.unitPrice) > 0 ? `<span>${isItem ? 'Giá bán' : 'Giá lẻ'}: <strong>${fmtVND(p.unitPrice)}</strong>/${escapeHtml(p.baseUnit)}</span>` : ""}
+                  <strong>${escapeHtml(p.name)}</strong>
+                  <div style="font-size:12px; color:var(--muted);">
+                    ${escapeHtml(p.category)} • <span style="color:var(--primary); font-weight:600;">${isItem ? "Sản phẩm hoàn chỉnh" : "Giấy thủ công"}</span>
+                    ${imgs.length > 1 ? `• (${imgs.length} ảnh)` : ""}
                   </div>
                 </div>
               </div>
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                ${isLow ? `<span class="badge badge-danger">⚠ Sắp hết</span>` : ""}
+                <span class="badge ${isVis ? 'badge-ok' : 'badge-muted'}">${isVis ? 'Đang hiện' : 'Đang ẩn'}</span>
+              </div>
             </div>
-            <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-              ${(!isItem && unsized > 0) ? `<button type="button" class="btn btn-accent btn-sm" onclick="finishSizingPrompt('${safeProdId}')">✓ Gia keo xong</button>` : ""}
-              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVisibility('${safeProdId}', ${!isVis})">${isVis ? 'Ẩn khỏi web' : 'Bật hiển thị'}</button>
-              <button type="button" class="btn btn-soft btn-sm" onclick="openProductModal('${safeProdId}')">Sửa</button>
-              <button type="button" class="btn btn-danger btn-sm" onclick="deleteProduct('${safeProdId}', this)">Xóa</button>
+            <div style="font-size:13px; margin-bottom:6px;">
+              Sẵn sàng giao: <strong style="color:${isLow ? 'var(--danger)' : 'var(--accent)'};">${p.stock} ${escapeHtml(p.baseUnit)}</strong>
+              ${hasPack ? `<span style="color:var(--muted);">(= ${packCount} ${escapeHtml(p.packUnit || "gói")})</span>` : ""}
+              ${hasUnsized ? ` • Chưa gia keo: <strong style="color:var(--warn-text);">${p.unsizedStock} ${escapeHtml(p.baseUnit)}</strong>` : ""}
+            </div>
+            <div style="font-size:12.5px; margin-bottom:6px;">${priceLine || "Chưa cài giá bán"}</div>
+            <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">${escapeHtml(p.specs || "")}</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${hasUnsized ? `<button class="btn btn-accent btn-sm" onclick="openSizingModal('${safeIdAttr}')">✓ Gia keo xong</button>` : ""}
+              <button class="btn btn-soft btn-sm" onclick="toggleProdVisibility('${safeIdAttr}', ${!isVis})">${isVis ? 'Ẩn khỏi menu' : 'Hiện lại menu'}</button>
+              <button class="btn btn-soft btn-sm" onclick="openProductModal('${safeIdAttr}')">Sửa thông tin</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteProduct('${safeIdAttr}', this)">Xóa</button>
             </div>
           </div>
         `;
       }).join("");
     }
 
-    function finishSizingPrompt(id) {
+    // --- HOÀN THIỆN GIA KEO ---
+    function openSizingModal(id) {
       const p = allProducts.find(item => item.id === id);
       if (!p || Number(p.unsizedStock || 0) <= 0) return;
-      const maxVal = Number(p.unsizedStock);
-      document.getElementById("sizingProdId").value = id;
-      document.getElementById("sizingDesc").textContent = `Mẫu "${p.name}" hiện đang có ${maxVal} ${p.baseUnit} chưa gia keo. Nhập số lượng đã gia keo xong để chuyển sang Sẵn sàng giao:`;
-      const inp = document.getElementById("sizingQtyInput");
-      inp.max = maxVal;
-      inp.value = maxVal;
+      document.getElementById("sizingProdId").value = p.id;
+      document.getElementById("sizingDesc").innerHTML = `Mẫu <strong>${escapeHtml(p.name)}</strong> hiện có <strong>${p.unsizedStock} ${escapeHtml(p.baseUnit)}</strong> chưa gia keo. Nhập số lượng đã hoàn thiện gia keo để chuyển sang Sẵn sàng giao:`;
+      const input = document.getElementById("sizingQtyInput");
+      input.max = Number(p.unsizedStock);
+      input.value = Number(p.unsizedStock);
       document.getElementById("sizingModal").classList.add("open");
     }
 
@@ -2464,106 +2495,95 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       const id = document.getElementById("sizingProdId").value;
       const p = allProducts.find(item => item.id === id);
       if (!p) return;
-      const maxVal = Number(p.unsizedStock || 0);
-      const moved = Math.floor(Number(document.getElementById("sizingQtyInput").value || 0));
-      if (!moved || moved <= 0 || moved > maxVal) {
-        showToast(`Vui lòng nhập số từ 1 đến ${maxVal}`);
-        return;
-      }
 
-      closeSizingModal();
-      const prevStock = Number(p.stock || 0);
-      const prevUnsized = maxVal;
-
-      p.stock = prevStock + moved;
-      p.unsizedStock = prevUnsized - moved;
-      renderProducts();
-      showToast(`Đã chuyển ${moved} ${p.baseUnit} sang Sẵn sàng giao`);
-
-      const updatedProduct = {
+      const qty = Math.min(Number(p.unsizedStock || 0), Math.max(1, Number(document.getElementById("sizingQtyInput").value || 0)));
+      const updatedProd = {
         ...p,
-        imageUrl: parseImages(p).join(", ")
+        stock: Number(p.stock || 0) + qty,
+        unsizedStock: Math.max(0, Number(p.unsizedStock || 0) - qty),
+        imageUrl: parseImages(p).join("\n")
       };
 
       try {
-        const res = await callApi({ action: "save_product", product: updatedProduct });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
-      } catch (err) {
-        p.stock = prevStock;
-        p.unsizedStock = prevUnsized;
+        const res = await callApi({ action: "save_product", product: updatedProd });
+        allProducts = (res.products || []).map(item => ({
+          ...item,
+          productType: item.productType === "item" ? "item" : "paper",
+          stock: Number(item.stock || 0),
+          unsizedStock: Number(item.unsizedStock || 0),
+          imageUrls: parseImages(item)
+        }));
+        closeSizingModal();
         renderProducts();
-        showToast("Lỗi cập nhật, đã hoàn tác: " + err.message);
+        showToast(`Đã chuyển ${qty} ${p.baseUnit} sang Sẵn sàng giao`);
+      } catch (err) {
+        showToast("Lỗi cập nhật kho: " + err.message);
       }
     }
 
-    async function toggleVisibility(id, nextVisible) {
-      const p = allProducts.find(item => item.id === id);
-      if (!p) return;
-      const prevVisible = p.visible;
-
-      p.visible = nextVisible;
+    async function toggleProdVisibility(id, nextVisible) {
+      const target = allProducts.find(item => item.id === id);
+      const prevVisible = target ? target.visible : !nextVisible;
+      if (target) target.visible = nextVisible;
       renderProducts();
-      showToast(nextVisible ? "Đã bật hiển thị sản phẩm trên web" : "Đã ẩn sản phẩm khỏi web khách");
+      showToast(nextVisible ? "Đã bật hiển thị trên trang khách" : "Đã ẩn sản phẩm khỏi trang khách");
 
       try {
         const res = await callApi({ action: "toggle_product_visibility", id, visible: nextVisible });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
-      } catch (err) {
-        p.visible = prevVisible;
+        allProducts = (res.products || []).map(p => ({
+          ...p,
+          productType: p.productType === "item" ? "item" : "paper",
+          stock: Number(p.stock || 0),
+          unsizedStock: Number(p.unsizedStock || 0),
+          imageUrls: parseImages(p)
+        }));
         renderProducts();
-        showToast("Lỗi đồng bộ, đã hoàn tác: " + err.message);
+      } catch (err) {
+        if (target) target.visible = prevVisible;
+        renderProducts();
+        showToast("Không lưu được thay đổi, đã hoàn tác: " + err.message);
       }
     }
 
     function updatePackPreview() {
       const isItem = document.getElementById("pProductType").value === "item";
-      const el = document.getElementById("packConvertPreview");
+      const stock = Number(document.getElementById("pStock").value || 0);
+      const baseUnit = document.getElementById("pBaseUnit").value.trim() || "tờ";
+      const preview = document.getElementById("packConvertPreview");
+
       if (isItem) {
-        el.style.display = "none";
+        preview.textContent = stock > 0 ? `→ Hiện có ${stock} ${baseUnit} sẵn sàng giao ngay.` : "";
         return;
       }
-      el.style.display = "block";
-      const stock = Number(document.getElementById("pStock").value || 0);
+
       const unsized = Number(document.getElementById("pUnsizedStock").value || 0);
-      const baseUnit = document.getElementById("pBaseUnit").value.trim() || "tờ";
       const packUnit = document.getElementById("pPackUnit").value.trim();
       const packSize = Math.max(1, Number(document.getElementById("pPackSize").value || 1));
 
       if (packUnit && packSize > 1) {
-        const packs = Math.floor(stock / packSize);
+        const fullPacks = Math.floor(stock / packSize);
         const rem = stock % packSize;
-        el.textContent = `Sẵn sàng: ${packs} ${packUnit} (${packSize} ${baseUnit}/${packUnit})${rem > 0 ? ` + dư ${rem} ${baseUnit}` : ""} • Chưa gia keo: ${unsized} ${baseUnit} (tổng xưởng: ${stock + unsized} ${baseUnit})`;
+        preview.textContent = `→ Quy đổi sẵn sàng: ${fullPacks} ${packUnit}${rem > 0 ? ` + dư ${rem} ${baseUnit}` : ""} (Tổng xưởng có ${stock + unsized} ${baseUnit}).`;
       } else {
-        el.textContent = `Sẵn sàng: ${stock} ${baseUnit} • Chưa gia keo: ${unsized} ${baseUnit} (tổng xưởng: ${stock + unsized} ${baseUnit})`;
+        preview.textContent = `→ Bán lẻ theo ${baseUnit} (Tổng xưởng có ${stock + unsized} ${baseUnit}).`;
       }
     }
 
-    function renderProductImagesPreview() {
-      const grid = document.getElementById("pImagesPreview");
+    function renderProductImagePreviews() {
+      const box = document.getElementById("pImagesPreview");
       if (!currentProductImages.length) {
-        grid.innerHTML = "";
+        box.innerHTML = "";
         return;
       }
-      grid.innerHTML = currentProductImages.map((url, idx) => `
+      box.innerHTML = currentProductImages.map((url, idx) => `
         <div class="img-preview-item">
           <img src="${escapeHtml(url)}" alt="Ảnh ${idx + 1}" />
           <div class="img-preview-actions">
-            ${idx > 0 ? `<button type="button" class="mini-icon-btn" onclick="moveProductImageFirst(${idx})">Ảnh bìa</button>` : `<span style="font-size:10px; font-weight:700; color:var(--primary); padding:2px 4px;">Ảnh 1</span>`}
+            ${idx > 0 ? `<button type="button" class="mini-icon-btn" onclick="moveProductImage(${idx}, -1)">←</button>` : `<span></span>`}
             <button type="button" class="mini-icon-btn" style="color:var(--danger);" onclick="removeProductImage(${idx})">Xóa</button>
           </div>
         </div>
       `).join("");
-    }
-
-    function moveProductImageFirst(idx) {
-      const [picked] = currentProductImages.splice(idx, 1);
-      currentProductImages.unshift(picked);
-      renderProductImagesPreview();
-    }
-
-    function removeProductImage(idx) {
-      currentProductImages.splice(idx, 1);
-      renderProductImagesPreview();
     }
 
     function addImageUrlManual() {
@@ -2571,115 +2591,105 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       const url = input.value.trim();
       if (!url) return;
       if (currentProductImages.length >= 3) {
-        showToast("Mỗi sản phẩm tối đa 3 ảnh");
+        showToast("Tối đa 3 ảnh cho mỗi sản phẩm");
         return;
       }
       currentProductImages.push(url);
       input.value = "";
-      renderProductImagesPreview();
+      renderProductImagePreviews();
     }
 
-    function resizeImageToBase64(file, maxDim = 1000, quality = 0.84) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = new Image();
-          img.onload = () => {
-            let w = img.width;
-            let h = img.height;
-            if (w > maxDim || h > maxDim) {
-              if (w > h) {
-                h = Math.round((h * maxDim) / w);
-                w = maxDim;
-              } else {
-                w = Math.round((w * maxDim) / h);
-                h = maxDim;
-              }
-            }
-            const canvas = document.createElement("canvas");
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL("image/jpeg", quality);
-            const base64 = dataUrl.split(",")[1];
-            resolve({ base64, mimeType: "image/jpeg", fileName: file.name || "giay.jpg" });
-          };
-          img.onerror = reject;
-          img.src = ev.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    function removeProductImage(idx) {
+      currentProductImages.splice(idx, 1);
+      renderProductImagePreviews();
     }
 
-    async function uploadProductImages(inputEl) {
-      const files = Array.from(inputEl.files || []);
-      if (!files.length) return;
-      const slotsLeft = 3 - currentProductImages.length;
-      if (slotsLeft <= 0) {
-        showToast("Đã đủ 3 ảnh tối đa cho sản phẩm này");
-        inputEl.value = "";
-        return;
-      }
-
-      const toUpload = files.slice(0, slotsLeft);
-      const saveBtn = document.getElementById("saveProdBtn");
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Đang tải ảnh lên Drive...";
-
-      try {
-        for (let i = 0; i < toUpload.length; i++) {
-          const resized = await resizeImageToBase64(toUpload[i]);
-          const res = await callApi({
-            action: "upload_image",
-            base64: resized.base64,
-            mimeType: resized.mimeType,
-            fileName: resized.fileName
-          });
-          if (res.imageUrl) {
-            currentProductImages.push(res.imageUrl);
-          }
-        }
-        renderProductImagesPreview();
-        showToast(`Đã tải lên ${toUpload.length} ảnh`);
-      } catch (err) {
-        showToast("Lỗi tải ảnh: " + err.message);
-      } finally {
-        inputEl.value = "";
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Lưu sản phẩm";
-      }
+    function moveProductImage(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= currentProductImages.length) return;
+      const tmp = currentProductImages[idx];
+      currentProductImages[idx] = currentProductImages[target];
+      currentProductImages[target] = tmp;
+      renderProductImagePreviews();
     }
 
-    function openProductModal(id = "") {
-      populateCategorySuggestions();
-      const p = allProducts.find(item => item.id === id);
-      const pType = p ? (p.productType === "item" ? "item" : "paper") : "paper";
-
+    function openProductModal(id = null) {
+      const p = id ? allProducts.find(item => item.id === id) : null;
       document.getElementById("prodModalTitle").textContent = p ? "Sửa sản phẩm" : "Thêm sản phẩm mới";
       document.getElementById("pId").value = p ? p.id : "";
-      document.getElementById("pName").value = p ? p.name : "";
-      document.getElementById("pCategory").value = p ? p.category : "Giấy A5";
-      document.getElementById("pBaseUnit").value = p ? p.baseUnit : "tờ";
-      document.getElementById("pStock").value = p ? Number(p.stock || 0) : 0;
-      document.getElementById("pUnsizedStock").value = p ? Number(p.unsizedStock || 0) : 0;
-      document.getElementById("pPackUnit").value = p ? p.packUnit : "gói";
-      document.getElementById("pPackSize").value = p ? p.packSize : 10;
-      document.getElementById("pPackPrice").value = p ? p.packPrice : 65000;
-      document.getElementById("pUnitPrice").value = p ? p.unitPrice : 0;
-      document.getElementById("pVisible").checked = p ? (p.visible !== false) : true;
-      document.getElementById("pSpecs").value = p ? p.specs : "";
-      document.getElementById("pImageUrlInput").value = "";
-      document.getElementById("pImageFile").value = "";
-      currentProductImages = p ? parseImages(p) : [];
 
-      setProductType(pType);
-      renderProductImagesPreview();
+      const typeToSet = p ? (p.productType === "item" ? "item" : "paper") : "paper";
+      setProductType(typeToSet);
+
+      document.getElementById("pName").value = p ? p.name : "";
+      document.getElementById("pCategory").value = p ? p.category : "";
+      document.getElementById("pBaseUnit").value = p ? (p.baseUnit || (typeToSet === "item" ? "bộ" : "tờ")) : (typeToSet === "item" ? "bộ" : "tờ");
+      document.getElementById("pStock").value = p ? p.stock : 0;
+      document.getElementById("pUnsizedStock").value = p && typeToSet !== "item" ? Number(p.unsizedStock || 0) : 0;
+      document.getElementById("pPackUnit").value = p && typeToSet !== "item" ? (p.packUnit || "") : "";
+      document.getElementById("pPackSize").value = p && typeToSet !== "item" ? (p.packSize || 10) : (typeToSet === "item" ? 1 : 10);
+      document.getElementById("pPackPrice").value = p && typeToSet !== "item" ? (p.packPrice || 0) : 0;
+      document.getElementById("pUnitPrice").value = p ? (p.unitPrice || 0) : 0;
+      document.getElementById("pVisible").checked = p ? (p.visible !== false) : true;
+      document.getElementById("pSpecs").value = p ? (p.specs || "") : "";
+      document.getElementById("pImageFile").value = "";
+      document.getElementById("pImageUrlInput").value = "";
+
+      currentProductImages = p ? parseImages(p) : [];
+      renderProductImagePreviews();
+      updatePackPreview();
       document.getElementById("productModal").classList.add("open");
     }
 
     function closeProductModal() { document.getElementById("productModal").classList.remove("open"); }
+
+    function uploadProductImages(input) {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+
+      const slotsLeft = 3 - currentProductImages.length;
+      if (slotsLeft <= 0) {
+        showToast("Đã đủ tối đa 3 ảnh");
+        input.value = "";
+        return;
+      }
+
+      const toUpload = files.slice(0, slotsLeft);
+      const btn = document.getElementById("saveProdBtn");
+      btn.disabled = true;
+      btn.textContent = `Đang tải ${toUpload.length} ảnh lên Drive...`;
+
+      let completed = 0;
+      toUpload.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result.split(",")[1];
+            const res = await callApi({
+              action: "upload_image",
+              base64,
+              mimeType: file.type,
+              fileName: file.name
+            });
+            if (currentProductImages.length < 3) {
+              currentProductImages.push(res.imageUrl);
+              renderProductImagePreviews();
+            }
+          } catch (err) {
+            showToast("Lỗi tải ảnh: " + err.message);
+          } finally {
+            completed++;
+            if (completed === toUpload.length) {
+              btn.disabled = false;
+              btn.textContent = "Lưu sản phẩm";
+              input.value = "";
+              showToast("Đã tải ảnh lên thành công");
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     async function saveProductForm(e) {
       e.preventDefault();
@@ -2688,28 +2698,37 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       btn.textContent = "Đang lưu...";
 
       const isItem = document.getElementById("pProductType").value === "item";
-      const product = {
-        id: document.getElementById("pId").value,
-        productType: isItem ? "item" : "paper",
-        name: document.getElementById("pName").value.trim(),
-        category: document.getElementById("pCategory").value.trim(),
-        baseUnit: document.getElementById("pBaseUnit").value.trim() || (isItem ? "bộ" : "tờ"),
-        stock: Number(document.getElementById("pStock").value || 0),
-        unsizedStock: isItem ? 0 : Number(document.getElementById("pUnsizedStock").value || 0),
-        packUnit: isItem ? "" : document.getElementById("pPackUnit").value.trim(),
-        packSize: isItem ? 1 : Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
-        packPrice: isItem ? 0 : Number(document.getElementById("pPackPrice").value || 0),
-        unitPrice: Number(document.getElementById("pUnitPrice").value || 0),
-        visible: document.getElementById("pVisible").checked,
-        specs: document.getElementById("pSpecs").value.trim(),
-        imageUrl: currentProductImages.slice(0, 3).join(", ")
-      };
 
       try {
+        const product = {
+          id: document.getElementById("pId").value,
+          productType: isItem ? "item" : "paper",
+          name: document.getElementById("pName").value.trim(),
+          category: document.getElementById("pCategory").value.trim(),
+          baseUnit: document.getElementById("pBaseUnit").value.trim() || (isItem ? "bộ" : "tờ"),
+          stock: Number(document.getElementById("pStock").value || 0),
+          unsizedStock: isItem ? 0 : Number(document.getElementById("pUnsizedStock").value || 0),
+          packUnit: isItem ? "" : document.getElementById("pPackUnit").value.trim(),
+          packSize: isItem ? 1 : Math.max(1, Number(document.getElementById("pPackSize").value || 1)),
+          packPrice: isItem ? 0 : Number(document.getElementById("pPackPrice").value || 0),
+          unitPrice: Number(document.getElementById("pUnitPrice").value || 0),
+          visible: document.getElementById("pVisible").checked,
+          specs: document.getElementById("pSpecs").value.trim(),
+          imageUrl: currentProductImages.slice(0, 3).join("\n")
+        };
+
         const res = await callApi({ action: "save_product", product });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
+        allProducts = (res.products || []).map(p => ({
+          ...p,
+          productType: p.productType === "item" ? "item" : "paper",
+          stock: Number(p.stock || 0),
+          unsizedStock: Number(p.unsizedStock || 0),
+          imageUrls: parseImages(p)
+        }));
+        populateCategorySuggestions();
         closeProductModal();
-        showToast("Đã lưu sản phẩm");
+        renderProducts();
+        showToast("Đã lưu sản phẩm vào Google Sheet");
       } catch (err) {
         showToast("Lỗi lưu sản phẩm: " + err.message);
       } finally {
@@ -2735,9 +2754,18 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
         btnEl.disabled = true;
         btnEl.textContent = "Đang xóa...";
       }
+
       try {
         const res = await callApi({ action: "delete_product", id });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
+        allProducts = (res.products || []).map(p => ({
+          ...p,
+          productType: p.productType === "item" ? "item" : "paper",
+          stock: Number(p.stock || 0),
+          unsizedStock: Number(p.unsizedStock || 0),
+          imageUrls: parseImages(p)
+        }));
+        populateCategorySuggestions();
+        renderProducts();
         showToast("Đã xóa sản phẩm");
       } catch (err) {
         if (btnEl) {
@@ -2745,67 +2773,42 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
           btnEl.dataset.armed = "";
           btnEl.textContent = "Xóa";
         }
-        showToast("Lỗi xóa sản phẩm: " + err.message);
+        showToast("Lỗi xóa: " + err.message);
       }
     }
 
-    // --- FAQS (HỎI - ĐÁP) ---
+    // --- FAQS ---
     function renderFaqs() {
       const container = document.getElementById("faqsList");
-      if (!container) return;
-
       if (!allFaqs.length) {
-        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có câu hỏi thường gặp nào. Bấm "+ Thêm câu hỏi" ở trên để tạo mới.</div>`;
+        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có mục hỏi đáp nào.</div>`;
         return;
       }
 
       container.innerHTML = allFaqs.map(f => {
-        const isActive = Boolean(f.active);
-        const safeId = escapeAttrJs(f.id);
+        const safeIdAttr = escapeAttrJs(f.id);
         return `
-          <div class="card ${isActive ? '' : 'hidden-prod'}">
+          <div class="card">
             <div class="card-top">
-              <div>
-                <div style="font-size:13.5px; font-weight:700; color:var(--primary);">${escapeHtml(f.question)}</div>
-                <div style="font-size:13px; color:var(--text); margin-top:5px; white-space:pre-line;">${escapeHtml(f.answer)}</div>
-              </div>
-              <span class="badge ${isActive ? 'badge-ok' : 'badge-muted'}" style="flex-shrink:0;">${isActive ? 'Đang bật' : 'Đã tắt'}</span>
+              <strong>Hỏi: ${escapeHtml(f.question)}</strong>
+              <span class="badge ${f.active ? 'badge-ok' : 'badge-warn'}">${f.active ? 'Đang bật' : 'Tạm tắt'}</span>
             </div>
-            <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:8px;">
-              <button type="button" class="btn btn-soft btn-sm" onclick="toggleFaqActive('${safeId}')">${isActive ? 'Tắt tạm' : 'Bật lại'}</button>
-              <button type="button" class="btn btn-soft btn-sm" onclick="openFaqModal('${safeId}')">Sửa</button>
-              <button type="button" class="btn btn-danger btn-sm" onclick="deleteFaq('${safeId}', this)">Xóa</button>
+            <div style="font-size:13px; color:#3D322A; margin-bottom:10px;">Đáp: ${escapeHtml(f.answer)}</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-soft btn-sm" onclick="openFaqModal('${safeIdAttr}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteFaq('${safeIdAttr}', this)">Xóa</button>
             </div>
           </div>
         `;
       }).join("");
     }
 
-    async function toggleFaqActive(id) {
-      const f = allFaqs.find(item => item.id === id);
-      if (!f) return;
-      const prev = Boolean(f.active);
-      f.active = !prev;
-      renderFaqs();
-      showToast(f.active ? "Đã bật câu hỏi cho AI" : "Đã tạm tắt câu hỏi");
-
-      try {
-        const res = await callApi({ action: "save_faq", faq: f });
-        allFaqs = res.faqs || allFaqs;
-        renderFaqs();
-      } catch (err) {
-        f.active = prev;
-        renderFaqs();
-        showToast("Lỗi đồng bộ: " + err.message);
-      }
-    }
-
-    function openFaqModal(id = "", prefillQ = "", prefillA = "") {
+    function openFaqModal(id = null) {
       const f = id ? allFaqs.find(item => item.id === id) : null;
       document.getElementById("faqModalTitle").textContent = f ? "Sửa mục Hỏi - Đáp" : "Thêm câu hỏi thường gặp";
       document.getElementById("fId").value = f ? f.id : "";
-      document.getElementById("fQuestion").value = f ? f.question : prefillQ;
-      document.getElementById("fAnswer").value = f ? f.answer : prefillA;
+      document.getElementById("fQuestion").value = f ? f.question : "";
+      document.getElementById("fAnswer").value = f ? f.answer : "";
       document.getElementById("fActive").checked = f ? Boolean(f.active) : true;
       document.getElementById("faqModal").classList.add("open");
     }
@@ -2818,20 +2821,20 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
 
-      const faq = {
-        id: document.getElementById("fId").value,
-        question: document.getElementById("fQuestion").value.trim(),
-        answer: document.getElementById("fAnswer").value.trim(),
-        active: document.getElementById("fActive").checked
-      };
       try {
+        const faq = {
+          id: document.getElementById("fId").value,
+          question: document.getElementById("fQuestion").value.trim(),
+          answer: document.getElementById("fAnswer").value.trim(),
+          active: document.getElementById("fActive").checked
+        };
         const res = await callApi({ action: "save_faq", faq });
         allFaqs = res.faqs || [];
-        renderFaqs();
         closeFaqModal();
+        renderFaqs();
         showToast("Đã lưu mục Hỏi - Đáp");
       } catch (err) {
-        showToast("Lỗi lưu: " + err.message);
+        showToast("Lỗi lưu FAQ: " + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = "Lưu mục Hỏi - Đáp";
@@ -2855,11 +2858,12 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
         btnEl.disabled = true;
         btnEl.textContent = "Đang xóa...";
       }
+
       try {
         const res = await callApi({ action: "delete_faq", id });
         allFaqs = res.faqs || [];
         renderFaqs();
-        showToast("Đã xóa mục Hỏi - Đáp");
+        showToast("Đã xóa câu hỏi");
       } catch (err) {
         if (btnEl) {
           btnEl.disabled = false;
@@ -2870,76 +2874,217 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       }
     }
 
-    // --- GẮN THỦ CÔNG PHIÊN CHAT VÀO ĐƠN HÀNG ---
+    // --- LỊCH SỬ CHAT KHÁCH HÀNG ---
+    function formatChatSourceBadge(source) {
+      const s = String(source || "");
+      if (s.startsWith("ai:")) {
+        return `<span class="badge badge-ok">Gemini AI (${escapeHtml(s.replace("ai:", ""))})</span>`;
+      }
+      if (s === "smart_local_instant") {
+        return `<span class="badge badge-info">Trả lời nhanh FAQ/Thông số</span>`;
+      }
+      if (s === "order_lookup") {
+        return `<span class="badge badge-info">Tra cứu đơn hàng</span>`;
+      }
+      if (s === "order_sync") {
+        return `<span class="badge badge-ok">Đồng bộ khi đặt đơn</span>`;
+      }
+      if (s === "smart_local_no_key") {
+        return `<span class="badge badge-warn">Nội bộ (Chưa cài API Key)</span>`;
+      }
+      if (s === "smart_local_disabled") {
+        return `<span class="badge badge-muted">Nội bộ (AI đang tắt)</span>`;
+      }
+      if (s === "smart_local_quota_cooldown") {
+        return `<span class="badge badge-warn">Nội bộ (AI tạm giới hạn)</span>`;
+      }
+      if (s === "smart_local_fallback") {
+        return `<span class="badge badge-warn">Nội bộ (AI dự phòng)</span>`;
+      }
+      return `<span class="badge badge-muted">Xử lý nội bộ</span>`;
+    }
+
+    function jumpToAiSettings() {
+      const tabs = document.querySelectorAll(".nav-tabs .nav-tab");
+      if (tabs[4]) switchTab("settings", tabs[4]);
+      const keyInput = document.getElementById("geminiApiKeyInput");
+      if (keyInput) keyInput.focus();
+    }
+
+    function setChatFilterMode(mode) {
+      chatFilterMode = mode;
+      renderChatLogs();
+    }
+
+    function renderChatLogs() {
+      const statsEl = document.getElementById("chatStats");
+      const filterStripEl = document.getElementById("chatFilterStrip");
+      const listEl = document.getElementById("chatLogsList");
+      if (!statsEl || !listEl) return;
+
+      const searchNorm = normalizeText(document.getElementById("chatSearchInput")?.value || "");
+
+      // Gom nhóm theo sessionId
+      const sessionMap = new Map();
+      allChatLogs.forEach(item => {
+        const sid = item.sessionId || "unknown";
+        if (!sessionMap.has(sid)) {
+          sessionMap.set(sid, {
+            sessionId: sid,
+            latestTime: item.createdAt,
+            orderId: item.orderId || "",
+            customerName: item.customerName || "",
+            phone: item.phone || "",
+            socialHandle: item.socialHandle || "",
+            turns: []
+          });
+        }
+        const grp = sessionMap.get(sid);
+        if (!grp.orderId && item.orderId) grp.orderId = item.orderId;
+        if (!grp.customerName && item.customerName) grp.customerName = item.customerName;
+        if (!grp.phone && item.phone) grp.phone = item.phone;
+        if (!grp.socialHandle && item.socialHandle) grp.socialHandle = item.socialHandle;
+        grp.turns.push(item);
+      });
+
+      const allSessions = Array.from(sessionMap.values());
+      const orderedSessions = allSessions.filter(s => Boolean(s.orderId));
+      const browsingSessions = allSessions.filter(s => !s.orderId);
+      const aiCount = allChatLogs.filter(c => String(c.source || "").startsWith("ai:")).length;
+
+      statsEl.innerHTML = `
+        <div class="stat-box"><div class="stat-label">Tổng lượt hỏi</div><div class="stat-val">${allChatLogs.length} tin</div></div>
+        <div class="stat-box"><div class="stat-label">Khách đã đặt đơn</div><div class="stat-val" style="color:var(--accent);">${orderedSessions.length} khách</div></div>
+        <div class="stat-box"><div class="stat-label">Trả lời bởi Gemini AI</div><div class="stat-val">${aiCount} lượt</div></div>
+      `;
+
+      const aiHintBanner = (allChatLogs.length > 0 && aiCount === 0)
+        ? `<div class="inventory-alert-box" style="flex-direction:row; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <span>💡 Các lượt chat hiện đang chạy qua <strong>Bộ xử lý nội bộ</strong>. Để bật Gemini AI trả lời tự nhiên mọi câu hỏi, bạn hãy kiểm tra API Key trong mục Cài đặt nhé!</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="jumpToAiSettings()">Kiểm tra Cài đặt AI →</button>
+          </div>`
+        : "";
+
+      if (filterStripEl) {
+        filterStripEl.innerHTML = `
+          <button type="button" class="filter-chip ${chatFilterMode === 'all' ? 'active' : ''}" onclick="setChatFilterMode('all')">Tất cả (${allSessions.length})</button>
+          <button type="button" class="filter-chip ${chatFilterMode === 'ordered' ? 'active' : ''}" onclick="setChatFilterMode('ordered')">Đã đặt đơn (${orderedSessions.length})</button>
+          <button type="button" class="filter-chip ${chatFilterMode === 'browsing' ? 'active' : ''}" onclick="setChatFilterMode('browsing')">Khách vãng lai (${browsingSessions.length})</button>
+        `;
+      }
+
+      const sessions = allSessions.filter(s => {
+        if (chatFilterMode === "ordered" && !s.orderId) return false;
+        if (chatFilterMode === "browsing" && s.orderId) return false;
+        if (!searchNorm) return true;
+        const metaHaystack = normalizeText(`${s.sessionId} ${s.orderId} ${s.customerName} ${s.phone} ${s.socialHandle}`);
+        if (metaHaystack.includes(searchNorm)) return true;
+        return s.turns.some(t => normalizeText(`${t.userMessage} ${t.botReply}`).includes(searchNorm));
+      });
+
+      if (!sessions.length) {
+        listEl.innerHTML = aiHintBanner + `<div class="card" style="text-align:center; color:var(--muted);">Chưa có cuộc trò chuyện nào phù hợp.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = aiHintBanner + sessions.map(s => {
+        const chronologicalTurns = s.turns.slice().reverse();
+        const safeSid = escapeAttrJs(s.sessionId);
+
+        const customerBanner = s.orderId
+          ? `<div class="chat-customer-banner">
+              <span>🛍️ Đơn #${escapeHtml(s.orderId)} — <strong>${escapeHtml(s.customerName || "Khách đặt hàng")}</strong>${s.phone ? ` • ${escapeHtml(s.phone)}` : ""}${s.socialHandle ? ` (${escapeHtml(s.socialHandle)})` : ""}</span>
+              <div style="display:flex; gap:5px;">
+                <button type="button" class="copy-icon-btn" onclick="openLinkChatOrderModal('${safeSid}')">Đổi đơn</button>
+                <button type="button" class="copy-icon-btn" onclick="jumpToOrderCard('${escapeAttrJs(s.orderId)}')">Xem đơn →</button>
+              </div>
+            </div>`
+          : `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; background:var(--soft); padding:6px 10px; border-radius:8px; font-size:12px;">
+              <span style="color:var(--muted);">Khách chưa gắn đơn hàng</span>
+              <button type="button" class="btn btn-accent btn-sm" style="padding:3px 9px; font-size:11.5px;" onclick="openLinkChatOrderModal('${safeSid}')">+ Gắn vào đơn hàng</button>
+            </div>`;
+
+        const turnsHtml = chronologicalTurns.map(t => `
+          <div class="chat-turn-box">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+              <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
+              <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml(t.createdAt)}</span>
+            </div>
+            <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
+            <div>${formatChatSourceBadge(t.source)}</div>
+          </div>
+        `).join("");
+
+        return `
+          <div class="card">
+            <div class="card-top" style="border-bottom:1px solid var(--border); padding-bottom:8px;">
+              <div>
+                <strong style="font-size:13.5px; color:var(--primary);">${s.customerName ? escapeHtml(s.customerName) : `Phiên khách #${escapeHtml(s.sessionId)}`}</strong>
+                <span style="font-size:11.5px; color:var(--muted); margin-left:6px;">(${chronologicalTurns.length} lượt hỏi • ${escapeHtml(s.latestTime)})</span>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
+            </div>
+            ${customerBanner}
+            ${turnsHtml}
+          </div>
+        `;
+      }).join("");
+    }
+
     function openLinkChatOrderModal(sessionId) {
       linkingSessionId = sessionId;
-      document.getElementById("linkChatOrderTitle").textContent = `Gắn phiên #${sessionId.slice(-6)} vào đơn hàng`;
-      const inp = document.getElementById("linkOrderSearchInput");
-      if (inp) inp.value = "";
+      document.getElementById("linkOrderSearchInput").value = "";
       renderLinkChatOrderList();
       document.getElementById("linkChatOrderModal").classList.add("open");
     }
 
     function closeLinkChatOrderModal() {
-      document.getElementById("linkChatOrderModal").classList.remove("open");
       linkingSessionId = "";
+      document.getElementById("linkChatOrderModal").classList.remove("open");
     }
 
     function renderLinkChatOrderList() {
-      const container = document.getElementById("linkChatOrderList");
-      if (!container) return;
+      const box = document.getElementById("linkChatOrderList");
+      if (!box) return;
       const qNorm = normalizeText(document.getElementById("linkOrderSearchInput")?.value || "");
 
-      const matchedOrders = qNorm
-        ? allOrders.filter(o => normalizeText(`${o.orderId} ${o.customerName} ${o.phone} ${o.socialHandle} ${o.itemsSummary}`).includes(qNorm))
-        : allOrders;
+      const filteredOrders = allOrders.filter(o => {
+        if (!qNorm) return true;
+        const cleanPhone = String(o.phone || "").replace(/^'/, "");
+        return normalizeText(`${o.orderId} ${o.customerName} ${cleanPhone} ${o.socialHandle} ${o.itemsSummary}`).includes(qNorm);
+      }).slice(0, 25);
 
-      const unlinkBtnHtml = `
-        <div class="edit-item-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--soft);">
-          <span style="font-size:12.5px; color:var(--muted);">Gỡ liên kết đơn hàng khỏi phiên chat này</span>
-          <button type="button" class="btn btn-soft btn-sm" onclick="submitLinkChatToOrder('')">Gỡ gắn</button>
-        </div>
-      `;
+      const unlinkBtn = `<button type="button" class="btn btn-soft btn-sm" style="text-align:left; border-style:dashed;" onclick="submitLinkChatToOrder('')">✕ Gỡ liên kết đơn hàng (đặt lại thành khách vãng lai)</button>`;
 
-      if (!matchedOrders.length) {
-        container.innerHTML = unlinkBtnHtml + `<div style="text-align:center; color:var(--muted); padding:14px; font-size:12.5px;">Không tìm thấy đơn hàng nào khớp.</div>`;
+      if (!filteredOrders.length) {
+        box.innerHTML = unlinkBtn + `<div style="text-align:center; color:var(--muted); padding:14px; font-size:12.5px;">Không tìm thấy đơn hàng nào khớp từ khóa.</div>`;
         return;
       }
 
-      const rowsHtml = matchedOrders.map(o => {
+      box.innerHTML = unlinkBtn + filteredOrders.map(o => {
         const cleanPhone = String(o.phone || "").replace(/^'/, "");
-        const isCurrent = o.sessionId === linkingSessionId;
         return `
-          <div class="edit-item-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:0; ${isCurrent ? 'border-color:var(--accent); background:#F5FAF6;' : ''}">
-            <div style="min-width:0;">
-              <div style="font-size:13px; font-weight:700; color:var(--primary);">#${escapeHtml(o.orderId)} — ${escapeHtml(o.customerName)}</div>
-              <div style="font-size:11.5px; color:var(--muted);">${escapeHtml(cleanPhone)} • ${escapeHtml(o.platform)}: ${escapeHtml(o.socialHandle)} • ${fmtVND(o.total)}</div>
-              <div style="font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(o.itemsSummary)}</div>
+          <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 11px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="font-size:12.5px;">
+              <div><strong style="color:var(--primary);">#${escapeHtml(o.orderId)}</strong> — <strong>${escapeHtml(o.customerName)}</strong> (${escapeHtml(cleanPhone)})</div>
+              <div style="font-size:11.5px; color:var(--muted);">${escapeHtml(o.createdAt)} • ${escapeHtml(o.itemsSummary)}</div>
             </div>
-            <button type="button" class="btn ${isCurrent ? 'btn-accent' : 'btn-primary'} btn-sm" style="white-space:nowrap;" onclick="submitLinkChatToOrder('${escapeAttrJs(o.orderId)}')">
-              ${isCurrent ? '✓ Đang gắn' : 'Chọn gắn'}
-            </button>
+            <button type="button" class="btn btn-primary btn-sm" style="white-space:nowrap;" onclick="submitLinkChatToOrder('${escapeAttrJs(o.orderId)}')">Chọn gắn</button>
           </div>
         `;
       }).join("");
-
-      container.innerHTML = unlinkBtnHtml + rowsHtml;
     }
 
     async function submitLinkChatToOrder(orderId) {
       if (!linkingSessionId) return;
-      const targetSession = linkingSessionId;
-      closeLinkChatOrderModal();
-      showToast(orderId ? `Đang gắn phiên chat với đơn #${orderId}...` : "Đang gỡ liên kết đơn hàng...");
-
       try {
         const res = await callApi({
           action: "link_chat_to_order",
-          sessionId: targetSession,
+          sessionId: linkingSessionId,
           orderId: orderId
         });
-        if (Array.isArray(res.chatLogs)) allChatLogs = res.chatLogs;
-        if (Array.isArray(res.orders)) {
+        if (res.chatLogs) allChatLogs = res.chatLogs;
+        if (res.orders) {
           allOrders = res.orders.map(o => ({
             ...o,
             shipFee: Number(o.shipFee || 0),
@@ -2951,176 +3096,29 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
             sessionId: String(o.sessionId || "")
           }));
         }
+        closeLinkChatOrderModal();
         renderChatLogs();
         renderOrders();
-        showToast(orderId ? `✓ Đã gắn phiên chat vào đơn #${orderId}` : "Đã gỡ liên kết đơn hàng");
+        showToast(orderId ? `Đã gắn phiên chat với đơn #${orderId}` : "Đã gỡ liên kết đơn hàng");
       } catch (err) {
         showToast("Lỗi gắn đơn hàng: " + err.message);
       }
     }
 
-    // --- CHAT LOGS (LỊCH SỬ TƯ VẤN KHÁCH HÀNG) ---
-    function formatChatSourceBadge(source) {
-      const s = String(source || "");
-      if (s.startsWith("ai:")) {
-        return `<span class="badge badge-info">${escapeHtml(s.replace("ai:", ""))}</span>`;
-      }
-      if (s === "order_sync") {
-        return `<span class="badge badge-ok">Đồng bộ khi đặt đơn</span>`;
-      }
-      if (s === "order_lookup") {
-        return `<span class="badge badge-warn">Tra cứu đơn</span>`;
-      }
-      return `<span class="badge badge-muted">Nội bộ</span>`;
-    }
-
-    function setChatFilterMode(mode) {
-      chatFilterMode = mode;
-      renderChatLogs();
-    }
-
-    function jumpToOrderFromChat(orderId) {
+    function jumpToOrderCard(orderId) {
       const ordersTabBtn = document.querySelector(".nav-tabs .nav-tab");
       if (ordersTabBtn) switchTab("orders", ordersTabBtn);
       orderFilter = "Tất cả";
       const searchInp = document.getElementById("orderSearchInput");
       if (searchInp) searchInp.value = orderId;
       renderOrders();
-      showToast(`Đang hiển thị đơn #${orderId}`);
-    }
-
-    function renderChatLogs() {
-      const container = document.getElementById("chatLogsList");
-      const statsEl = document.getElementById("chatStats");
-      const filterEl = document.getElementById("chatFilterStrip");
-      if (!container || !statsEl) return;
-
-      // Bổ sung liên kết chéo từ danh sách đơn hàng hiện có nếu sheet LichSuChat chưa kịp cập nhật
-      const sessionToOrderMap = {};
-      allOrders.forEach(o => {
-        if (o.sessionId) sessionToOrderMap[o.sessionId] = o;
-      });
-
-      const enrichedLogs = allChatLogs.map(item => {
-        const matchedOrder = item.orderId
-          ? allOrders.find(o => o.orderId === item.orderId)
-          : sessionToOrderMap[item.sessionId];
-        return {
-          ...item,
-          resolvedOrderId: item.orderId || (matchedOrder ? matchedOrder.orderId : ""),
-          resolvedCustomerName: item.customerName || (matchedOrder ? matchedOrder.customerName : ""),
-          resolvedPhone: item.phone || (matchedOrder ? String(matchedOrder.phone || "").replace(/^'/, "") : ""),
-          resolvedSocial: item.socialHandle || (matchedOrder ? `${matchedOrder.socialHandle} (${matchedOrder.platform})` : "")
-        };
-      });
-
-      const searchNorm = normalizeText(document.getElementById("chatSearchInput")?.value || "");
-      const searchedLogs = searchNorm
-        ? enrichedLogs.filter(c => normalizeText(`${c.userMessage} ${c.botReply} ${c.sessionId} ${c.resolvedOrderId} ${c.resolvedCustomerName} ${c.resolvedPhone} ${c.resolvedSocial}`).includes(searchNorm))
-        : enrichedLogs;
-
-      const sessionMap = new Map();
-      searchedLogs.forEach(item => {
-        const sid = item.sessionId || "unknown";
-        if (!sessionMap.has(sid)) {
-          sessionMap.set(sid, {
-            sessionId: sid,
-            latestTime: item.createdAt || "",
-            orderId: "",
-            customerName: "",
-            phone: "",
-            socialHandle: "",
-            turns: []
-          });
-        }
-        const sess = sessionMap.get(sid);
-        if (!sess.orderId && item.resolvedOrderId) sess.orderId = item.resolvedOrderId;
-        if (!sess.customerName && item.resolvedCustomerName) sess.customerName = item.resolvedCustomerName;
-        if (!sess.phone && item.resolvedPhone) sess.phone = item.resolvedPhone;
-        if (!sess.socialHandle && item.resolvedSocial) sess.socialHandle = item.resolvedSocial;
-        sess.turns.unshift(item);
-      });
-
-      const allSessions = Array.from(sessionMap.values());
-      const orderedSessions = allSessions.filter(s => Boolean(s.orderId || s.customerName));
-      const sessions = chatFilterMode === "ordered" ? orderedSessions : allSessions;
-      const aiCount = searchedLogs.filter(c => String(c.source || "").startsWith("ai:")).length;
-
-      statsEl.innerHTML = `
-        <div class="stat-box"><div class="stat-label">Phiên trò chuyện</div><div class="stat-val">${allSessions.length} phiên</div></div>
-        <div class="stat-box"><div class="stat-label">Khách đã đặt đơn</div><div class="stat-val">${orderedSessions.length} khách</div></div>
-        <div class="stat-box"><div class="stat-label">Trả lời bằng Gemini AI</div><div class="stat-val">${aiCount} câu</div></div>
-      `;
-
-      if (filterEl) {
-        filterEl.innerHTML = [
-          { key: "all", label: `Tất cả phiên (${allSessions.length})` },
-          { key: "ordered", label: `Khách đã đặt đơn (${orderedSessions.length})` }
-        ].map(f => `<button type="button" class="filter-chip ${chatFilterMode === f.key ? 'active' : ''}" onclick="setChatFilterMode('${f.key}')">${f.label}</button>`).join("");
-      }
-
-      if (!sessions.length) {
-        container.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Chưa có lịch sử trò chuyện nào phù hợp.</div>`;
-        return;
-      }
-
-      container.innerHTML = sessions.map(sess => {
-        const safeSid = escapeAttrJs(sess.sessionId);
-        const hasCustomer = Boolean(sess.orderId || sess.customerName);
-        const custParts = [
-          sess.customerName ? `👤 ${escapeHtml(sess.customerName)}` : "",
-          sess.phone ? escapeHtml(sess.phone) : "",
-          sess.socialHandle ? escapeHtml(sess.socialHandle) : ""
-        ].filter(Boolean).join(" • ");
-
-        const customerBannerHtml = hasCustomer ? `
-          <div class="chat-customer-banner">
-            <span>${custParts || "Khách đã đặt đơn"}</span>
-            ${sess.orderId ? `<button type="button" class="btn btn-primary btn-sm" style="padding:3px 9px; font-size:11.5px;" onclick="jumpToOrderFromChat('${escapeAttrJs(sess.orderId)}')">Xem đơn #${escapeHtml(sess.orderId)}</button>` : ""}
-          </div>
-        ` : "";
-
-        const turnsHtml = sess.turns.map(t => {
-          const safeQ = escapeAttrJs(t.userMessage);
-          const safeA = escapeAttrJs(t.botReply);
-          return `
-            <div class="chat-turn-box">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-                <div class="chat-user-line">Khách: ${escapeHtml(t.userMessage)}</div>
-                <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${escapeHtml((t.createdAt || "").split(" ")[1] || t.createdAt)}</span>
-              </div>
-              <div class="chat-bot-line">${escapeHtml(t.botReply)}</div>
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
-                <div>${formatChatSourceBadge(t.source)}</div>
-                <button type="button" class="btn btn-soft btn-sm" style="font-size:11px; padding:4px 8px;" onclick="openFaqModal('', '${safeQ}', '${safeA}')">+ Lưu vào Hỏi - Đáp</button>
-              </div>
-            </div>
-          `;
-        }).join("");
-
-        return `
-          <div class="card">
-            <div class="card-top" style="border-bottom:1px solid var(--border); padding-bottom:8px;">
-              <div>
-                <strong style="font-size:13.5px; color:var(--primary);">Phiên #${escapeHtml(sess.sessionId.slice(-6))}</strong>
-                <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(sess.latestTime)} • ${sess.turns.length} lượt hỏi</span>
-              </div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="btn btn-soft btn-sm" onclick="openLinkChatOrderModal('${safeSid}')">🔗 ${sess.orderId ? 'Đổi đơn gắn' : 'Gắn đơn hàng'}</button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
-              </div>
-            </div>
-            ${customerBannerHtml}
-            <div>${turnsHtml}</div>
-          </div>
-        `;
-      }).join("");
+      showToast(`Đang lọc đơn #${orderId}`);
     }
 
     async function deleteChatSession(sessionId, btnEl) {
       if (btnEl && btnEl.dataset.armed !== "1") {
         btnEl.dataset.armed = "1";
-        btnEl.textContent = "Bấm lần nữa để xóa";
+        btnEl.textContent = "Xác nhận?";
         setTimeout(() => {
           if (btnEl) {
             btnEl.dataset.armed = "";
@@ -3129,30 +3127,24 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
         }, 3000);
         return;
       }
-
       if (btnEl) {
         btnEl.disabled = true;
-        btnEl.textContent = "Đang xóa...";
+        btnEl.textContent = "...";
       }
       try {
         const res = await callApi({ action: "delete_chat_session", sessionId });
         allChatLogs = res.chatLogs || [];
         renderChatLogs();
-        renderOrders();
         showToast("Đã xóa phiên trò chuyện");
       } catch (err) {
-        showToast("Lỗi xóa: " + err.message);
-        if (btnEl) {
-          btnEl.disabled = false;
-          btnEl.textContent = "Xóa phiên";
-        }
+        showToast("Lỗi xóa phiên chat: " + err.message);
       }
     }
 
     async function confirmClearAllChats(btnEl) {
       if (btnEl && btnEl.dataset.armed !== "1") {
         btnEl.dataset.armed = "1";
-        btnEl.textContent = "Bấm lần nữa để xác nhận xóa hết";
+        btnEl.textContent = "Bấm lần nữa để xóa sạch!";
         setTimeout(() => {
           if (btnEl) {
             btnEl.dataset.armed = "";
@@ -3161,14 +3153,12 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
         }, 3500);
         return;
       }
-
       btnEl.disabled = true;
       btnEl.textContent = "Đang xóa...";
       try {
         const res = await callApi({ action: "clear_all_chats" });
         allChatLogs = res.chatLogs || [];
         renderChatLogs();
-        renderOrders();
         showToast("Đã xóa toàn bộ lịch sử chat");
       } catch (err) {
         showToast("Lỗi xóa lịch sử: " + err.message);
@@ -3179,30 +3169,21 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       }
     }
 
-    // --- SETTINGS ---
+    // --- SETTINGS & DIAGNOSTICS ---
     async function saveNotifyEmail() {
       const btn = document.getElementById("saveEmailBtn");
-      const notifyEmail = document.getElementById("notifyEmailInput").value.trim();
+      const email = document.getElementById("notifyEmailInput").value.trim();
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
-        const res = await callApi({ action: "save_settings", notifyEmail });
-        document.getElementById("notifyEmailInput").value = res.notifyEmail;
+        const res = await callApi({ action: "save_settings", notifyEmail: email });
+        document.getElementById("notifyEmailInput").value = res.notifyEmail || "";
         showToast("Đã lưu email nhận thông báo");
       } catch (err) {
-        showToast("Lỗi: " + err.message);
+        showToast("Lỗi lưu email: " + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = "Lưu Email";
-      }
-    }
-
-    async function toggleAiMode(enabled) {
-      try {
-        await callApi({ action: "save_settings", aiEnabled: enabled });
-        showToast(enabled ? "Đã bật chế độ Gemini AI + Dự phòng nội bộ" : "Đã chuyển sang 100% Bộ xử lý nội bộ");
-      } catch (err) {
-        showToast("Lỗi: " + err.message);
       }
     }
 
@@ -3221,20 +3202,52 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       }
     }
 
+    async function toggleAiMode(enabled) {
+      try {
+        const res = await callApi({ action: "save_settings", aiEnabled: enabled });
+        if (res.geminiKeyInfo) updateGeminiKeyStatusUi(res.geminiKeyInfo);
+        showToast(enabled ? "Đã bật ưu tiên Gemini AI" : "Đã chuyển sang bộ trả lời nhanh nội bộ");
+      } catch (err) {
+        showToast("Lỗi cập nhật chế độ AI: " + err.message);
+      }
+    }
+
+    async function saveGeminiKeySetting() {
+      const btn = document.getElementById("saveAiKeyBtn");
+      const keyVal = document.getElementById("geminiApiKeyInput").value.trim();
+      const aiEnabled = document.getElementById("aiEnabledCheckbox").checked;
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        const payload = { action: "save_settings", aiEnabled };
+        if (keyVal) payload.geminiApiKey = keyVal;
+        const res = await callApi(payload);
+        if (res.geminiKeyInfo) updateGeminiKeyStatusUi(res.geminiKeyInfo);
+        document.getElementById("geminiApiKeyInput").value = "";
+        showToast("Đã lưu cấu hình Gemini AI");
+      } catch (err) {
+        showToast("Lỗi lưu cấu hình AI: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu cấu hình AI";
+      }
+    }
+
     function updateAdminQrPreview() {
       const bankId = document.getElementById("bankIdInput")?.value.trim();
-      const accNo = document.getElementById("bankAccountNoInput")?.value.trim();
-      const accName = document.getElementById("bankAccountNameInput")?.value.trim().toUpperCase();
+      const accountNo = document.getElementById("bankAccountNoInput")?.value.trim();
+      const accountName = document.getElementById("bankAccountNameInput")?.value.trim().toUpperCase();
       const wrap = document.getElementById("adminQrPreviewWrap");
       const img = document.getElementById("adminQrPreviewImg");
       if (!wrap || !img) return;
 
-      if (bankId && accNo) {
-        img.src = `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accNo)}-compact.png?amount=10000&addInfo=TEST&accountName=${encodeURIComponent(accName || "")}`;
-        wrap.style.display = "flex";
-      } else {
+      if (!bankId || !accountNo) {
         wrap.style.display = "none";
+        return;
       }
+
+      img.src = `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accountNo)}-compact2.png?amount=10000&addInfo=TEST&accountName=${encodeURIComponent(accountName)}`;
+      wrap.style.display = "flex";
     }
 
     async function saveBankSettings() {
@@ -3242,16 +3255,21 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
-        await callApi({
+        const res = await callApi({
           action: "save_settings",
           bankId: document.getElementById("bankIdInput").value.trim(),
           bankAccountNo: document.getElementById("bankAccountNoInput").value.trim(),
-          bankAccountName: document.getElementById("bankAccountNameInput").value.trim()
+          bankAccountName: document.getElementById("bankAccountNameInput").value.trim().toUpperCase()
         });
-        updateAdminQrPreview();
-        showToast("Đã lưu tài khoản VietQR");
+        if (res.bankConfig) {
+          document.getElementById("bankIdInput").value = res.bankConfig.bankId || "";
+          document.getElementById("bankAccountNoInput").value = res.bankConfig.accountNo || "";
+          document.getElementById("bankAccountNameInput").value = res.bankConfig.accountName || "";
+          updateAdminQrPreview();
+        }
+        showToast("Đã lưu tài khoản ngân hàng VietQR");
       } catch (err) {
-        showToast("Lỗi lưu VietQR: " + err.message);
+        showToast("Lỗi lưu tài khoản: " + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = "Lưu tài khoản VietQR";
@@ -3282,9 +3300,8 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
       btn.disabled = true;
       btn.textContent = "Đang gửi...";
       try {
-        await saveTelegramSettings();
         await callApi({ action: "test_telegram" });
-        showToast("Đã gửi tin nhắn test về Telegram!");
+        showToast("Đã gửi tin nhắn Telegram test thành công!");
       } catch (err) {
         showToast("Lỗi Telegram: " + err.message);
       } finally {
@@ -3295,22 +3312,20 @@ Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để ti�
 
     async function runAiDiagnostic() {
       const btn = document.getElementById("diagAiBtn");
-      const box = document.getElementById("aiDiagResult");
+      const out = document.getElementById("aiDiagResult");
       btn.disabled = true;
       btn.textContent = "Đang kiểm tra...";
-      box.style.display = "block";
-      box.textContent = "Đang gửi câu hỏi thử tới Gemini AI...";
+      out.style.display = "block";
+      out.textContent = "Đang gửi câu hỏi tổng hợp cho Gemini AI...";
+
       try {
         const res = await callApi({ action: "test_ai" });
-        const src = res.source || "local";
-        const testPrompt = "Giấy A5 vỏ quýt kích thước có chuẩn không, viết bút mực có lem không và mua 5 gói thì giá bao nhiêu?";
-        if (src.startsWith("ai:")) {
-          box.textContent = `✓ GEMINI AI ĐANG HOẠT ĐỘNG CHÍNH (Model: ${src.replace("ai:", "")})\n\nCâu hỏi thử: "${testPrompt}"\n\nAI trả lời:\n${res.data.reply}`;
-        } else {
-          box.textContent = `⚠ CHƯA GỌI ĐƯỢC GEMINI AI (${src})\nNguyên nhân: ${res.aiError || "Chưa rõ"}\n\n👉 Cách bật: Vào Apps Script > Cài đặt dự án (biểu tượng bánh răng) > Thuộc tính tập lệnh > Thêm thuộc tính GEMINI_API_KEY = [mã API Key của bạn], sau đó Triển khai > Quản lý các bản triển khai > Tạo phiên bản mới.\n\nCâu trả lời dự phòng nội bộ:\n${res.data.reply}`;
-        }
+        const sourceText = res.source && res.source.startsWith("ai:")
+          ? `✅ Gemini AI hoạt động tốt (${res.source})`
+          : `⚠️ Đang dùng bộ xử lý nội bộ (${res.source})\nLý do: ${res.aiError || "Không rõ"}`;
+        out.textContent = `${sourceText}\n\nTrả lời mẫu:\n${res.data.reply}`;
       } catch (err) {
-        box.textContent = `LỖI:\n${err.message}`;
+        out.textContent = "Lỗi kết nối: " + err.message;
       } finally {
         btn.disabled = false;
         btn.textContent = "Chạy kiểm tra phản hồi AI ngay";
