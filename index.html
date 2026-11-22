@@ -123,6 +123,19 @@
       flex-wrap: wrap;
     }
 
+    .inventory-alert-box {
+      background: var(--warn-bg);
+      border: 1px solid #EBD3B5;
+      color: var(--warn-text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 12.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
     .content { padding: 16px; flex: 1; }
 
     .login-box {
@@ -216,6 +229,46 @@
     }
     .stat-label { font-size: 11px; color: var(--muted); }
     .stat-val { font-size: 15px; font-weight: 700; color: var(--primary); margin-top: 2px; }
+
+    /* Top Selling Products Chart */
+    .top-products-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+    .top-bar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 9px;
+    }
+    .top-bar-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .top-bar-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+    .top-bar-track {
+      width: 100%;
+      height: 7px;
+      background: var(--soft);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .top-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
 
     .search-filter-bar {
       display: grid;
@@ -559,7 +612,8 @@
         <h2>Đăng nhập chủ tiệm</h2>
         <p>Nhập mật khẩu quản trị đã cài trong Apps Script</p>
         <form onsubmit="handleLogin(event)">
-          <input id="adminPass" type="password" class="input" placeholder="Mật khẩu chủ tiệm..." style="margin-bottom:12px;" required />
+          <input id="adminPass" type="password" class="input" placeholder="Mật khẩu chủ tiệm..." style="margin-bottom:10px;" required />
+          <div id="loginErrorMsg" style="display:none; color:var(--danger); font-size:12.5px; margin-bottom:10px;"></div>
           <button id="loginSubmitBtn" type="submit" class="btn btn-primary" style="width:100%;">Vào trang quản lý</button>
         </form>
       </div>
@@ -578,7 +632,9 @@
       <!-- TAB 1: ĐƠN HÀNG -->
       <div id="tab-orders" class="content">
         <div id="orderStats" class="stats-row"></div>
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <div id="topProductsChartBox"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-soft btn-sm" onclick="exportOrdersCsv()">📥 Xuất CSV</button>
           <button type="button" class="btn btn-primary btn-sm" onclick="openNewOrderModal()">+ Tạo đơn mới</button>
         </div>
         <div class="search-filter-bar">
@@ -592,6 +648,7 @@
 
       <!-- TAB 2: KHO GIẤY -->
       <div id="tab-inventory" class="content" style="display:none;">
+        <div id="inventoryAlerts"></div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
           <div id="productFilterStrip" class="filter-strip" style="margin-bottom:0;"></div>
           <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Thêm sản phẩm</button>
@@ -617,6 +674,7 @@
 
       <!-- TAB 4: LỊCH SỬ CHAT KHÁCH HÀNG -->
       <div id="tab-chats" class="content" style="display:none;">
+        <div id="backendVersionAlert" style="display:none;" class="inventory-alert-box"></div>
         <div id="chatStats" class="stats-row" style="grid-template-columns: repeat(3, 1fr);"></div>
         <div id="chatFilterStrip" class="filter-strip" style="margin-bottom:10px;"></div>
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
@@ -652,7 +710,111 @@
           <button id="diagAiBtn" class="btn btn-accent btn-sm" onclick="runAiDiagnostic()">Chạy kiểm tra phản hồi AI ngay</button>
           <pre id="aiDiagResult" style="margin-top:10px; background:var(--soft); padding:10px; border-radius:8px; font-size:12px; white-space:pre-wrap; display:none;"></pre>
         </div>
+
+        <div class="card">
+          <h3 style="font-size:15px; margin-bottom:6px;">3. Tài khoản ngân hàng nhận chuyển khoản (VietQR động)</h3>
+          <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">
+            Khi khách chọn <strong>Quét QR chuyển khoản</strong> lúc đặt hàng, web tự sinh mã QR đã điền sẵn đúng số tiền và mã đơn <code>#DH...</code> để khách quét nhanh.
+          </p>
+          <div class="grid-2">
+            <div class="form-field">
+              <label>Ngân hàng</label>
+              <select id="bankIdInput" class="select" onchange="updateAdminQrPreview()">
+                <option value="">-- Chưa chọn ngân hàng --</option>
+                <option value="VCB">Vietcombank (VCB)</option>
+                <option value="TCB">Techcombank (TCB)</option>
+                <option value="MB">MB Bank (MB)</option>
+                <option value="BIDV">BIDV</option>
+                <option value="ICB">VietinBank (ICB)</option>
+                <option value="ACB">ACB</option>
+                <option value="TPB">TPBank (TPB)</option>
+                <option value="VPB">VPBank (VPB)</option>
+                <option value="STB">Sacombank (STB)</option>
+                <option value="VBA">Agribank (VBA)</option>
+                <option value="VIB">VIB</option>
+                <option value="OCB">OCB</option>
+                <option value="MSB">MSB</option>
+                <option value="HDB">HDBank (HDB)</option>
+                <option value="SHB">SHB</option>
+                <option value="CAKE">CAKE by VPBank</option>
+                <option value="TIMO">Timo Digital Bank</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Số tài khoản</label>
+              <input id="bankAccountNoInput" class="input" placeholder="VD: 1023456789" oninput="updateAdminQrPreview()" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Tên chủ tài khoản (viết hoa không dấu)</label>
+            <input id="bankAccountNameInput" class="input" placeholder="VD: NGUYEN VAN A" oninput="updateAdminQrPreview()" />
+          </div>
+          <div id="adminQrPreviewWrap" style="display:none; background:var(--soft); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:10px; align-items:center; gap:12px;">
+            <img id="adminQrPreviewImg" src="" alt="QR thử" style="width:92px; height:92px; border-radius:8px; background:#fff; border:1px solid var(--border);" />
+            <div style="font-size:12px; color:var(--text);">
+              <strong>Xem trước mã VietQR mẫu (10.000đ)</strong>
+              <div style="color:var(--muted); margin-top:3px;">Bạn có thể mở app ngân hàng quét thử để kiểm tra đúng tên chủ tài khoản trước khi lưu.</div>
+            </div>
+          </div>
+          <button id="saveBankBtn" class="btn btn-primary btn-sm" onclick="saveBankSettings()">Lưu tài khoản VietQR</button>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size:15px; margin-bottom:6px;">4. Thông báo đơn mới tức thì qua Telegram Bot</h3>
+          <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">
+            Nhận tin nhắn đẩy về điện thoại chỉ sau 1 giây khi có đơn mới (kèm nút chạm để copy nhanh thông tin giao vận).<br/>
+            <em>Cách lấy nhanh:</em> Nhắn <code>/newbot</code> cho <strong>@BotFather</strong> để lấy <strong>Bot Token</strong>, và nhắn cho <strong>@userinfobot</strong> để lấy <strong>Chat ID</strong> của bạn.
+          </p>
+          <div class="grid-2">
+            <div class="form-field">
+              <label>Telegram Bot Token</label>
+              <input id="telegramTokenInput" type="password" class="input" placeholder="VD: 7123456789:AAH..." />
+            </div>
+            <div class="form-field">
+              <label>Telegram Chat ID</label>
+              <input id="telegramChatIdInput" class="input" placeholder="VD: 987654321" />
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="saveTelegramBtn" class="btn btn-primary btn-sm" onclick="saveTelegramSettings()">Lưu cấu hình Telegram</button>
+            <button id="testTelegramBtn" class="btn btn-accent btn-sm" onclick="testSendTelegram()">Gửi tin nhắn Telegram test thử</button>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Gắn Phiên Chat Với Đơn Hàng -->
+  <div id="linkChatOrderModal" class="modal-bg">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 id="linkChatOrderTitle">Gắn phiên chat vào đơn hàng</h3>
+        <button class="btn btn-soft btn-sm" onclick="closeLinkChatOrderModal()">✕</button>
+      </div>
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">
+        Chọn đơn hàng tương ứng bên dưới để gắn toàn bộ cuộc trò chuyện này vào khách đặt hàng:
+      </div>
+      <input id="linkOrderSearchInput" type="search" class="input" style="margin-bottom:10px;" placeholder="Tìm mã đơn (#DH...), tên khách, SĐT..." oninput="renderLinkChatOrderList()" />
+      <div id="linkChatOrderList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:7px;"></div>
+    </div>
+  </div>
+
+  <!-- Modal Gia Keo Xong -->
+  <div id="sizingModal" class="modal-bg">
+    <div class="modal-card" style="max-width:400px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3>Hoàn thiện gia keo</h3>
+        <button class="btn btn-soft btn-sm" onclick="closeSizingModal()">✕</button>
+      </div>
+      <form onsubmit="submitSizingModal(event)">
+        <input type="hidden" id="sizingProdId" />
+        <p id="sizingDesc" style="font-size:13px; color:var(--text); margin-bottom:10px;"></p>
+        <div class="form-field">
+          <label>Số lượng chuyển sang Sẵn sàng giao *</label>
+          <input id="sizingQtyInput" type="number" min="1" class="input" required />
+        </div>
+        <button type="submit" class="btn btn-accent" style="width:100%;">✓ Xác nhận chuyển kho</button>
+      </form>
     </div>
   </div>
 
@@ -917,6 +1079,7 @@
     let chatFilterMode = "all";
     let currentProductImages = [];
     let editingOrderItems = [];
+    let linkingSessionId = "";
     const trackingDebounceTimers = {};
 
     function fmtVND(n) { return Number(n || 0).toLocaleString("vi-VN") + "đ"; }
@@ -1009,8 +1172,10 @@
     async function handleLogin(e) {
       e.preventDefault();
       const btn = document.getElementById("loginSubmitBtn");
+      const errBox = document.getElementById("loginErrorMsg");
       adminPassword = document.getElementById("adminPass").value.trim();
 
+      errBox.style.display = "none";
       btn.disabled = true;
       btn.textContent = "Đang đăng nhập...";
 
@@ -1022,7 +1187,8 @@
         applyAllData(data);
         showToast("Đăng nhập thành công");
       } catch (err) {
-        alert(err.message);
+        errBox.textContent = err.message;
+        errBox.style.display = "block";
       } finally {
         btn.disabled = false;
         btn.textContent = "Vào trang quản lý";
@@ -1068,11 +1234,31 @@
         allChatLogs = data.chatLogs;
       }
 
+      const verAlert = document.getElementById("backendVersionAlert");
+      if (verAlert) {
+        if (data.chatLogs === undefined) {
+          verAlert.style.display = "flex";
+          verAlert.innerHTML = `<strong>⚠ Lưu ý cập nhật Backend Apps Script:</strong><span>Bản triển khai Google Apps Script hiện tại chưa trả về dữ liệu Lịch sử chat. Bạn hãy dán file <strong>Code.gs</strong> mới vào Apps Script rồi bấm <strong>Triển khai &gt; Quản lý các bản triển khai &gt; Chỉnh sửa &gt; Phiên bản mới</strong> nhé!</span>`;
+        } else {
+          verAlert.style.display = "none";
+        }
+      }
+
       if (data.notifyEmail !== undefined) {
         document.getElementById("notifyEmailInput").value = data.notifyEmail || "";
       }
       if (data.aiEnabled !== undefined) {
         document.getElementById("aiEnabledCheckbox").checked = Boolean(data.aiEnabled);
+      }
+      if (data.bankConfig) {
+        document.getElementById("bankIdInput").value = data.bankConfig.bankId || "";
+        document.getElementById("bankAccountNoInput").value = data.bankConfig.accountNo || "";
+        document.getElementById("bankAccountNameInput").value = data.bankConfig.accountName || "";
+        updateAdminQrPreview();
+      }
+      if (data.telegramConfig) {
+        document.getElementById("telegramTokenInput").value = data.telegramConfig.botToken || "";
+        document.getElementById("telegramChatIdInput").value = data.telegramConfig.chatId || "";
       }
       populateMonthFilter();
       populateCategorySuggestions();
@@ -1100,7 +1286,6 @@
         if (sid && String(c.sessionId || "").trim() === sid) return true;
         return false;
       });
-      // Đảo ngược để hiển thị theo trình tự thời gian từ trên xuống dưới
       return matched.slice().reverse();
     }
 
@@ -1189,6 +1374,107 @@
       copyText(raw, `Đã copy tài khoản ${platform}: ${raw}`);
     }
 
+    // --- MẪU TIN NHẮN XÁC NHẬN ĐƠN CHO CHỦ TIỆM ---
+    function copyOrderConfirmationTemplate(orderId) {
+      const o = allOrders.find(item => item.orderId === orderId);
+      if (!o) return;
+      const cleanPhone = String(o.phone || "").replace(/^'/, "").trim();
+      const isPaid = o.paymentMethod === "Đã thanh toán CK";
+      const shipText = Number(o.shipFee || 0) === 0 ? "Miễn phí" : fmtVND(o.shipFee);
+      const payText = isPaid
+        ? `Đã thanh toán CK (0đ COD — Tổng đơn: ${fmtVND(o.total)})`
+        : `Thu hộ COD: ${fmtVND(o.total)}`;
+      const discountLine = Number(o.discountAmount || 0) > 0
+        ? `\n- Giảm giá: -${fmtVND(o.discountAmount)}`
+        : "";
+
+      const msg = `Dạ Tiệm giấy Thứ Ba chào ${o.customerName} ạ! Tiệm xác nhận đơn giấy #${o.orderId} của bạn nhé:
+- Sản phẩm: ${o.itemsSummary}${discountLine}
+- Tiền hàng: ${fmtVND(o.subtotal)} | Phí ship: ${shipText}
+- Thanh toán: ${payText}
+- Giao tới: ${o.customerName} - ${cleanPhone} - ${o.address}
+Bạn kiểm tra lại giúp tiệm xem thông tin đã chuẩn chưa để tiệm đóng gói gửi đi sớm nhé ạ! 🌿`;
+
+      copyText(msg, "Đã copy mẫu tin nhắn xác nhận đơn");
+    }
+
+    // --- XUẤT CSV DANH SÁCH ĐƠN HÀNG ---
+    function getFilteredOrdersList() {
+      const monthFilter = document.getElementById("orderMonthFilter")?.value || "";
+      const searchRaw = document.getElementById("orderSearchInput")?.value || "";
+      const searchNorm = normalizeText(searchRaw);
+
+      const baseFiltered = allOrders.filter(o => {
+        if (monthFilter && extractMonthKey(o.createdAt) !== monthFilter) return false;
+        if (searchNorm) {
+          const haystack = normalizeText([
+            o.orderId,
+            o.customerName,
+            String(o.phone || "").replace(/^'/, ""),
+            o.socialHandle,
+            o.platform,
+            o.address,
+            o.trackingCode
+          ].join(" "));
+          if (!haystack.includes(searchNorm)) return false;
+        }
+        return true;
+      });
+
+      return orderFilter === "Tất cả" ? baseFiltered : baseFiltered.filter(o => o.status === orderFilter);
+    }
+
+    function exportOrdersCsv() {
+      const list = getFilteredOrdersList();
+      if (!list.length) {
+        showToast("Không có đơn hàng nào để xuất file");
+        return;
+      }
+
+      const headers = [
+        "Ma Don", "Thoi Gian", "Nguoi Nhan", "So Dien Thoai", "Dia Chi",
+        "Kenh Lien He", "Tai Khoan", "San Pham", "Tien Hang", "Giam Gia",
+        "Phi Ship", "Tong Don", "Thanh Toan", "Ma Van Don", "Trang Thai", "Ghi Chu"
+      ];
+
+      const escapeCsv = (val) => {
+        const str = String(val ?? "").replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const rows = list.map(o => [
+        o.orderId,
+        o.createdAt,
+        o.customerName,
+        String(o.phone || "").replace(/^'/, ""),
+        o.address,
+        o.platform,
+        o.socialHandle,
+        o.itemsSummary,
+        Number(o.subtotal || 0),
+        Number(o.discountAmount || 0),
+        Number(o.shipFee || 0),
+        Number(o.total || 0),
+        o.paymentMethod || "COD",
+        o.trackingCode || "",
+        o.status || "",
+        o.note || ""
+      ].map(escapeCsv).join(","));
+
+      const csvContent = "\uFEFF" + [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `DonHang_TiemGiayThuBa_${today}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Đã xuất ${list.length} đơn ra file CSV`);
+    }
+
     // --- ORDERS ---
     function populateMonthFilter() {
       const sel = document.getElementById("orderMonthFilter");
@@ -1237,6 +1523,8 @@
         <div class="stat-box"><div class="stat-label">Doanh thu (gồm ship)</div><div class="stat-val">${fmtVND(totalRev)}</div></div>
         <div class="stat-box"><div class="stat-label">Tổng phí ship</div><div class="stat-val">${fmtVND(totalShip)}</div></div>
       `;
+
+      renderTopProductsChart(validOrders);
 
       const statuses = ["Tất cả", "Chờ xác nhận", "Đã xác nhận", "Đang giao", "Hoàn thành", "Đã hủy"];
       document.getElementById("orderFilterStrip").innerHTML = statuses.map(s => {
@@ -1339,6 +1627,7 @@
 
               <div class="order-toolbar">
                 <div class="order-toolbar-left">
+                  <button type="button" class="btn btn-accent btn-sm" onclick="copyOrderConfirmationTemplate('${safeOrderId}')">💬 Copy mẫu xác nhận</button>
                   <button type="button" class="btn btn-soft btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">${isPaid ? 'Đổi sang COD' : 'Đổi sang Đã CK'}</button>
                   <button type="button" class="btn btn-soft btn-sm" onclick="openOrderEditModal('${safeOrderId}')">Sửa</button>
                   <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderShipping('${safeOrderId}')">Copy tất cả</button>
@@ -1355,6 +1644,89 @@
           </div>
         `;
       }).join("");
+    }
+
+    function renderTopProductsChart(validOrders) {
+      const box = document.getElementById("topProductsChartBox");
+      if (!box) return;
+
+      const tallyMap = {};
+      const addEntry = (id, name, units) => {
+        const key = id || normalizeText(name);
+        if (!key || units <= 0) return;
+        const prod = id ? allProducts.find(p => p.id === id) : allProducts.find(p => normalizeText(p.name) === normalizeText(name));
+        if (!tallyMap[key]) {
+          tallyMap[key] = {
+            id: prod ? prod.id : id,
+            name: prod ? prod.name : name,
+            baseUnit: prod ? prod.baseUnit : "tờ",
+            units: 0,
+            stock: prod ? Number(prod.stock || 0) : null,
+            unsizedStock: prod ? Number(prod.unsizedStock || 0) : 0,
+            packSize: prod ? Number(prod.packSize || 1) : 1
+          };
+        }
+        tallyMap[key].units += units;
+      };
+
+      validOrders.forEach(o => {
+        let items = [];
+        try { items = JSON.parse(o.itemsJson || "[]"); } catch (e) {}
+        items.forEach(it => {
+          if (!it || it.buyMode === "custom") return;
+          const qty = Math.max(1, Number(it.qty || 1));
+          if (it.buyMode === "mix" && Array.isArray(it.mixBreakdown)) {
+            it.mixBreakdown.forEach(part => {
+              addEntry(part.id, part.name, Math.max(1, Number(part.units || 0)) * qty);
+            });
+          } else {
+            addEntry(it.id, it.name, Number(it.baseUnits || qty));
+          }
+        });
+      });
+
+      const ranked = Object.values(tallyMap).sort((a, b) => b.units - a.units).slice(0, 5);
+      if (!ranked.length) {
+        box.innerHTML = "";
+        return;
+      }
+
+      const maxUnits = ranked[0].units || 1;
+      const monthLabel = document.getElementById("orderMonthFilter")?.value
+        ? formatMonthLabel(document.getElementById("orderMonthFilter").value)
+        : "tất cả thời gian";
+
+      const barsHtml = ranked.map((item, idx) => {
+        const pct = Math.max(8, Math.round((item.units / maxUnits) * 100));
+        const threshold = item.packSize > 1 ? item.packSize * 2 : 5;
+        let stockBadge = "";
+        if (item.stock !== null && item.stock < threshold) {
+          stockBadge = `<span class="badge badge-danger" style="margin-left:5px;">Còn ${item.stock} ${escapeHtml(item.baseUnit)}</span>`;
+        } else if (item.unsizedStock > 0) {
+          stockBadge = `<span class="badge badge-warn" style="margin-left:5px;">+${item.unsizedStock} chờ gia keo</span>`;
+        }
+        return `
+          <div class="top-bar-row">
+            <div class="top-bar-meta">
+              <span style="font-weight:600; color:var(--text);">${idx + 1}. ${escapeHtml(item.name)}${stockBadge}</span>
+              <strong style="color:var(--primary); white-space:nowrap;">${item.units} ${escapeHtml(item.baseUnit)}</strong>
+            </div>
+            <div class="top-bar-track">
+              <div class="top-bar-fill" style="width:${pct}%; background:${idx === 0 ? 'var(--accent)' : 'var(--primary)'};"></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      box.innerHTML = `
+        <div class="top-products-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <strong style="font-size:13.5px; color:var(--primary);">📊 Top mẫu giấy đặt nhiều nhất (${escapeHtml(monthLabel)})</strong>
+            <span style="font-size:11px; color:var(--muted);">Gồm cả đơn Mix</span>
+          </div>
+          <div class="top-bar-list">${barsHtml}</div>
+        </div>
+      `;
     }
 
     function getLiveTrackingValue(orderId, fallbackVal = "") {
@@ -1515,7 +1887,8 @@
         applyAllData({
           orders: res.orders || allOrders,
           products: res.products || allProducts,
-          faqs: allFaqs
+          faqs: allFaqs,
+          chatLogs: allChatLogs
         });
       } catch (err) {
         o.status = prevStatus;
@@ -1530,7 +1903,17 @@
     }
 
     async function deleteOrder(orderId, btnEl) {
-      if (!confirm(`Xóa vĩnh viễn đơn #${orderId}?\n(Nếu đơn chưa hủy, số lượng giấy sẽ được tự động hoàn lại vào kho)`)) return;
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Xác nhận?";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "🗑";
+          }
+        }, 3000);
+        return;
+      }
 
       if (btnEl) {
         btnEl.disabled = true;
@@ -1542,12 +1925,14 @@
         applyAllData({
           orders: res.orders || allOrders,
           products: res.products || allProducts,
-          faqs: allFaqs
+          faqs: allFaqs,
+          chatLogs: allChatLogs
         });
-        showToast("Đã xóa đơn hàng");
+        showToast("Đã xóa đơn hàng & hoàn kho (nếu có)");
       } catch (err) {
         if (btnEl) {
           btnEl.disabled = false;
+          btnEl.dataset.armed = "";
           btnEl.textContent = "🗑";
         }
         showToast("Lỗi xóa đơn: " + err.message);
@@ -1960,7 +2345,38 @@
       renderProducts();
     }
 
+    function renderInventoryAlerts() {
+      const box = document.getElementById("inventoryAlerts");
+      if (!box) return;
+
+      const visibleProds = allProducts.filter(p => p.visible !== false);
+      const outOrLow = visibleProds.filter(p => {
+        const threshold = (p.productType !== "item" && Number(p.packSize) > 1) ? Number(p.packSize) * 2 : 5;
+        return Number(p.stock || 0) < threshold;
+      });
+      const hasUnsized = allProducts.filter(p => p.productType !== "item" && Number(p.unsizedStock || 0) > 0);
+
+      if (!outOrLow.length && !hasUnsized.length) {
+        box.innerHTML = "";
+        return;
+      }
+
+      const lines = [];
+      if (outOrLow.length) {
+        const names = outOrLow.map(p => `${p.name} (${p.stock === 0 ? "Hết sẵn" : `còn ${p.stock} ${p.baseUnit}`})`).join(", ");
+        lines.push(`<div><strong>⚠ Sắp hết / hết sẵn sàng (${outOrLow.length} mẫu):</strong> ${escapeHtml(names)}</div>`);
+      }
+      if (hasUnsized.length) {
+        const names = hasUnsized.map(p => `${p.name} (${p.unsizedStock} ${p.baseUnit})`).join(", ");
+        lines.push(`<div><strong>🌿 Chờ hoàn thiện gia keo (${hasUnsized.length} mẫu):</strong> ${escapeHtml(names)}</div>`);
+      }
+
+      box.innerHTML = `<div class="inventory-alert-box">${lines.join("")}</div>`;
+    }
+
     function renderProducts() {
+      renderInventoryAlerts();
+
       const pFilters = [
         { key: "all", label: `Tất cả (${allProducts.length})` },
         { key: "visible", label: `Đang hiện (${allProducts.filter(p => p.visible !== false).length})` },
@@ -2027,18 +2443,35 @@
       }).join("");
     }
 
-    async function finishSizingPrompt(id) {
+    function finishSizingPrompt(id) {
       const p = allProducts.find(item => item.id === id);
       if (!p || Number(p.unsizedStock || 0) <= 0) return;
       const maxVal = Number(p.unsizedStock);
-      const ans = prompt(`Nhập số ${p.baseUnit} "${p.name}" đã gia keo xong để chuyển sang Sẵn sàng (tối đa ${maxVal}):`, String(maxVal));
-      if (ans === null) return;
-      const moved = Math.floor(Number(ans));
+      document.getElementById("sizingProdId").value = id;
+      document.getElementById("sizingDesc").textContent = `Mẫu "${p.name}" hiện đang có ${maxVal} ${p.baseUnit} chưa gia keo. Nhập số lượng đã gia keo xong để chuyển sang Sẵn sàng giao:`;
+      const inp = document.getElementById("sizingQtyInput");
+      inp.max = maxVal;
+      inp.value = maxVal;
+      document.getElementById("sizingModal").classList.add("open");
+    }
+
+    function closeSizingModal() {
+      document.getElementById("sizingModal").classList.remove("open");
+    }
+
+    async function submitSizingModal(e) {
+      e.preventDefault();
+      const id = document.getElementById("sizingProdId").value;
+      const p = allProducts.find(item => item.id === id);
+      if (!p) return;
+      const maxVal = Number(p.unsizedStock || 0);
+      const moved = Math.floor(Number(document.getElementById("sizingQtyInput").value || 0));
       if (!moved || moved <= 0 || moved > maxVal) {
-        alert(`Vui lòng nhập số từ 1 đến ${maxVal}`);
+        showToast(`Vui lòng nhập số từ 1 đến ${maxVal}`);
         return;
       }
 
+      closeSizingModal();
       const prevStock = Number(p.stock || 0);
       const prevUnsized = maxVal;
 
@@ -2054,7 +2487,7 @@
 
       try {
         const res = await callApi({ action: "save_product", product: updatedProduct });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
       } catch (err) {
         p.stock = prevStock;
         p.unsizedStock = prevUnsized;
@@ -2074,7 +2507,7 @@
 
       try {
         const res = await callApi({ action: "toggle_product_visibility", id, visible: nextVisible });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
       } catch (err) {
         p.visible = prevVisible;
         renderProducts();
@@ -2274,7 +2707,7 @@
 
       try {
         const res = await callApi({ action: "save_product", product });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
         closeProductModal();
         showToast("Đã lưu sản phẩm");
       } catch (err) {
@@ -2286,18 +2719,30 @@
     }
 
     async function deleteProduct(id, btnEl) {
-      if (!confirm("Xóa vĩnh viễn sản phẩm này khỏi kho?")) return;
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Xác nhận xóa?";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa";
+          }
+        }, 3000);
+        return;
+      }
+
       if (btnEl) {
         btnEl.disabled = true;
         btnEl.textContent = "Đang xóa...";
       }
       try {
         const res = await callApi({ action: "delete_product", id });
-        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs });
+        applyAllData({ products: res.products || allProducts, orders: allOrders, faqs: allFaqs, chatLogs: allChatLogs });
         showToast("Đã xóa sản phẩm");
       } catch (err) {
         if (btnEl) {
           btnEl.disabled = false;
+          btnEl.dataset.armed = "";
           btnEl.textContent = "Xóa";
         }
         showToast("Lỗi xóa sản phẩm: " + err.message);
@@ -2394,7 +2839,18 @@
     }
 
     async function deleteFaq(id, btnEl) {
-      if (!confirm("Xóa câu hỏi này?")) return;
+      if (btnEl && btnEl.dataset.armed !== "1") {
+        btnEl.dataset.armed = "1";
+        btnEl.textContent = "Xác nhận xóa?";
+        setTimeout(() => {
+          if (btnEl) {
+            btnEl.dataset.armed = "";
+            btnEl.textContent = "Xóa";
+          }
+        }, 3000);
+        return;
+      }
+
       if (btnEl) {
         btnEl.disabled = true;
         btnEl.textContent = "Đang xóa...";
@@ -2407,9 +2863,99 @@
       } catch (err) {
         if (btnEl) {
           btnEl.disabled = false;
+          btnEl.dataset.armed = "";
           btnEl.textContent = "Xóa";
         }
         showToast("Lỗi xóa: " + err.message);
+      }
+    }
+
+    // --- GẮN THỦ CÔNG PHIÊN CHAT VÀO ĐƠN HÀNG ---
+    function openLinkChatOrderModal(sessionId) {
+      linkingSessionId = sessionId;
+      document.getElementById("linkChatOrderTitle").textContent = `Gắn phiên #${sessionId.slice(-6)} vào đơn hàng`;
+      const inp = document.getElementById("linkOrderSearchInput");
+      if (inp) inp.value = "";
+      renderLinkChatOrderList();
+      document.getElementById("linkChatOrderModal").classList.add("open");
+    }
+
+    function closeLinkChatOrderModal() {
+      document.getElementById("linkChatOrderModal").classList.remove("open");
+      linkingSessionId = "";
+    }
+
+    function renderLinkChatOrderList() {
+      const container = document.getElementById("linkChatOrderList");
+      if (!container) return;
+      const qNorm = normalizeText(document.getElementById("linkOrderSearchInput")?.value || "");
+
+      const matchedOrders = qNorm
+        ? allOrders.filter(o => normalizeText(`${o.orderId} ${o.customerName} ${o.phone} ${o.socialHandle} ${o.itemsSummary}`).includes(qNorm))
+        : allOrders;
+
+      const unlinkBtnHtml = `
+        <div class="edit-item-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--soft);">
+          <span style="font-size:12.5px; color:var(--muted);">Gỡ liên kết đơn hàng khỏi phiên chat này</span>
+          <button type="button" class="btn btn-soft btn-sm" onclick="submitLinkChatToOrder('')">Gỡ gắn</button>
+        </div>
+      `;
+
+      if (!matchedOrders.length) {
+        container.innerHTML = unlinkBtnHtml + `<div style="text-align:center; color:var(--muted); padding:14px; font-size:12.5px;">Không tìm thấy đơn hàng nào khớp.</div>`;
+        return;
+      }
+
+      const rowsHtml = matchedOrders.map(o => {
+        const cleanPhone = String(o.phone || "").replace(/^'/, "");
+        const isCurrent = o.sessionId === linkingSessionId;
+        return `
+          <div class="edit-item-row" style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:0; ${isCurrent ? 'border-color:var(--accent); background:#F5FAF6;' : ''}">
+            <div style="min-width:0;">
+              <div style="font-size:13px; font-weight:700; color:var(--primary);">#${escapeHtml(o.orderId)} — ${escapeHtml(o.customerName)}</div>
+              <div style="font-size:11.5px; color:var(--muted);">${escapeHtml(cleanPhone)} • ${escapeHtml(o.platform)}: ${escapeHtml(o.socialHandle)} • ${fmtVND(o.total)}</div>
+              <div style="font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(o.itemsSummary)}</div>
+            </div>
+            <button type="button" class="btn ${isCurrent ? 'btn-accent' : 'btn-primary'} btn-sm" style="white-space:nowrap;" onclick="submitLinkChatToOrder('${escapeAttrJs(o.orderId)}')">
+              ${isCurrent ? '✓ Đang gắn' : 'Chọn gắn'}
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      container.innerHTML = unlinkBtnHtml + rowsHtml;
+    }
+
+    async function submitLinkChatToOrder(orderId) {
+      if (!linkingSessionId) return;
+      const targetSession = linkingSessionId;
+      closeLinkChatOrderModal();
+      showToast(orderId ? `Đang gắn phiên chat với đơn #${orderId}...` : "Đang gỡ liên kết đơn hàng...");
+
+      try {
+        const res = await callApi({
+          action: "link_chat_to_order",
+          sessionId: targetSession,
+          orderId: orderId
+        });
+        if (Array.isArray(res.chatLogs)) allChatLogs = res.chatLogs;
+        if (Array.isArray(res.orders)) {
+          allOrders = res.orders.map(o => ({
+            ...o,
+            shipFee: Number(o.shipFee || 0),
+            discountType: o.discountType || "amount",
+            discountValue: Number(o.discountValue || 0),
+            discountAmount: Number(o.discountAmount || 0),
+            paymentMethod: o.paymentMethod || "COD",
+            trackingCode: o.trackingCode || "",
+            sessionId: String(o.sessionId || "")
+          }));
+        }
+        renderChatLogs();
+        renderOrders();
+        showToast(orderId ? `✓ Đã gắn phiên chat vào đơn #${orderId}` : "Đã gỡ liên kết đơn hàng");
+      } catch (err) {
+        showToast("Lỗi gắn đơn hàng: " + err.message);
       }
     }
 
@@ -2418,6 +2964,12 @@
       const s = String(source || "");
       if (s.startsWith("ai:")) {
         return `<span class="badge badge-info">${escapeHtml(s.replace("ai:", ""))}</span>`;
+      }
+      if (s === "order_sync") {
+        return `<span class="badge badge-ok">Đồng bộ khi đặt đơn</span>`;
+      }
+      if (s === "order_lookup") {
+        return `<span class="badge badge-warn">Tra cứu đơn</span>`;
       }
       return `<span class="badge badge-muted">Nội bộ</span>`;
     }
@@ -2553,7 +3105,10 @@
                 <strong style="font-size:13.5px; color:var(--primary);">Phiên #${escapeHtml(sess.sessionId.slice(-6))}</strong>
                 <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(sess.latestTime)} • ${sess.turns.length} lượt hỏi</span>
               </div>
-              <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-soft btn-sm" onclick="openLinkChatOrderModal('${safeSid}')">🔗 ${sess.orderId ? 'Đổi đơn gắn' : 'Gắn đơn hàng'}</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="deleteChatSession('${safeSid}', this)">Xóa phiên</button>
+              </div>
             </div>
             ${customerBannerHtml}
             <div>${turnsHtml}</div>
@@ -2659,10 +3214,82 @@
         const res = await callApi({ action: "test_email" });
         showToast("Đã gửi email test tới " + res.sentTo);
       } catch (err) {
-        alert("Lỗi gửi email: " + err.message);
+        showToast("Lỗi gửi email: " + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = "Gửi email test thử";
+      }
+    }
+
+    function updateAdminQrPreview() {
+      const bankId = document.getElementById("bankIdInput")?.value.trim();
+      const accNo = document.getElementById("bankAccountNoInput")?.value.trim();
+      const accName = document.getElementById("bankAccountNameInput")?.value.trim().toUpperCase();
+      const wrap = document.getElementById("adminQrPreviewWrap");
+      const img = document.getElementById("adminQrPreviewImg");
+      if (!wrap || !img) return;
+
+      if (bankId && accNo) {
+        img.src = `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accNo)}-compact.png?amount=10000&addInfo=TEST&accountName=${encodeURIComponent(accName || "")}`;
+        wrap.style.display = "flex";
+      } else {
+        wrap.style.display = "none";
+      }
+    }
+
+    async function saveBankSettings() {
+      const btn = document.getElementById("saveBankBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        await callApi({
+          action: "save_settings",
+          bankId: document.getElementById("bankIdInput").value.trim(),
+          bankAccountNo: document.getElementById("bankAccountNoInput").value.trim(),
+          bankAccountName: document.getElementById("bankAccountNameInput").value.trim()
+        });
+        updateAdminQrPreview();
+        showToast("Đã lưu tài khoản VietQR");
+      } catch (err) {
+        showToast("Lỗi lưu VietQR: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu tài khoản VietQR";
+      }
+    }
+
+    async function saveTelegramSettings() {
+      const btn = document.getElementById("saveTelegramBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        await callApi({
+          action: "save_settings",
+          telegramBotToken: document.getElementById("telegramTokenInput").value.trim(),
+          telegramChatId: document.getElementById("telegramChatIdInput").value.trim()
+        });
+        showToast("Đã lưu cấu hình Telegram Bot");
+      } catch (err) {
+        showToast("Lỗi lưu Telegram: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu cấu hình Telegram";
+      }
+    }
+
+    async function testSendTelegram() {
+      const btn = document.getElementById("testTelegramBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang gửi...";
+      try {
+        await saveTelegramSettings();
+        await callApi({ action: "test_telegram" });
+        showToast("Đã gửi tin nhắn test về Telegram!");
+      } catch (err) {
+        showToast("Lỗi Telegram: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Gửi tin nhắn Telegram test thử";
       }
     }
 
