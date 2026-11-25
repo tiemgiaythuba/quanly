@@ -3462,16 +3462,16 @@
           `• Người nhận: ${o.customerName} — ${cleanPhone}`,
           `• Địa chỉ: ${o.address}`,
           `• Thanh toán: ${payLine}`,
-          `Tiệm sẽ kiểm tra và đóng gói gửi đi trong 1–2 ngày tới (giấy thủ công được chèn bìa cứng chống gập mép cẩn thận ạ). Bạn xem giúp tiệm thông tin trên đã đúng chưa nhé!`
+          `Tiệm sẽ kiểm tra và đóng gói gửi đi trong 1–2 ngày tới. Bạn xem giúp tiệm thông tin trên đã đúng chưa nhé!`
         ].join("\n");
       } else if (tplType === "shipped") {
         const trackLine = o.trackingCode
           ? `• Mã vận đơn của bạn: ${o.trackingCode}`
           : `• Đơn hàng của bạn đã được bàn giao cho đơn vị vận chuyển ạ.`;
         msg = [
-          `Chào ${o.customerName}, đơn giấy #${o.orderId} của bạn đã được tiệm gửi ra bưu cục rồi ạ!`,
+          `Chào ${o.customerName}, đơn giấy #${o.orderId} của bạn đã được tiệm gửi đi rồi ạ!`,
           trackLine,
-          `Lưu ý nhỏ khi nhận giấy thủ công: bạn bảo quản giấy ở nơi khô ráo, thoáng mát, đặt phẳng trên mặt bàn/kệ sách và tránh nơi ẩm ướt hoặc đè vật nặng lệch góc để giữ mép xơ tự nhiên phẳng đẹp nhất nhé. Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
+          `Khi nhận hàng bạn giúp tiệm quay video lại, trong trường hợp hàng có vấn đề tiệm sẽ hỗ trợ bạn kịp thời ạ. Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
         ].join("\n");
       } else if (tplType === "remind_qr") {
         const bankLine = (bankId && accNo)
@@ -3480,7 +3480,7 @@
         msg = [
           `Chào ${o.customerName}, tiệm đã nhận được đơn hàng #${o.orderId} (${fmtVND(o.total)}) của bạn với hình thức chuyển khoản trước ạ.`,
           `Hiện tiệm chưa thấy biến động số dư cho đơn này — bạn kiểm tra và chuyển khoản giúp tiệm theo thông tin sau để tiệm đóng gói gửi đi sớm nhé:${bankLine}`,
-          `Nếu bạn đã chuyển rồi thì nhắn lại giúp tiệm kiểm tra ngay ạ!`
+          `Nếu bạn đã chuyển rồi thì vui lòng gửi ảnh chuyển khoản lại giúp tiệm kiểm tra ngay ạ!`
         ].join("\n");
       }
 
@@ -3819,7 +3819,7 @@
         </div>
         <div style="display:flex; flex-direction:column; gap:6px;">
           ${waitingList.map(w => {
-            const restockMsg = `Chào bạn, mẻ ${prodName} bên Tiệm giấy Thứ Ba vừa gia keo và ép phẳng xong rồi ạ — bạn có muốn tiệm giữ phần cho mình không?`;
+            const restockMsg = `Chào bạn, mẻ ${prodName} bên Tiệm giấy Thứ Ba vừa gia keo xong rồi ạ — bạn có muốn tiệm giữ phần cho mình không?`;
             return `
               <div style="background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 9px; font-size:12.5px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
