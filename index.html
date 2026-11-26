@@ -2838,13 +2838,24 @@
       rootEl.querySelectorAll("select.select").forEach(sel => enhanceSelectElement(sel));
     }
 
+    function getLoyaltyVoucherForOrder(orderId) {
+      const target = String(orderId || "").trim();
+      if (!target) return null;
+      return (allVouchers || []).find(v => String(v.sourceOrderId || "").trim() === target) || null;
+    }
+
     // Mẫu chính theo trạng thái hiện tại; chỉ tạo nội dung để copy, không đổi trạng thái đơn.
-    function getPrimaryOrderTemplate(status) {
+    function getPrimaryOrderTemplate(status, orderId) {
       if (status === "Chờ xác nhận") return { type: "confirm", label: "Xác nhận đơn" };
       if (["Đã xác nhận", "Đang giao"].includes(status)) {
         return { type: "shipped", label: "Thông tin vận chuyển" };
       }
-      if (["Hoàn thành", "Đã hủy"].includes(status)) return null;
+      if (status === "Hoàn thành") {
+        return getLoyaltyVoucherForOrder(orderId)
+          ? { type: "loyalty", label: "Copy mã tri ân" }
+          : null;
+      }
+      if (status === "Đã hủy") return null;
       return { type: "confirm", label: "Xác nhận đơn" };
     }
 
@@ -3144,7 +3155,7 @@
 
         const isPaid = o.paymentMethod === "Đã thanh toán CK";
         const isPendingTransfer = o.paymentMethod === "Chuyển khoản trước" || o.paymentMethod === "Khách báo đã CK";
-        const primaryTemplate = getPrimaryOrderTemplate(o.status);
+        const primaryTemplate = getPrimaryOrderTemplate(o.status, o.orderId);
         const codToCollect = isPaid ? 0 : Number(o.total || 0);
         const discountAmt = Number(o.discountAmount || 0);
         const discountSrcLabel = formatDiscountSourceLabel(o.discountSource, o.voucherCode);
@@ -3526,7 +3537,7 @@
         renderOrders();
         renderProducts();
         const loyaltyNote = res.generatedLoyaltyVoucher
-          ? ` • Đã tạo mã tri ân ${res.generatedLoyaltyVoucher.code}; vào Cài đặt → Voucher để copy tin gửi khách`
+          ? ` • Đã tạo mã tri ân ${res.generatedLoyaltyVoucher.code}; nút Copy mã tri ân đã sẵn sàng`
           : "";
         showToast(`Đã cập nhật đơn #${orderId} → ${newStatus}${loyaltyNote}`);
       } catch (err) {
@@ -3536,7 +3547,7 @@
         }
         if (primaryButton) {
           primaryButton.disabled = false;
-          const oldAction = getPrimaryOrderTemplate(previousStatus);
+          const oldAction = getPrimaryOrderTemplate(previousStatus, orderId);
           primaryButton.textContent = oldAction ? oldAction.label : "Đã kết thúc";
         }
         showToast("Lỗi cập nhật đơn: " + err.message);
@@ -5276,6 +5287,16 @@
         : (isPendingTransfer
           ? `Chuyển khoản VietQR: ${fmtVND(o.total)} (Nội dung CK: ${o.orderId})`
           : `Thu hộ COD: ${fmtVND(o.total)}`);
+
+      if (tplType === "loyalty") {
+        const voucher = getLoyaltyVoucherForOrder(o.orderId);
+        if (!voucher) {
+          showToast("Đơn này chưa có mã tri ân");
+          return;
+        }
+        copyVoucherGiftMessage(voucher.code);
+        return;
+      }
 
       if (tplType === "confirm") {
         const msg = [
