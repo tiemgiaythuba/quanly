@@ -1096,6 +1096,26 @@
     @media (prefers-reduced-motion: reduce) {
       .admin-nav-item, .admin-nav-menu, .nav-fab, #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabSettings, .modal-backdrop, .modal-card { animation:none !important; transition:none !important; transform:none !important; }
     }
+
+    /* Bổ sung nhẹ cho nhãn đặt làm 2-3 tuần và danh sách voucher */
+    .preorder-need-alert {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border: 1px solid #F2D7B6;
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 3px;
+      display: inline-block;
+    }
+    .voucher-item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -1173,6 +1193,7 @@
           <button type="button" class="pill" onclick="setProductFilter('visible', this)">Đang hiện</button>
           <button type="button" class="pill" onclick="setProductFilter('hidden', this)">Đang ẩn</button>
           <button type="button" class="pill" onclick="setProductFilter('low', this)">Sắp hết / Hết</button>
+          <button type="button" class="pill" onclick="setProductFilter('preorder', this)">Có đặt trước</button>
         </div>
         <div id="productsList"></div>
       </section>
@@ -1203,6 +1224,117 @@
 
       <!-- TAB 5: CÀI ĐẶT -->
       <section id="tabSettings" style="display:none;">
+        <!-- Cài đặt Kiểu 1: Ưu đãi đồng loạt toàn tiệm & Quy tắc chống xung đột -->
+        <div class="card">
+          <div class="card-top">
+            <strong style="font-size:14.5px; color:var(--primary);">Ưu đãi đồng loạt toàn tiệm (Tự động áp dụng)</strong>
+            <span id="promoStatusBadge" class="badge badge-hidden">Đang tắt</span>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+            Tự động giảm % trên tiền hàng cho toàn bộ đơn trong khung giờ Việt Nam (<code>+07:00</code>), tiền giảm làm tròn về hàng nghìn để chẵn đẹp khi quét VietQR.
+          </p>
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="promoEnabledInput">Trạng thái ưu đãi</label>
+              <select id="promoEnabledInput" class="select" onchange="updatePromoPolicyPreview()">
+                <option value="false">Đang tắt</option>
+                <option value="true">Bật ưu đãi toàn tiệm</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="promoPercentInput">Mức giảm (% trên tiền hàng)</label>
+              <input type="number" id="promoPercentInput" min="0" max="100" step="1" class="input" value="10" oninput="updatePromoPolicyPreview()" />
+            </div>
+            <div class="form-group">
+              <label for="promoLabelInput">Nhãn hiển thị cho khách</label>
+              <input type="text" id="promoLabelInput" class="input" placeholder="VD: Ưu đãi cuối tuần -10%" oninput="updatePromoPolicyPreview()" />
+            </div>
+          </div>
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="promoStartAtInput">Bắt đầu (+07:00 — trống = ngay)</label>
+              <input type="datetime-local" id="promoStartAtInput" class="input" oninput="updatePromoPolicyPreview()" />
+            </div>
+            <div class="form-group">
+              <label for="promoEndAtInput">Kết thúc (+07:00 — trống = vô hạn)</label>
+              <input type="datetime-local" id="promoEndAtInput" class="input" oninput="updatePromoPolicyPreview()" />
+            </div>
+            <div class="form-group">
+              <label for="promoVoucherModeInput">Khi dùng kèm Voucher riêng</label>
+              <select id="promoVoucherModeInput" class="select" onchange="updatePromoPolicyPreview()">
+                <option value="BEST_ONE">Không cộng dồn (Lấy mức giảm cao hơn)</option>
+                <option value="STACKABLE">Cộng dồn tuần tự cả hai</option>
+              </select>
+            </div>
+          </div>
+          <div id="promoPolicyPreview" style="background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:8px 11px; font-size:12px; color:var(--text); margin-bottom:10px;"></div>
+          <button type="button" id="savePromoBtn" class="btn btn-primary btn-sm" onclick="savePromoSettings()">Lưu ưu đãi toàn tiệm</button>
+        </div>
+
+        <!-- Cài đặt Kiểu 2: Voucher mã riêng từng khách & Tự động sinh mã tri ân -->
+        <div class="card">
+          <div class="card-top">
+            <strong style="font-size:14.5px; color:var(--primary);">Voucher mã riêng khách hàng &amp; Mã tri ân tự động</strong>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openVoucherModal()">+ Tạo mã voucher mới</button>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+            Quản lý mã ưu đãi riêng từng khách (<code>VoucherKhachHang</code>) và cấu hình tự động tạo mã tri ân khi đơn chuyển sang <strong>Hoàn thành</strong>.
+          </p>
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="voucherInputEnabledInput">Ô nhập mã trên trang khách</label>
+              <select id="voucherInputEnabledInput" class="select">
+                <option value="true">Đang bật — Khách tự nhập mã</option>
+                <option value="false">Tạm ẩn ô nhập mã</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="loyaltyVoucherEnabledInput">Tự động sinh mã tri ân</label>
+              <select id="loyaltyVoucherEnabledInput" class="select">
+                <option value="false">Đang tắt</option>
+                <option value="true">Bật khi đơn Hoàn thành</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="loyaltyMinSpendInput">Đơn hoàn thành tối thiểu (VNĐ)</label>
+              <input type="number" id="loyaltyMinSpendInput" min="0" step="10000" class="input" value="200000" />
+            </div>
+          </div>
+          <div class="grid-3" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label for="loyaltyDiscountTypeInput">Loại giảm mã tri ân</label>
+              <select id="loyaltyDiscountTypeInput" class="select">
+                <option value="percent">Giảm phần trăm (%)</option>
+                <option value="amount">Giảm tiền (VNĐ)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="loyaltyDiscountValueInput">Giá trị giảm tri ân</label>
+              <input type="number" id="loyaltyDiscountValueInput" min="0" class="input" value="10" />
+            </div>
+            <div class="form-group">
+              <label for="loyaltyValidDaysInput">Hạn sử dụng mã tri ân (ngày)</label>
+              <input type="number" id="loyaltyValidDaysInput" min="1" class="input" value="30" />
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <button type="button" id="saveVoucherConfigBtn" class="btn btn-soft btn-sm" onclick="saveVoucherConfigSettings()">Lưu cấu hình Voucher &amp; Tri ân</button>
+          </div>
+
+          <div style="border-top:1px dashed var(--border); padding-top:10px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <input type="text" id="voucherSearchInput" aria-label="Tìm mã voucher" class="input" style="flex:1; min-width:180px;" placeholder="Tìm mã voucher, tên khách, SĐT, mã đơn..." oninput="renderVouchers()" />
+              <select id="voucherStatusFilter" aria-label="Lọc trạng thái voucher" class="select" style="width:175px;" onchange="renderVouchers()">
+                <option value="all">Tất cả mã</option>
+                <option value="active">Đang hiệu lực</option>
+                <option value="exhausted">Hết lượt / Hết hạn</option>
+                <option value="inactive">Đang tạm khóa</option>
+              </select>
+            </div>
+            <div id="vouchersList"></div>
+          </div>
+        </div>
+
         <!-- Cài đặt VietQR -->
         <div class="card">
           <div class="card-top">
@@ -1355,6 +1487,71 @@
       </section>
     </div>
   </main>
+
+  <!-- MODAL: THÊM / SỬA VOUCHER KHÁCH HÀNG -->
+  <div class="modal-backdrop" id="voucherModal" onclick="if(event.target===this) closeVoucherModal()">
+    <div class="modal-card" style="max-width:500px;">
+      <div class="modal-header">
+        <strong id="voucherModalTitle" style="font-family:'Lora', serif; font-size:16px; color:var(--primary);">Tạo mã voucher mới</strong>
+        <button type="button" class="btn btn-soft btn-sm" onclick="closeVoucherModal()">Đóng</button>
+      </div>
+      <form onsubmit="saveVoucher(event)" style="display:flex; flex-direction:column; gap:10px;">
+        <input type="hidden" id="vchId" />
+        <div class="form-group">
+          <label for="vchCode">Mã voucher (In hoa, không khoảng trắng) *</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="vchCode" class="input" style="text-transform:uppercase;" placeholder="VD: THUBA-10A8" required oninput="this.value=this.value.toUpperCase().replace(/\s+/g,'')" />
+            <button type="button" class="btn btn-soft btn-sm" style="white-space:nowrap;" onclick="generateRandomVoucherCode()">Tạo mã ngẫu nhiên</button>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="vchCustomerName">Tên khách hàng</label>
+            <input type="text" id="vchCustomerName" class="input" placeholder="VD: Linh Nguyễn" />
+          </div>
+          <div class="form-group">
+            <label for="vchCustomerContact">Liên hệ (SĐT / IG / Threads)</label>
+            <input type="text" id="vchCustomerContact" class="input" placeholder="VD: 0905xxxxxx hoặc @linh" />
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="vchDiscountType">Loại giảm *</label>
+            <select id="vchDiscountType" class="select">
+              <option value="amount">Giảm tiền (VNĐ)</option>
+              <option value="percent">Giảm phần trăm (%)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="vchDiscountValue">Giá trị giảm *</label>
+            <input type="number" id="vchDiscountValue" min="1" class="input" required />
+          </div>
+          <div class="form-group">
+            <label for="vchMinOrder">Đơn tối thiểu (VNĐ)</label>
+            <input type="number" id="vchMinOrder" min="0" step="10000" class="input" value="0" />
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="vchMaxUses">Số lượt dùng tối đa *</label>
+            <input type="number" id="vchMaxUses" min="1" class="input" value="1" required />
+          </div>
+          <div class="form-group">
+            <label for="vchExpiresAt">Hạn sử dụng (+07:00)</label>
+            <input type="datetime-local" id="vchExpiresAt" class="input" />
+          </div>
+          <div class="form-group">
+            <label for="vchActive">Trạng thái</label>
+            <select id="vchActive" class="select">
+              <option value="true">Đang kích hoạt</option>
+              <option value="false">Tạm khóa</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="saveVoucherBtn">Lưu mã voucher</button>
+      </form>
+    </div>
+  </div>
 
   <!-- MODAL: THÊM / SỬA SẢN PHẨM (ĐẦY ĐỦ 2 PHÂN LOẠI + 3 ẢNH) -->
   <div class="modal-backdrop" id="productModal" onclick="if(event.target===this) closeProductModal()">
@@ -1563,18 +1760,30 @@
           </div>
         </div>
 
+        <!-- Mã voucher gắn với đơn (Quy tắc 3: xóa trắng sẽ hoàn lượt voucher) -->
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="editVoucherCode">Mã voucher áp dụng (để trống nếu gỡ mã)</label>
+            <input type="text" id="editVoucherCode" class="input" style="text-transform:uppercase;" placeholder="Không có mã" oninput="this.value=this.value.toUpperCase().replace(/\s+/g,''); recalcEditOrderTotals()" />
+          </div>
+          <div class="form-group">
+            <label for="editDiscountSourceDisplay">Nguồn ưu đãi / chiết khấu</label>
+            <input type="text" id="editDiscountSourceDisplay" class="input" readonly style="background:var(--surface); color:var(--muted);" />
+          </div>
+        </div>
+
         <!-- Chiết khấu & Phí ship -->
         <div class="grid-3">
           <div class="form-group">
             <label for="editDiscountType">Loại chiết khấu</label>
-            <select id="editDiscountType" class="select" onchange="recalcEditOrderTotals()">
+            <select id="editDiscountType" class="select" onchange="markEditDiscountManual(); recalcEditOrderTotals()">
               <option value="amount">Giảm tiền (VNĐ)</option>
               <option value="percent">Giảm phần trăm (%)</option>
             </select>
           </div>
           <div class="form-group">
             <label for="editDiscountValue">Giá trị giảm</label>
-            <input type="number" id="editDiscountValue" min="0" value="0" class="input" oninput="recalcEditOrderTotals()" />
+            <input type="number" id="editDiscountValue" min="0" value="0" class="input" oninput="markEditDiscountManual(); recalcEditOrderTotals()" />
           </div>
           <div class="form-group">
             <label for="editShipFee">Phí ship (VNĐ)</label>
@@ -1742,17 +1951,30 @@
           </div>
         </div>
 
+        <!-- Áp dụng Voucher riêng của khách (nếu có) -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px;">
+          <label for="qoVoucherCodeInput" style="font-size:12px; font-weight:600; color:var(--primary); display:block; margin-bottom:5px;">Mã voucher riêng của khách (tùy chọn):</label>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <select id="qoVoucherSelect" aria-label="Chọn nhanh mã voucher" class="select" style="flex:1.4; min-width:145px;" onchange="onSelectQuickOrderVoucher(this.value)">
+              <option value="">-- Chọn mã từ danh sách --</option>
+            </select>
+            <input type="text" id="qoVoucherCodeInput" class="input" style="flex:1; min-width:120px; text-transform:uppercase;" placeholder="Hoặc nhập mã..." oninput="this.value=this.value.toUpperCase().replace(/\s+/g,'')" />
+            <button type="button" class="btn btn-soft btn-sm" onclick="applyQuickOrderVoucher()">Áp dụng mã</button>
+          </div>
+          <div id="qoVoucherHint" style="font-size:11.5px; color:var(--muted); margin-top:5px;"></div>
+        </div>
+
         <div class="grid-3">
           <div class="form-group">
             <label for="qoDiscountType">Chiết khấu</label>
-            <select id="qoDiscountType" class="select" onchange="recalcQuickOrderTotals()">
+            <select id="qoDiscountType" class="select" onchange="markQuickOrderDiscountManual(); recalcQuickOrderTotals()">
               <option value="amount">Giảm tiền (VNĐ)</option>
               <option value="percent">Giảm (%)</option>
             </select>
           </div>
           <div class="form-group">
             <label for="qoDiscountValue">Giá trị giảm</label>
-            <input type="number" id="qoDiscountValue" min="0" value="0" class="input" oninput="recalcQuickOrderTotals()" />
+            <input type="number" id="qoDiscountValue" min="0" value="0" class="input" oninput="markQuickOrderDiscountManual(); recalcQuickOrderTotals()" />
           </div>
           <div class="form-group">
             <label for="qoShipFee">Ship khách trả (VNĐ)</label>
@@ -1829,6 +2051,22 @@
     let quickOrderItems = [];
     let linkingSessionId = "";
     let trackingDebounceTimers = {};
+
+    // State cho Kiểu 1 (Ưu đãi toàn tiệm) & Kiểu 2 (Voucher riêng khách hàng)
+    let allVouchers = [];
+    let promoConfigState = {
+      enabled: false,
+      label: "",
+      percent: 10,
+      startAt: 0,
+      endAt: 0,
+      mode: "BEST_ONE"
+    };
+    let qoDiscountManualOverride = false;
+    let qoResolvedDiscountSource = "";
+    let qoResolvedVoucherCode = "";
+    let editDiscountSourceState = "";
+    let editOriginalVoucherCode = "";
 
     const ADMIN_AUTH_STORAGE_KEY = "tiemgiay_admin_auth_v1";
     const ADMIN_CACHE_STORAGE_KEY = "tiemgiay_admin_cache_v1";
@@ -1918,6 +2156,101 @@
 
     function fmtVND(amount) {
       return Number(amount || 0).toLocaleString("vi-VN") + "đ";
+    }
+
+    // Chuẩn hóa múi giờ Asia/Ho_Chi_Minh (+07:00) & công thức làm tròn hàng nghìn chuẩn
+    function datetimeLocalToVnEpochMs(val) {
+      const s = String(val || "").trim();
+      if (!s) return 0;
+      const base = s.length >= 19 ? s.slice(0, 19) : (s.length === 16 ? `${s}:00` : s);
+      const ms = new Date(`${base}+07:00`).getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+
+    function vnEpochMsToDatetimeLocal(epochMs) {
+      const ms = Number(epochMs || 0);
+      if (!ms || ms <= 0) return "";
+      const d = new Date(ms + 7 * 3600000);
+      if (isNaN(d.getTime())) return "";
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      const hh = String(d.getUTCHours()).padStart(2, "0");
+      const mi = String(d.getUTCMinutes()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
+
+    function datetimeLocalToVnIso(val) {
+      const s = String(val || "").trim();
+      if (!s) return "";
+      const base = s.length >= 19 ? s.slice(0, 19) : (s.length === 16 ? `${s}:00` : s);
+      return `${base}+07:00`;
+    }
+
+    function parseVnDateMs(raw) {
+      if (!raw && raw !== 0) return 0;
+      if (typeof raw === "number") return raw;
+      const s = String(raw).trim();
+      if (!s || s === "0") return 0;
+      if (/^\d+$/.test(s)) return Number(s);
+      const vnMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+      if (vnMatch) {
+        const dd = vnMatch[1].padStart(2, "0");
+        const mm = vnMatch[2].padStart(2, "0");
+        const yyyy = vnMatch[3];
+        const hh = (vnMatch[4] || "23").padStart(2, "0");
+        const mi = (vnMatch[5] || "59").padStart(2, "0");
+        const ss = (vnMatch[6] || "00").padStart(2, "0");
+        const parsed = new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}+07:00`).getTime();
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      const ms = new Date(s).getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+
+    function formatVnDateDisplay(raw) {
+      const ms = parseVnDateMs(raw);
+      if (!ms || ms <= 0) return "";
+      const d = new Date(ms + 7 * 3600000);
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const yyyy = d.getUTCFullYear();
+      const hh = String(d.getUTCHours()).padStart(2, "0");
+      const mi = String(d.getUTCMinutes()).padStart(2, "0");
+      return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+    }
+
+    function calcRoundedPercentDiscount(subtotal, percent) {
+      const sub = Math.max(0, Number(subtotal || 0));
+      const pct = Math.max(0, Math.min(100, Number(percent || 0)));
+      if (sub <= 0 || pct <= 0) return 0;
+      return Math.min(sub, Math.round((sub * pct) / 100000) * 1000);
+    }
+
+    function isStorePromoActiveNow(nowMs = Date.now()) {
+      if (!promoConfigState.enabled || Number(promoConfigState.percent || 0) <= 0) return false;
+      if (promoConfigState.startAt > 0 && nowMs < promoConfigState.startAt) return false;
+      if (promoConfigState.endAt > 0 && nowMs > promoConfigState.endAt) return false;
+      return true;
+    }
+
+    function calcVoucherDiscountAmount(baseAmount, voucher) {
+      const base = Math.max(0, Number(baseAmount || 0));
+      if (!voucher || base <= 0) return 0;
+      if (voucher.discountType === "percent") {
+        return calcRoundedPercentDiscount(base, Number(voucher.discountValue || 0));
+      }
+      return Math.min(base, Math.max(0, Number(voucher.discountValue || 0)));
+    }
+
+    function formatDiscountSourceLabel(source, code) {
+      const src = String(source || "").trim();
+      const c = String(code || "").trim().toUpperCase();
+      if (src === "promo") return "Ưu đãi toàn tiệm";
+      if (src === "voucher") return c ? `Voucher: ${c}` : "Voucher riêng";
+      if (src === "stack") return c ? `Ưu đãi + Voucher: ${c}` : "Cộng dồn ưu đãi";
+      if (src === "manual") return c ? `Chiết khấu tay (${c})` : "Chiết khấu tay";
+      return c ? `Mã: ${c}` : "";
     }
 
     function normalizeText(str) {
@@ -2109,6 +2442,57 @@
       allOrders = data.orders || [];
       allChatLogs = data.chatLogs || [];
       allWaitlist = data.waitlist || [];
+      allVouchers = data.vouchers || [];
+
+      const pCfg = data.promoConfig || data;
+      promoConfigState = {
+        enabled: pCfg.enabled !== undefined
+          ? Boolean(pCfg.enabled)
+          : (String(pCfg.PROMO_ENABLED || "").toUpperCase() === "TRUE"),
+        label: String(pCfg.label ?? pCfg.PROMO_LABEL ?? ""),
+        percent: Math.max(0, Math.min(100, Number(pCfg.percent ?? pCfg.PROMO_PERCENT ?? 10))),
+        startAt: Number(pCfg.startAt ?? pCfg.PROMO_START_AT ?? 0),
+        endAt: Number(pCfg.endAt ?? pCfg.PROMO_END_AT ?? 0),
+        mode: String(pCfg.mode ?? pCfg.PROMO_VOUCHER_MODE ?? "BEST_ONE") === "STACKABLE" ? "STACKABLE" : "BEST_ONE"
+      };
+      const promoEnSel = document.getElementById("promoEnabledInput");
+      const promoPctInp = document.getElementById("promoPercentInput");
+      const promoLblInp = document.getElementById("promoLabelInput");
+      const promoStartInp = document.getElementById("promoStartAtInput");
+      const promoEndInp = document.getElementById("promoEndAtInput");
+      const promoModeSel = document.getElementById("promoVoucherModeInput");
+      if (promoEnSel) promoEnSel.value = promoConfigState.enabled ? "true" : "false";
+      if (promoPctInp) promoPctInp.value = promoConfigState.percent;
+      if (promoLblInp) promoLblInp.value = promoConfigState.label;
+      if (promoStartInp) promoStartInp.value = vnEpochMsToDatetimeLocal(promoConfigState.startAt);
+      if (promoEndInp) promoEndInp.value = vnEpochMsToDatetimeLocal(promoConfigState.endAt);
+      if (promoModeSel) promoModeSel.value = promoConfigState.mode;
+      updatePromoPolicyPreview();
+
+      const vCfg = data.voucherConfig || data;
+      const vInputEn = vCfg.voucherInputEnabled !== undefined
+        ? Boolean(vCfg.voucherInputEnabled)
+        : (String(vCfg.VOUCHER_INPUT_ENABLED ?? "TRUE").toUpperCase() !== "FALSE");
+      const loyEn = vCfg.loyaltyEnabled !== undefined
+        ? Boolean(vCfg.loyaltyEnabled)
+        : (String(vCfg.LOYALTY_VOUCHER_ENABLED || "").toUpperCase() === "TRUE");
+      const loyMin = Math.max(0, Number(vCfg.loyaltyMinSpend ?? vCfg.LOYALTY_MIN_SPEND ?? 200000));
+      const loyType = String(vCfg.loyaltyDiscountType ?? vCfg.LOYALTY_DISCOUNT_TYPE ?? "percent") === "amount" ? "amount" : "percent";
+      const loyVal = Math.max(0, Number(vCfg.loyaltyDiscountValue ?? vCfg.LOYALTY_DISCOUNT_VALUE ?? 10));
+      const loyDays = Math.max(1, Number(vCfg.loyaltyValidDays ?? vCfg.LOYALTY_VALID_DAYS ?? 30));
+
+      const vInputSel = document.getElementById("voucherInputEnabledInput");
+      const loyEnSel = document.getElementById("loyaltyVoucherEnabledInput");
+      const loyMinInp = document.getElementById("loyaltyMinSpendInput");
+      const loyTypeSel = document.getElementById("loyaltyDiscountTypeInput");
+      const loyValInp = document.getElementById("loyaltyDiscountValueInput");
+      const loyDaysInp = document.getElementById("loyaltyValidDaysInput");
+      if (vInputSel) vInputSel.value = vInputEn ? "true" : "false";
+      if (loyEnSel) loyEnSel.value = loyEn ? "true" : "false";
+      if (loyMinInp) loyMinInp.value = loyMin;
+      if (loyTypeSel) loyTypeSel.value = loyType;
+      if (loyValInp) loyValInp.value = loyVal;
+      if (loyDaysInp) loyDaysInp.value = loyDays;
 
       if (data.notifyEmail !== undefined) {
         document.getElementById("notifyEmailInput").value = data.notifyEmail || "";
@@ -2166,6 +2550,7 @@
       renderProducts();
       renderFaqs();
       renderChatLogs();
+      renderVouchers();
       initCustomSelects();
     }
 
@@ -2620,9 +3005,19 @@
             const parts = it.mixBreakdown.map(b => `${b.units * qty} ${escapeHtml(b.name)}`).join(", ");
             subHtml = `<div class="order-mix-sub">↳ Gồm: ${parts}</div>`;
           }
+          const preUnits = Math.max(0, Number(it.preorderUnits || 0));
+          const readyUnits = Math.max(0, Number(it.deductedReadyUnits || 0));
+          let preorderSubHtml = "";
+          if (preUnits > 0 || it.isPreorder) {
+            const prod = it.id ? allProducts.find(p => p.id === it.id) : null;
+            const bUnit = prod ? prod.baseUnit : "đơn vị";
+            preorderSubHtml = readyUnits > 0
+              ? `<div class="order-mix-sub" style="color:var(--warn-text); font-weight:600;">↳ Đặt làm 2–3 tuần: ${preUnits} ${escapeHtml(bUnit)} (lấy sẵn ${readyUnits} ${escapeHtml(bUnit)})</div>`
+              : `<div class="order-mix-sub" style="color:var(--warn-text); font-weight:600;">↳ Đặt làm mới (Giao sau 2–3 tuần)</div>`;
+          }
           return `
             <div class="order-item-line">
-              <div class="order-item-name">• ${escapeHtml(it.name)}${subHtml}</div>
+              <div class="order-item-name">• ${escapeHtml(it.name)}${subHtml}${preorderSubHtml}</div>
               <div class="order-item-qty">${qty} ${escapeHtml(uLabel)}</div>
             </div>
           `;
@@ -2642,6 +3037,18 @@
       `).join("") + `</div>`;
     }
 
+    function orderHasPreorderItems(o) {
+      if (!o) return false;
+      if (o.hasPreorder === true || o.isPreorder === true) return true;
+      try {
+        const parsed = JSON.parse(o.itemsJson || "[]");
+        if (Array.isArray(parsed)) {
+          return parsed.some(it => it && (it.isPreorder === true || Number(it.preorderUnits || 0) > 0));
+        }
+      } catch (e) {}
+      return String(o.itemsSummary || "").includes("Đặt làm 2–3 tuần");
+    }
+
     function getOrderCourierShip(o) {
       if (o && o.shopShipFee !== null && o.shopShipFee !== undefined && o.shopShipFee !== "" && !isNaN(Number(o.shopShipFee))) {
         return Math.max(0, Number(o.shopShipFee));
@@ -2655,7 +3062,7 @@
       return allOrders.filter(o => {
         if (monthFilter && extractOrderMonth(o.createdAt) !== monthFilter) return false;
         if (searchQ) {
-          const hay = normalizeText(`${o.orderId} ${o.customerName} ${o.phone} ${o.socialHandle} ${o.address} ${o.itemsSummary} ${o.trackingCode}`);
+          const hay = normalizeText(`${o.orderId} ${o.customerName} ${o.phone} ${o.socialHandle} ${o.address} ${o.itemsSummary} ${o.trackingCode} ${o.voucherCode || ""}`);
           if (!hay.includes(searchQ)) return false;
         }
         return true;
@@ -2728,6 +3135,8 @@
         const primaryTemplate = getPrimaryOrderTemplate(o.status);
         const codToCollect = isPaid ? 0 : Number(o.total || 0);
         const discountAmt = Number(o.discountAmount || 0);
+        const discountSrcLabel = formatDiscountSourceLabel(o.discountSource, o.voucherCode);
+        const hasPreorder = orderHasPreorderItems(o);
         const safeOrderId = escapeAttrJs(o.orderId);
 
         const normPlatform = normalizePlatformName(o.platform);
@@ -2753,6 +3162,7 @@
                 <div style="font-size:12px; color:var(--muted);">${escapeHtml(o.createdAt)}</div>
               </div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                ${hasPreorder ? `<span class="badge badge-warn">Đặt làm 2–3 tuần</span>` : ""}
                 <span class="badge ${payBadgeClass}">${payBadgeLabel}</span>
                 <span class="badge ${badgeCls}">${escapeHtml(o.status)}</span>
               </div>
@@ -2809,7 +3219,7 @@
                 ${formatOrderItemsListHtml(o)}
                 <div style="border-top:1px dashed var(--border); padding-top:6px; font-size:12.5px; color:var(--muted);">
                   Tiền hàng: <strong>${fmtVND(o.subtotal)}</strong>
-                  ${discountAmt > 0 ? ` • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(discountAmt)}</strong>` : ""}
+                  ${discountAmt > 0 ? ` • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(discountAmt)}</strong>${discountSrcLabel ? ` <span style="font-size:11.5px; color:var(--accent);">(${escapeHtml(discountSrcLabel)})</span>` : ""}` : ""}
                   • Ship khách trả: <strong>${Number(o.shipFee) === 0 ? "Miễn phí" : fmtVND(o.shipFee)}</strong>
                 </div>
                 <div style="margin-top:3px; font-weight:700; color:var(--primary);">
@@ -3000,6 +3410,8 @@
             discountType: o.discountType || "amount",
             discountValue: Number(o.discountValue || 0),
             discountAmount: Number(o.discountAmount || 0),
+            discountSource: o.discountSource || "",
+            voucherCode: o.voucherCode || "",
             shipFee: Number(o.shipFee || 0),
             total: Number(o.total || 0),
             paymentMethod: o.paymentMethod || "COD",
@@ -3062,6 +3474,8 @@
           discountType: o.discountType || "amount",
           discountValue: Number(o.discountValue || 0),
           discountAmount: Number(o.discountAmount || 0),
+          discountSource: o.discountSource || "",
+          voucherCode: o.voucherCode || "",
           shipFee: Number(o.shipFee || 0),
           total: Number(o.total || 0),
           paymentMethod: nextPay,
@@ -3093,9 +3507,16 @@
         if (Array.isArray(res.orders)) allOrders = res.orders;
         else if (order) order.status = newStatus;
         if (Array.isArray(res.products)) allProducts = res.products;
+        if (Array.isArray(res.vouchers)) {
+          allVouchers = res.vouchers;
+          renderVouchers();
+        }
         renderOrders();
         renderProducts();
-        showToast(`Đã cập nhật đơn #${orderId} → ${newStatus}`);
+        const loyaltyNote = res.generatedLoyaltyVoucher
+          ? ` • Đã tặng mã tri ân ${res.generatedLoyaltyVoucher.code}`
+          : "";
+        showToast(`Đã cập nhật đơn #${orderId} → ${newStatus}${loyaltyNote}`);
       } catch (err) {
         if (statusSelect) {
           statusSelect.disabled = false;
@@ -3133,6 +3554,10 @@
         const res = await callApi({ action: "delete_order", orderId });
         allOrders = res.orders || [];
         if (res.products) allProducts = res.products;
+        if (Array.isArray(res.vouchers)) {
+          allVouchers = res.vouchers;
+          renderVouchers();
+        }
         renderOrders();
         renderProducts();
         showToast(`Đã xóa đơn #${orderId} và hoàn kho`);
@@ -3157,6 +3582,10 @@
       if (inp) inp.placeholder = isZalo ? "Nhập số điện thoại Zalo..." : "Nhập username hoặc link...";
     }
 
+    function markEditDiscountManual() {
+      editDiscountSourceState = "manual";
+    }
+
     function openEditOrderModal(orderId) {
       const o = allOrders.find(item => String(item.orderId) === String(orderId));
       if (!o) return;
@@ -3174,6 +3603,11 @@
       document.getElementById("editBackupPlatform").value = parsedSocial.backupPlatform || "Instagram";
       document.getElementById("editBackupHandle").value = parsedSocial.backupHandle || "";
       toggleEditBackupPlatformFields();
+
+      editDiscountSourceState = String(o.discountSource || "");
+      editOriginalVoucherCode = String(o.voucherCode || "").trim().toUpperCase();
+      const vCodeInp = document.getElementById("editVoucherCode");
+      if (vCodeInp) vCodeInp.value = editOriginalVoucherCode;
 
       document.getElementById("editDiscountType").value = o.discountType || "amount";
       document.getElementById("editDiscountValue").value = Number(o.discountValue || 0);
@@ -3342,6 +3776,15 @@
       const payMethod = document.getElementById("editPaymentMethod").value;
       const isPaid = payMethod === "Đã thanh toán CK";
 
+      const curVoucherCode = (document.getElementById("editVoucherCode")?.value || "").trim().toUpperCase();
+      if (!curVoucherCode && editOriginalVoucherCode && (editDiscountSourceState === "voucher" || editDiscountSourceState === "stack")) {
+        editDiscountSourceState = discountAmount > 0 ? "manual" : "";
+      }
+      const srcDisp = document.getElementById("editDiscountSourceDisplay");
+      if (srcDisp) {
+        srcDisp.value = formatDiscountSourceLabel(editDiscountSourceState, curVoucherCode) || (discountAmount > 0 ? "Chiết khấu tay (manual)" : "Không giảm giá");
+      }
+
       document.getElementById("editOrderTotalsSummary").innerHTML = `
         <div>Tiền hàng: <strong>${fmtVND(subtotal)}</strong> • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(discountAmount)}</strong> • Phí ship: <strong>${fmtVND(shipFee)}</strong></div>
         <div style="margin-top:4px; font-size:14.5px; font-weight:700; color:var(--primary);">
@@ -3375,6 +3818,10 @@
 
       const editingOrderId = document.getElementById("editOrderId").value;
       const existingOrder = allOrders.find(item => String(item.orderId) === String(editingOrderId));
+      const voucherCodeVal = (document.getElementById("editVoucherCode")?.value || "").trim().toUpperCase();
+      const finalDiscountSource = totals.discountAmount > 0
+        ? (editDiscountSourceState || "manual")
+        : "";
 
       const payload = {
         orderId: editingOrderId,
@@ -3386,6 +3833,8 @@
         items: editingOrderItems,
         itemsSummary,
         ...totals,
+        discountSource: finalDiscountSource,
+        voucherCode: voucherCodeVal,
         paymentMethod: document.getElementById("editPaymentMethod").value,
         trackingCode: document.getElementById("editTrackingCode").value.trim(),
         shopShipFee: existingOrder && existingOrder.shopShipFee !== undefined ? existingOrder.shopShipFee : null,
@@ -3397,6 +3846,10 @@
         allOrders = res.orders || [];
         if (res.products) allProducts = res.products;
         if (res.chatLogs) allChatLogs = res.chatLogs;
+        if (Array.isArray(res.vouchers)) {
+          allVouchers = res.vouchers;
+          renderVouchers();
+        }
         closeEditOrderModal();
         renderOrders();
         renderProducts();
@@ -3427,14 +3880,41 @@
       renderProducts();
     }
 
+    function computePreorderNeedsByProduct() {
+      const activePreorderStatuses = new Set(["Chờ xác nhận", "Đã xác nhận", "Đang gói"]);
+      const needsMap = {};
+      allOrders.forEach(o => {
+        if (!activePreorderStatuses.has(String(o.status || ""))) return;
+        let items = [];
+        try { items = JSON.parse(o.itemsJson || "[]"); } catch (e) {}
+        if (!Array.isArray(items)) return;
+        items.forEach(it => {
+          if (!it || !it.id) return;
+          const preUnits = Math.max(0, Number(it.preorderUnits || 0));
+          if (preUnits <= 0) return;
+          if (!needsMap[it.id]) {
+            needsMap[it.id] = { units: 0, orderIds: new Set() };
+          }
+          needsMap[it.id].units += preUnits;
+          if (o.orderId) needsMap[it.id].orderIds.add(String(o.orderId));
+        });
+      });
+      return needsMap;
+    }
+
     function renderProducts() {
       const q = normalizeText(document.getElementById("productSearchInput")?.value || "");
+      const preorderNeedsMap = computePreorderNeedsByProduct();
+
       const list = allProducts.filter(p => {
         if (productFilter === "visible" && !p.visible) return false;
         if (productFilter === "hidden" && p.visible) return false;
         if (productFilter === "low") {
           const threshold = (p.productType !== "item" && p.packSize > 1) ? p.packSize * 2 : 5;
           if (p.stock > threshold) return false;
+        }
+        if (productFilter === "preorder") {
+          if (!preorderNeedsMap[p.id] || preorderNeedsMap[p.id].units <= 0) return false;
         }
         if (q) {
           const hay = normalizeText(`${p.id} ${p.name} ${p.category} ${p.specs}`);
@@ -3457,6 +3937,7 @@
           ? p.imageUrls
           : (p.imageUrl ? String(p.imageUrl).split(/[\n,]+/).map(u => u.trim()).filter(Boolean).slice(0, 3) : []);
         const safeId = escapeAttrJs(p.id);
+        const needInfo = preorderNeedsMap[p.id];
 
         const stockSummary = isItem
           ? `Tồn kho: <strong>${p.stock} ${escapeHtml(p.baseUnit)}</strong>`
@@ -3478,12 +3959,13 @@
                 </div>
               </div>
               <span class="badge ${p.visible ? (p.stock > 0 ? 'badge-ok' : 'badge-warn') : 'badge-hidden'}">
-                ${!p.visible ? "Đang ẩn" : (p.stock > 0 ? "Đang bán" : "Hết sẵn")}
+                ${!p.visible ? "Đang ẩn" : (p.stock > 0 ? "Đang bán" : "Đặt làm 2–3 tuần")}
               </span>
             </div>
 
             <div style="font-size:12.8px; color:var(--text); display:flex; flex-direction:column; gap:3px;">
               <div>📦 ${stockSummary}</div>
+              ${needInfo && needInfo.units > 0 ? `<div><span class="preorder-need-alert">Cần làm thêm cho khách đặt trước: ${needInfo.units} ${escapeHtml(p.baseUnit)} (từ ${needInfo.orderIds.size} đơn)</span></div>` : ""}
               <div>💰 ${priceSummary || "Chưa đặt giá"}</div>
               ${p.specs ? `<div style="color:var(--muted); font-size:12px;">• ${escapeHtml(p.specs)}</div>` : ""}
             </div>
@@ -3983,8 +4465,390 @@
     }
 
     // -------------------------------------------------------------------------
-    // TAB 5: CÀI ĐẶT (VIETQR, TELEGRAM, CHÍNH SÁCH FREESHIP, PHÍ SHIP, EMAIL, AI)
+    // TAB 5: CÀI ĐẶT (ƯU ĐÃI TOÀN TIỆM, VOUCHER, VIETQR, TELEGRAM, FREESHIP, EMAIL, AI)
     // -------------------------------------------------------------------------
+    function updatePromoPolicyPreview() {
+      const enabled = document.getElementById("promoEnabledInput")?.value === "true";
+      const percent = Math.max(0, Math.min(100, Number(document.getElementById("promoPercentInput")?.value || 0)));
+      const label = (document.getElementById("promoLabelInput")?.value || "").trim();
+      const startMs = datetimeLocalToVnEpochMs(document.getElementById("promoStartAtInput")?.value || "");
+      const endMs = datetimeLocalToVnEpochMs(document.getElementById("promoEndAtInput")?.value || "");
+      const mode = document.getElementById("promoVoucherModeInput")?.value === "STACKABLE" ? "STACKABLE" : "BEST_ONE";
+
+      const badge = document.getElementById("promoStatusBadge");
+      const preview = document.getElementById("promoPolicyPreview");
+      const now = Date.now();
+
+      if (badge) {
+        if (!enabled || percent <= 0) {
+          badge.className = "badge badge-hidden";
+          badge.textContent = "Đang tắt";
+        } else if (startMs > 0 && now < startMs) {
+          badge.className = "badge badge-info";
+          badge.textContent = "Đã lên lịch";
+        } else if (endMs > 0 && now > endMs) {
+          badge.className = "badge badge-warn";
+          badge.textContent = "Đã hết hạn";
+        } else {
+          badge.className = "badge badge-ok";
+          badge.textContent = `Đang áp dụng -${percent}%`;
+        }
+      }
+
+      if (preview) {
+        if (!enabled || percent <= 0) {
+          preview.innerHTML = `Ưu đãi toàn tiệm đang <strong>tắt</strong>. Khách chỉ dùng mã voucher riêng (nếu có).`;
+        } else {
+          const sampleSub = 155000;
+          const sampleDisc = calcRoundedPercentDiscount(sampleSub, percent);
+          const timeText = [
+            startMs > 0 ? `từ ${formatVnDateDisplay(startMs)}` : "áp dụng ngay",
+            endMs > 0 ? `đến ${formatVnDateDisplay(endMs)}` : "không giới hạn"
+          ].join(" ");
+          const modeText = mode === "STACKABLE"
+            ? "Cộng dồn tuần tự với mã voucher riêng"
+            : "Không cộng dồn — chọn mức giảm lớn hơn & giữ lượt voucher cho khách";
+          preview.innerHTML = `
+            <strong>${escapeHtml(label || `Ưu đãi toàn tiệm -${percent}%`)}</strong> (${timeText}) • VD đơn ${fmtVND(sampleSub)} → giảm tròn <strong>${fmtVND(sampleDisc)}</strong>.<br/>
+            Quy tắc xung đột: <strong>${modeText}</strong>.
+          `;
+        }
+      }
+    }
+
+    async function savePromoSettings() {
+      const btn = document.getElementById("savePromoBtn");
+      const enabled = document.getElementById("promoEnabledInput").value === "true";
+      const percent = Math.max(0, Math.min(100, Number(document.getElementById("promoPercentInput").value || 0)));
+      const label = document.getElementById("promoLabelInput").value.trim();
+      const startAt = datetimeLocalToVnEpochMs(document.getElementById("promoStartAtInput").value);
+      const endAt = datetimeLocalToVnEpochMs(document.getElementById("promoEndAtInput").value);
+      const mode = document.getElementById("promoVoucherModeInput").value === "STACKABLE" ? "STACKABLE" : "BEST_ONE";
+
+      if (startAt > 0 && endAt > 0 && endAt < startAt) {
+        showToast("Thời gian kết thúc phải sau thời gian bắt đầu");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        await callApi({
+          action: "save_settings",
+          promoEnabled: enabled,
+          promoLabel: label,
+          promoPercent: percent,
+          promoStartAt: startAt,
+          promoEndAt: endAt,
+          promoVoucherMode: mode,
+          PROMO_ENABLED: enabled ? "TRUE" : "FALSE",
+          PROMO_LABEL: label,
+          PROMO_PERCENT: percent,
+          PROMO_START_AT: startAt,
+          PROMO_END_AT: endAt,
+          PROMO_VOUCHER_MODE: mode
+        });
+        promoConfigState = { enabled, label, percent, startAt, endAt, mode };
+        updatePromoPolicyPreview();
+        showToast("Đã lưu cấu hình ưu đãi toàn tiệm");
+      } catch (err) {
+        showToast("Lỗi lưu ưu đãi: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu ưu đãi toàn tiệm";
+      }
+    }
+
+    async function saveVoucherConfigSettings() {
+      const btn = document.getElementById("saveVoucherConfigBtn");
+      const voucherInputEnabled = document.getElementById("voucherInputEnabledInput").value === "true";
+      const loyaltyEnabled = document.getElementById("loyaltyVoucherEnabledInput").value === "true";
+      const loyaltyMinSpend = Math.max(0, Number(document.getElementById("loyaltyMinSpendInput").value || 0));
+      const loyaltyDiscountType = document.getElementById("loyaltyDiscountTypeInput").value === "amount" ? "amount" : "percent";
+      const loyaltyDiscountValue = Math.max(0, Number(document.getElementById("loyaltyDiscountValueInput").value || 0));
+      const loyaltyValidDays = Math.max(1, Number(document.getElementById("loyaltyValidDaysInput").value || 30));
+
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        await callApi({
+          action: "save_settings",
+          voucherInputEnabled,
+          loyaltyVoucherEnabled: loyaltyEnabled,
+          loyaltyMinSpend,
+          loyaltyDiscountType,
+          loyaltyDiscountValue,
+          loyaltyValidDays,
+          VOUCHER_INPUT_ENABLED: voucherInputEnabled ? "TRUE" : "FALSE",
+          LOYALTY_VOUCHER_ENABLED: loyaltyEnabled ? "TRUE" : "FALSE",
+          LOYALTY_MIN_SPEND: loyaltyMinSpend,
+          LOYALTY_DISCOUNT_TYPE: loyaltyDiscountType,
+          LOYALTY_DISCOUNT_VALUE: loyaltyDiscountValue,
+          LOYALTY_VALID_DAYS: loyaltyValidDays
+        });
+        showToast("Đã lưu cấu hình Voucher & Tri ân");
+      } catch (err) {
+        showToast("Lỗi lưu cấu hình voucher: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu cấu hình Voucher & Tri ân";
+      }
+    }
+
+    function renderVouchers() {
+      const box = document.getElementById("vouchersList");
+      if (!box) return;
+      const q = normalizeText(document.getElementById("voucherSearchInput")?.value || "");
+      const stFilter = document.getElementById("voucherStatusFilter")?.value || "all";
+      const now = Date.now();
+
+      const enriched = allVouchers.map(v => {
+        const expMs = parseVnDateMs(v.expiresAt);
+        const isExpired = expMs > 0 && now > expMs;
+        const usedCount = Math.max(0, Number(v.usedCount || 0));
+        const maxUses = Math.max(1, Number(v.maxUses || 1));
+        const isExhausted = usedCount >= maxUses;
+        const isActive = v.active === true || String(v.active).toUpperCase() === "TRUE";
+        const isUsable = isActive && !isExpired && !isExhausted;
+        return { ...v, expMs, isExpired, usedCount, maxUses, isExhausted, isActive, isUsable };
+      });
+
+      const list = enriched.filter(v => {
+        if (stFilter === "active" && !v.isUsable) return false;
+        if (stFilter === "exhausted" && !(v.isExhausted || v.isExpired)) return false;
+        if (stFilter === "inactive" && v.isActive) return false;
+        if (q) {
+          const hay = normalizeText(`${v.code} ${v.customerName} ${v.customerContact} ${v.sourceOrderId} ${v.usedOrderIds}`);
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (!list.length) {
+        box.innerHTML = `<div style="text-align:center; color:var(--muted); font-size:12.5px; padding:12px 4px;">Chưa có mã voucher nào khớp bộ lọc.</div>`;
+        return;
+      }
+
+      box.innerHTML = list.map(v => {
+        const safeId = escapeAttrJs(v.voucherId || v.code);
+        const safeCode = escapeAttrJs(v.code);
+        const discountDesc = v.discountType === "percent"
+          ? `Giảm ${Number(v.discountValue || 0)}%`
+          : `Giảm ${fmtVND(v.discountValue)}`;
+        const minOrderDesc = Number(v.minOrder || 0) > 0
+          ? `Đơn từ ${fmtVND(v.minOrder)}`
+          : "Không giới hạn đơn tối thiểu";
+        const expDesc = v.expMs > 0 ? formatVnDateDisplay(v.expMs) : "Không thời hạn";
+
+        let badgeClass = "badge-ok";
+        let badgeLabel = "Đang hiệu lực";
+        if (!v.isActive) {
+          badgeClass = "badge-hidden";
+          badgeLabel = "Tạm khóa";
+        } else if (v.isExhausted) {
+          badgeClass = "badge-warn";
+          badgeLabel = "Đã dùng hết lượt";
+        } else if (v.isExpired) {
+          badgeClass = "badge-danger";
+          badgeLabel = "Đã hết hạn";
+        }
+
+        return `
+          <div class="voucher-item-card" style="${!v.isUsable ? 'opacity:0.8;' : ''}">
+            <div class="card-top" style="margin-bottom:6px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <strong style="font-size:14px; color:var(--primary); letter-spacing:0.3px;">${escapeHtml(v.code)}</strong>
+                  <button type="button" class="mini-pill-btn" onclick="copyTextToClipboard('${safeCode}', 'Đã copy mã ${safeCode}')">Copy mã</button>
+                  <button type="button" class="mini-pill-btn msg-btn" onclick="copyVoucherGiftMessage('${safeId}')">Copy tin gửi khách</button>
+                </div>
+                <div style="font-size:12px; color:var(--muted); margin-top:2px;">
+                  ${v.customerName ? `👤 <strong>${escapeHtml(v.customerName)}</strong>` : "Mã dùng chung / khách lẻ"}
+                  ${v.customerContact ? ` • ${escapeHtml(v.customerContact)}` : ""}
+                  ${v.sourceOrderId ? ` • <span style="color:var(--accent); font-weight:600;">Tri ân từ #${escapeHtml(v.sourceOrderId)}</span>` : ""}
+                </div>
+              </div>
+              <span class="badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+
+            <div style="font-size:12.5px; color:var(--text); display:flex; flex-direction:column; gap:2px;">
+              <div>🎁 <strong>${escapeHtml(discountDesc)}</strong> • ${escapeHtml(minOrderDesc)}</div>
+              <div>📊 Đã dùng: <strong>${v.usedCount}/${v.maxUses} lượt</strong> • Hạn dùng: <strong>${escapeHtml(expDesc)}</strong></div>
+              ${v.usedOrderIds ? `<div style="font-size:11.5px; color:var(--muted);">Đơn đã áp dụng: ${escapeHtml(v.usedOrderIds)}</div>` : ""}
+            </div>
+
+            <div class="item-action-grid" style="margin-top:8px; padding-top:8px;">
+              <button type="button" class="btn btn-soft btn-sm" onclick="openVoucherModal('${safeId}')">Sửa mã</button>
+              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVoucherActive('${safeId}')">${v.isActive ? "Khóa mã" : "Mở khóa"}</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteVoucherWithConfirm('${safeId}', this)">Xóa mã</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function copyVoucherGiftMessage(voucherIdOrCode) {
+      const v = allVouchers.find(item => String(item.voucherId || item.code) === String(voucherIdOrCode));
+      if (!v) return;
+      const discountDesc = v.discountType === "percent"
+        ? `giảm ${Number(v.discountValue || 0)}%`
+        : `giảm ${fmtVND(v.discountValue)}`;
+      const minDesc = Number(v.minOrder || 0) > 0
+        ? ` cho đơn từ ${fmtVND(v.minOrder)}`
+        : "";
+      const expDisplay = formatVnDateDisplay(v.expiresAt);
+      const expDesc = expDisplay ? `\n• Hạn sử dụng: đến ${expDisplay}` : "";
+      const greeting = v.customerName ? `Chào ${v.customerName}, ` : "Chào bạn, ";
+
+      const msg = [
+        `${greeting}Tiệm giấy Thứ Ba gửi tặng bạn mã ưu đãi riêng cho lần đặt giấy tiếp theo ạ:`,
+        `• Mã voucher: ${v.code}`,
+        `• Ưu đãi: ${discountDesc}${minDesc}${expDesc}`,
+        `Bạn chỉ cần nhập mã ${v.code} tại mục Giỏ hàng trên trang đặt giấy của tiệm nhé. Cảm ơn bạn thật nhiều!`
+      ].join("\n");
+
+      copyTextToClipboard(msg, `Đã copy tin nhắn tặng mã ${v.code}`);
+    }
+
+    function generateRandomVoucherCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let suffix = "";
+      for (let i = 0; i < 4; i++) {
+        suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const inp = document.getElementById("vchCode");
+      if (inp) inp.value = `THUBA-${suffix}`;
+    }
+
+    function openVoucherModal(voucherIdOrCode = "") {
+      const v = voucherIdOrCode
+        ? allVouchers.find(item => String(item.voucherId || item.code) === String(voucherIdOrCode))
+        : null;
+
+      document.getElementById("voucherModalTitle").textContent = v ? `Chỉnh sửa mã: ${v.code}` : "Tạo mã voucher mới";
+      document.getElementById("vchId").value = v ? (v.voucherId || "") : "";
+      document.getElementById("vchCode").value = v ? (v.code || "") : "";
+      document.getElementById("vchCustomerName").value = v ? (v.customerName || "") : "";
+      document.getElementById("vchCustomerContact").value = v ? (v.customerContact || "") : "";
+      document.getElementById("vchDiscountType").value = v ? (v.discountType || "amount") : "amount";
+      document.getElementById("vchDiscountValue").value = v ? Number(v.discountValue || 0) : 15000;
+      document.getElementById("vchMinOrder").value = v ? Number(v.minOrder || 0) : 0;
+      document.getElementById("vchMaxUses").value = v ? Math.max(1, Number(v.maxUses || 1)) : 1;
+
+      const expMs = v ? parseVnDateMs(v.expiresAt) : (Date.now() + 30 * 24 * 3600 * 1000);
+      document.getElementById("vchExpiresAt").value = vnEpochMsToDatetimeLocal(expMs);
+      const isAct = v ? (v.active === true || String(v.active).toUpperCase() === "TRUE") : true;
+      document.getElementById("vchActive").value = isAct ? "true" : "false";
+
+      if (!v) generateRandomVoucherCode();
+
+      const modalEl = document.getElementById("voucherModal");
+      initCustomSelects(modalEl);
+      modalEl.classList.add("open");
+    }
+
+    function closeVoucherModal() {
+      document.getElementById("voucherModal").classList.remove("open");
+    }
+
+    async function saveVoucher(e) {
+      e.preventDefault();
+      const btn = document.getElementById("saveVoucherBtn");
+      const code = document.getElementById("vchCode").value.trim().toUpperCase().replace(/\s+/g, "");
+      if (!code) {
+        showToast("Vui lòng nhập mã voucher");
+        return;
+      }
+      const rawExp = document.getElementById("vchExpiresAt").value;
+      const expiresAtIso = rawExp ? datetimeLocalToVnIso(rawExp) : "";
+
+      const voucherPayload = {
+        voucherId: document.getElementById("vchId").value.trim(),
+        code,
+        customerName: document.getElementById("vchCustomerName").value.trim(),
+        customerContact: document.getElementById("vchCustomerContact").value.trim(),
+        discountType: document.getElementById("vchDiscountType").value === "percent" ? "percent" : "amount",
+        discountValue: Math.max(1, Number(document.getElementById("vchDiscountValue").value || 0)),
+        minOrder: Math.max(0, Number(document.getElementById("vchMinOrder").value || 0)),
+        maxUses: Math.max(1, Number(document.getElementById("vchMaxUses").value || 1)),
+        expiresAt: expiresAtIso,
+        active: document.getElementById("vchActive").value === "true"
+      };
+
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        const res = await callApi({ action: "save_voucher", voucher: voucherPayload });
+        allVouchers = res.vouchers || [];
+        closeVoucherModal();
+        renderVouchers();
+        showToast(`Đã lưu mã voucher ${code}`);
+      } catch (err) {
+        showToast("Lỗi lưu voucher: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu mã voucher";
+      }
+    }
+
+    async function toggleVoucherActive(voucherIdOrCode) {
+      const v = allVouchers.find(item => String(item.voucherId || item.code) === String(voucherIdOrCode));
+      if (!v) return;
+      const currentAct = v.active === true || String(v.active).toUpperCase() === "TRUE";
+      try {
+        const res = await callApi({
+          action: "save_voucher",
+          voucher: {
+            ...v,
+            active: !currentAct
+          }
+        });
+        allVouchers = res.vouchers || [];
+        renderVouchers();
+        showToast(!currentAct ? `Đã kích hoạt mã ${v.code}` : `Đã tạm khóa mã ${v.code}`);
+      } catch (err) {
+        showToast("Lỗi cập nhật trạng thái mã: " + err.message);
+      }
+    }
+
+    async function deleteVoucherWithConfirm(voucherIdOrCode, btnEl) {
+      const v = allVouchers.find(item => String(item.voucherId || item.code) === String(voucherIdOrCode));
+      if (!v) return;
+
+      if (btnEl.dataset.confirming !== "1") {
+        btnEl.dataset.confirming = "1";
+        btnEl.textContent = "Bấm lại để xóa";
+        btnEl.classList.remove("btn-danger");
+        btnEl.classList.add("btn-danger-confirm");
+        setTimeout(() => {
+          if (btnEl && btnEl.dataset.confirming === "1") {
+            btnEl.dataset.confirming = "0";
+            btnEl.textContent = "Xóa mã";
+            btnEl.classList.remove("btn-danger-confirm");
+            btnEl.classList.add("btn-danger");
+          }
+        }, 3500);
+        return;
+      }
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Đang xóa...";
+      try {
+        const res = await callApi({
+          action: "delete_voucher",
+          voucherId: v.voucherId || "",
+          code: v.code
+        });
+        allVouchers = res.vouchers || [];
+        renderVouchers();
+        showToast(`Đã xóa mã ${v.code}`);
+      } catch (err) {
+        showToast("Lỗi xóa voucher: " + err.message);
+        btnEl.disabled = false;
+        btnEl.textContent = "Xóa mã";
+      }
+    }
+
     async function saveBankSettings() {
       const btn = document.getElementById("saveBankBtn");
       btn.disabled = true;
@@ -4129,17 +4993,10 @@
           freeshipMinOrder: freeshipThreshold,
           freeshipThreshold,
           freeshipKit,
-          freeshipEnabled,
-          shippingPolicy: {
-            customerShipFee,
-            freeshipMinOrder: freeshipThreshold,
-            freeshipThreshold,
-            freeshipKit,
-            freeshipEnabled
-          }
+          freeshipEnabled
         });
         updateCustomerShipPolicyPreview();
-        showToast("Đã lưu chính sách Phí ship & Freeship cho khách");
+        showToast("Đã lưu chính sách phí ship & freeship");
       } catch (err) {
         showToast("Lỗi lưu chính sách ship: " + err.message);
       } finally {
@@ -4154,10 +5011,10 @@
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
-        const res = await callApi({ action: "save_settings", shopShipCost: val });
-        shopShipCost = Math.max(0, Number(res.shopShipCost !== undefined ? res.shopShipCost : val));
+        await callApi({ action: "save_settings", shopShipCost: val });
+        shopShipCost = val;
         renderOrders();
-        showToast("Đã lưu mức phí ship thực tế của tiệm");
+        showToast("Đã lưu phí ship thực tế của tiệm");
       } catch (err) {
         showToast("Lỗi lưu phí ship: " + err.message);
       } finally {
@@ -4168,13 +5025,11 @@
 
     async function saveNotifyEmail() {
       const btn = document.getElementById("saveEmailBtn");
+      const email = document.getElementById("notifyEmailInput").value.trim();
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
-        await callApi({
-          action: "save_settings",
-          notifyEmail: document.getElementById("notifyEmailInput").value.trim()
-        });
+        await callApi({ action: "save_settings", notifyEmail: email });
         showToast("Đã lưu email nhận thông báo");
       } catch (err) {
         showToast("Lỗi lưu email: " + err.message);
@@ -4186,11 +5041,16 @@
 
     async function testSendEmail() {
       const btn = document.getElementById("testEmailBtn");
+      const email = document.getElementById("notifyEmailInput").value.trim();
+      if (!email) {
+        showToast("Bạn nhập email trước nhé");
+        return;
+      }
       btn.disabled = true;
       btn.textContent = "Đang gửi...";
       try {
-        const res = await callApi({ action: "test_email" });
-        showToast(`Đã gửi email kiểm tra tới ${res.sentTo}`);
+        await callApi({ action: "test_email", notifyEmail: email });
+        showToast("Đã gửi email kiểm tra tới " + email);
       } catch (err) {
         showToast("Lỗi gửi email: " + err.message);
       } finally {
@@ -4199,32 +5059,32 @@
       }
     }
 
-    let currentAiEnabled = true;
-
-    function updateAiToggleUi(enabled) {
-      currentAiEnabled = enabled;
-      const btn = document.getElementById("toggleAiBtn");
-      btn.textContent = enabled ? "🟢 Đang bật Gemini AI (Bấm để tắt)" : "⚪ Đang tắt AI (Chỉ dùng trả lời nhanh)";
-    }
-
     function updateKeyBadgeUi(info) {
       const badge = document.getElementById("aiKeyStatusBadge");
-      if (info.hasKey) {
+      if (!badge) return;
+      if (info && info.configured) {
         badge.className = "badge badge-ok";
-        badge.textContent = `Đã gắn Key (${info.masked})`;
+        badge.textContent = `Đã lưu Key (${info.masked || "AIza..."})`;
       } else {
         badge.className = "badge badge-warn";
-        badge.textContent = "Chưa gắn API Key";
+        badge.textContent = "Chưa có API Key";
       }
+    }
+
+    function updateAiToggleUi(isEnabled) {
+      const btn = document.getElementById("toggleAiBtn");
+      if (!btn) return;
+      btn.dataset.enabled = isEnabled ? "true" : "false";
+      btn.textContent = isEnabled ? "Trợ lý AI: Đang BẬT (bấm để tắt)" : "Trợ lý AI: Đang TẮT (bấm để bật)";
     }
 
     async function saveGeminiKey() {
+      const btn = document.getElementById("saveKeyBtn");
       const keyVal = document.getElementById("geminiKeyInput").value.trim();
       if (!keyVal) {
-        showToast("Bạn dán mã Gemini API Key vào ô trước nhé");
+        showToast("Bạn dán Gemini API Key trước nhé");
         return;
       }
-      const btn = document.getElementById("saveKeyBtn");
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
@@ -4242,11 +5102,13 @@
 
     async function toggleAiMode() {
       const btn = document.getElementById("toggleAiBtn");
+      const current = btn.dataset.enabled === "true";
+      const next = !current;
       btn.disabled = true;
       try {
-        const res = await callApi({ action: "save_settings", aiEnabled: !currentAiEnabled });
-        updateAiToggleUi(Boolean(res.aiEnabled));
-        showToast(res.aiEnabled ? "Đã bật trợ lý Gemini AI" : "Đã chuyển sang chế độ trả lời nhanh nội bộ");
+        await callApi({ action: "save_settings", aiEnabled: next });
+        updateAiToggleUi(next);
+        showToast(next ? "Đã bật trợ lý AI" : "Đã tắt trợ lý AI");
       } catch (err) {
         showToast("Lỗi đổi chế độ AI: " + err.message);
       } finally {
@@ -4256,146 +5118,283 @@
 
     async function testAiConnection() {
       const btn = document.getElementById("testAiBtn");
-      const resBox = document.getElementById("aiTestResultBox");
+      const box = document.getElementById("aiTestResultBox");
       btn.disabled = true;
       btn.textContent = "Đang kiểm tra...";
-      resBox.style.display = "block";
-      resBox.innerHTML = "Đang gửi câu hỏi thử nghiệm tới hệ thống AI...";
+      box.style.display = "block";
+      box.textContent = "Đang gọi thử Gemini AI...";
 
       try {
         const res = await callApi({ action: "test_ai" });
-        const replyText = res.data && res.data.reply ? res.data.reply : "(Không có nội dung)";
-        resBox.innerHTML = `
-          <div><strong>Nguồn xử lý:</strong> <code>${escapeHtml(res.source || "")}</code></div>
-          ${res.aiError ? `<div style="color:var(--danger); margin-top:4px;"><strong>Chi tiết AI:</strong> ${escapeHtml(res.aiError)}</div>` : ""}
-          <div style="margin-top:6px;"><strong>Trả lời thử:</strong> ${escapeHtml(replyText)}</div>
-        `;
+        box.innerHTML = `<strong style="color:var(--accent);">✓ Kết nối AI thành công!</strong><br/>Phản hồi thử: "${escapeHtml(res.reply)}"`;
       } catch (err) {
-        resBox.innerHTML = `<span style="color:var(--danger);">Lỗi kiểm tra AI: ${escapeHtml(err.message)}</span>`;
+        box.innerHTML = `<strong style="color:var(--danger);">✕ Lỗi kết nối AI:</strong> ${escapeHtml(err.message)}`;
       } finally {
         btn.disabled = false;
         btn.textContent = "Kiểm tra kết nối AI";
       }
     }
 
-    // -------------------------------------------------------------------------
-    // TÍNH NĂNG MỞ RỘNG: MẪU TIN NHẮN, LỌC SP SỬA ĐƠN, TẠO ĐƠN NHANH, THUẾ, GIA KEO, FAQ AI
-    // -------------------------------------------------------------------------
-    function copyOrderStatusTemplate(orderId, tplType) {
-      const o = allOrders.find(item => String(item.orderId) === String(orderId));
-      if (!o) return;
-      const cleanPhone = String(o.phone || "").replace(/^'/, "");
-      const isPaid = o.paymentMethod === "Đã thanh toán CK";
-      const bankId = document.getElementById("bankIdInput")?.value.trim() || "";
-      const accNo = document.getElementById("bankAccountNoInput")?.value.trim() || "";
-      const accName = document.getElementById("bankAccountNameInput")?.value.trim() || "";
+    // =========================================================================
+    // TÍNH NĂNG MỞ RỘNG: SỔ DOANH THU THUẾ, LỌC SP KHI SỬA ĐƠN, TẠO ĐƠN NHANH,
+    // TIN NHẮN THEO TRẠNG THÁI, CHUYỂN ĐỔI GIA KEO + KHÁCH CHỜ, DẠY AI TỪ CHAT
+    // =========================================================================
 
-      let msg = "";
-      if (tplType === "confirm") {
-        const isTransfer = o.paymentMethod === "Chuyển khoản trước" || o.paymentMethod === "Khách báo đã CK";
-        const payLine = isPaid
-          ? `Đã thanh toán chuyển khoản (0đ COD)`
-          : (isTransfer ? `Chuyển khoản trước: ${fmtVND(o.total)} (nội dung CK: ${o.orderId})` : `Thu hộ COD: ${fmtVND(o.total)}`);
-        msg = [
-          `Chào ${o.customerName}, Tiệm giấy Thứ Ba xác nhận đơn hàng #${o.orderId} của bạn ạ:`,
-          `• Sản phẩm: ${o.itemsSummary}`,
-          `• Người nhận: ${o.customerName} — ${cleanPhone}`,
-          `• Địa chỉ: ${o.address}`,
-          `• Thanh toán: ${payLine}`,
-          `Tiệm sẽ kiểm tra và đóng gói gửi đi trong 1–2 ngày tới. Bạn xem giúp tiệm thông tin trên đã đúng chưa nhé!`
-        ].join("\n");
-      } else if (tplType === "shipped") {
-        const rawCode = String(o.trackingCode || "").trim();
-        const trackInfo = detectTrackingCarrier(rawCode);
-        const trackLines = rawCode
-          ? [
-              `• Mã vận đơn (${trackInfo.carrier}): ${rawCode}`,
-              `• Theo dõi trực tiếp hành trình đơn hàng tại: ${trackInfo.url}`
-            ]
-          : [`• Đơn hàng của bạn đã được bàn giao cho đơn vị vận chuyển ạ.`];
-        const zaloGroupLink = document.getElementById("zaloGroupLinkInput")?.value.trim() || "";
-        const zaloGroupQr = document.getElementById("zaloGroupQrInput")?.value.trim() || "";
-        msg = [
-          `Chào ${o.customerName}, đơn giấy #${o.orderId} của bạn đã được tiệm gửi đi rồi ạ!`,
-          ...trackLines,
-          `Khi nhận hàng bạn giúp tiệm quay video lại, trong trường hợp hàng có vấn đề tiệm sẽ hỗ trợ bạn kịp thời ạ.`,
-          zaloGroupLink ? `Mời bạn tham gia nhóm Zalo của tiệm để cập nhật giấy mới và ưu đãi: ${zaloGroupLink}` : "",
-          zaloGroupQr ? `Mã QR tham gia nhóm Zalo: ${zaloGroupQr}` : "",
-          `Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
-        ].filter(Boolean).join("\n");
-      } else if (tplType === "remind_qr") {
-        const bankLine = (bankId && accNo)
-          ? `\n• Ngân hàng: ${bankId} — STK: ${accNo}${accName ? ` (${accName})` : ""}\n• Nội dung CK: Thanh toan ${o.orderId}`
-          : "";
-        msg = [
-          `Chào ${o.customerName}, tiệm đã nhận được đơn hàng #${o.orderId} (${fmtVND(o.total)}) của bạn với hình thức chuyển khoản trước ạ.`,
-          `Hiện tiệm chưa thấy biến động số dư cho đơn này — bạn kiểm tra và chuyển khoản giúp tiệm theo thông tin sau để tiệm đóng gói gửi đi sớm nhé:${bankLine}`,
-          `Nếu bạn đã chuyển rồi thì vui lòng gửi ảnh chuyển khoản lại giúp tiệm kiểm tra ngay ạ!`
-        ].join("\n");
+    // 1. Xuất Sổ doanh thu hộ kinh doanh (.csv chuẩn Excel UTF-8 BOM)
+    function exportTaxRevenueCsv() {
+      const validOrders = getBaseFilteredOrders().filter(o => o.status !== "Đã hủy");
+      if (!validOrders.length) {
+        showToast("Không có đơn hàng hợp lệ trong bộ lọc hiện tại để xuất");
+        return;
       }
 
-      copyTextToClipboard(msg, `Đã copy mẫu tin nhắn cho đơn #${orderId}`);
+      const monthVal = document.getElementById("orderMonthFilter")?.value || "tat-ca";
+      const headers = [
+        "STT",
+        "Ngày ghi nhận",
+        "Mã đơn hàng",
+        "Khách hàng",
+        "Kênh bán",
+        "Diễn giải hàng hóa",
+        "Tiền hàng nguyên giá (VNĐ)",
+        "Giảm giá (VNĐ)",
+        "Doanh thu thuần tính thuế (VNĐ)",
+        "Ship khách trả (VNĐ)",
+        "Tổng thanh toán (VNĐ)",
+        "Hình thức thanh toán",
+        "Trạng thái"
+      ];
+
+      const escCsv = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+
+      let sumSubtotal = 0;
+      let sumDiscount = 0;
+      let sumNetRev = 0;
+      let sumShip = 0;
+      let sumTotal = 0;
+
+      const rows = validOrders.map((o, idx) => {
+        const sub = Number(o.subtotal || 0);
+        const disc = Number(o.discountAmount || 0);
+        const netRev = Math.max(0, sub - disc);
+        const ship = Number(o.shipFee || 0);
+        const tot = Number(o.total || 0);
+
+        sumSubtotal += sub;
+        sumDiscount += disc;
+        sumNetRev += netRev;
+        sumShip += ship;
+        sumTotal += tot;
+
+        return [
+          idx + 1,
+          o.createdAt,
+          o.orderId,
+          o.customerName,
+          o.platform || "Website",
+          o.itemsSummary,
+          sub,
+          disc,
+          netRev,
+          ship,
+          tot,
+          o.paymentMethod || "COD",
+          o.status
+        ].map(escCsv).join(",");
+      });
+
+      rows.push([
+        "",
+        "",
+        "TỔNG CỘNG",
+        `${validOrders.length} đơn`,
+        "",
+        "",
+        sumSubtotal,
+        sumDiscount,
+        sumNetRev,
+        sumShip,
+        sumTotal,
+        "",
+        ""
+      ].map(escCsv).join(","));
+
+      const csvContent = "\uFEFF" + [headers.map(escCsv).join(","), ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `so-doanh-thu-tiem-giay-thu-ba-${monthVal}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Đã xuất sổ doanh thu (${validOrders.length} đơn)`);
     }
 
+    // 2. Lọc nhanh sản phẩm trong Modal Sửa đơn
     function filterEditProductSelect() {
       const q = normalizeText(document.getElementById("editProdSearchInput")?.value || "");
       const prodSel = document.getElementById("editAddProdSelect");
       if (!prodSel) return;
-      const matched = allProducts.filter(p => !q || normalizeText(`${p.id} ${p.name} ${p.category}`).includes(q));
-      prodSel.innerHTML = matched.length
-        ? matched.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (Sẵn ${p.stock} ${escapeHtml(p.baseUnit)})</option>`).join("")
+
+      const filtered = allProducts.filter(p => {
+        if (!q) return true;
+        return normalizeText(`${p.id} ${p.name} ${p.category}`).includes(q);
+      });
+
+      prodSel.innerHTML = filtered.length
+        ? filtered.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${p.stock > 0 ? `Sẵn ${p.stock} ${escapeHtml(p.baseUnit)}` : "Hết sẵn • Đặt làm 2–3 tuần"})</option>`).join("")
         : `<option value="">-- Không tìm thấy mẫu phù hợp --</option>`;
+
       updateEditAddModeOptions();
     }
 
-    function openFaqModalWithQuestion(questionText) {
-      openFaqModal("");
-      document.getElementById("faqModalTitle").textContent = "Bổ sung vào dữ liệu Hỏi - Đáp AI";
-      document.getElementById("faqQuestion").value = questionText || "";
-      setTimeout(() => document.getElementById("faqAnswer")?.focus(), 80);
-    }
+    // 3. Tin nhắn chăm sóc theo từng trạng thái đơn hàng & nhắc VietQR
+    function copyOrderStatusTemplate(orderId, tplType) {
+      const o = allOrders.find(item => String(item.orderId) === String(orderId));
+      if (!o) return;
 
-    function exportTaxRevenueCsv() {
-      const validOrders = getBaseFilteredOrders().filter(o => o.status !== "Đã hủy");
-      if (!validOrders.length) {
-        showToast("Không có đơn hợp lệ trong kỳ đang lọc để xuất");
+      const cleanPhone = String(o.phone || "").replace(/^'/, "");
+      const isPaid = o.paymentMethod === "Đã thanh toán CK";
+      const isPendingTransfer = o.paymentMethod === "Chuyển khoản trước" || o.paymentMethod === "Khách báo đã CK";
+      const hasPreorder = orderHasPreorderItems(o);
+      const payText = isPaid
+        ? `Đã thanh toán CK (0đ COD — Tổng đơn: ${fmtVND(o.total)})`
+        : (isPendingTransfer
+          ? `Chuyển khoản VietQR: ${fmtVND(o.total)} (Nội dung CK: ${o.orderId})`
+          : `Thu hộ COD: ${fmtVND(o.total)}`);
+
+      if (tplType === "confirm") {
+        const msg = [
+          `Chào ${o.customerName}, Tiệm giấy Thứ Ba xác nhận đơn hàng #${o.orderId} của bạn ạ:`,
+          `• Sản phẩm: ${o.itemsSummary}`,
+          `• Người nhận: ${o.customerName} — ${cleanPhone}`,
+          `• Địa chỉ: ${o.address}`,
+          `• Thanh toán: ${payText}`,
+          hasPreorder ? `• Thời gian hoàn thiện: Đơn có sản phẩm đặt làm thủ công, tiệm sẽ hoàn thiện và giao chung sau 2–3 tuần ạ.` : "",
+          o.trackingCode ? `• Mã vận đơn: ${o.trackingCode}` : "",
+          `Bạn kiểm tra lại thông tin giúp tiệm để tiệm gói gửi đi sớm nhé! Cảm ơn bạn đã ghé Tiệm giấy Thứ Ba.`
+        ].filter(Boolean).join("\n");
+        copyTextToClipboard(msg, `Đã copy mẫu xác nhận đơn #${o.orderId}`);
         return;
       }
-      const headers = [
-        "Ma_Don", "Ngay_Tao", "Kenh_Ban", "Khach_Hang", "SDT",
-        "San_Pham", "Tien_Hang", "Giam_Gia", "Doanh_Thu_Thuan_Tinh_Thue",
-        "Ship_Khach_Tra", "Tong_Thu_Khach", "Thanh_Toan", "Trang_Thai"
-      ];
-      const rows = validOrders.map(o => {
-        const netRev = Math.max(0, Number(o.subtotal || 0) - Number(o.discountAmount || 0));
-        const channel = o.channel || o.platform || "Web";
-        return [
-          o.orderId, o.createdAt, channel, o.customerName, String(o.phone || "").replace(/^'/, ""),
-          o.itemsSummary, Number(o.subtotal || 0), Number(o.discountAmount || 0), netRev,
-          Number(o.shipFee || 0), Number(o.total || 0), o.paymentMethod, o.status
-        ].map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
-      });
 
-      const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const monthTag = document.getElementById("orderMonthFilter")?.value || "TatCa";
-      a.href = url;
-      a.download = `So_Doanh_Thu_Tiem_Giay_Thu_Ba_${monthTag}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(`Đã xuất ${validOrders.length} đơn ra file đối soát thuế!`);
+      if (tplType === "shipped") {
+        const trackCode = (document.getElementById("trackInp_" + o.orderId)?.value || o.trackingCode || "").trim();
+        const carrierInfo = trackCode ? detectTrackingCarrier(trackCode) : null;
+        const groupLink = document.getElementById("zaloGroupLinkInput")?.value.trim() || "";
+        const groupQrUrl = document.getElementById("zaloGroupQrInput")?.value.trim() || "";
+        const msg = [
+          `Chào ${o.customerName}, Tiệm giấy Thứ Ba đã gói và gửi đơn #${o.orderId} qua bưu cục rồi ạ!`,
+          trackCode
+            ? `• Mã vận đơn (${carrierInfo.carrier}): ${trackCode}\n• Link theo dõi hành trình: ${carrierInfo.url}`
+            : `• Tiệm sẽ cập nhật mã vận đơn ngay khi bưu cục quét kiện hàng nhé.`,
+          isPaid
+            ? `• Đơn đã thanh toán chuyển khoản (0đ COD khi nhận).`
+            : `• Phí thu hộ COD khi nhận hàng: ${fmtVND(o.total)}.`,
+          `Khi nhận được giấy bạn quay video mở hộp giúp tiệm để được hỗ trợ tốt nhất nhé. Cảm ơn bạn thật nhiều!`,
+          groupLink ? `Mời bạn tham gia nhóm Zalo cộng đồng Tiệm giấy Thứ Ba để nhận thông báo mẫu giấy mới & ưu đãi dành riêng thành viên: ${groupLink}` : "",
+          groupQrUrl ? `Mã QR tham gia nhóm Zalo: ${groupQrUrl}` : ""
+        ].filter(Boolean).join("\n");
+        copyTextToClipboard(msg, `Đã copy tin nhắn gửi bưu cục #${o.orderId}`);
+        return;
+      }
+
+      if (tplType === "remind_qr") {
+        const bankId = document.getElementById("bankIdInput")?.value.trim() || "";
+        const accNo = document.getElementById("bankAccountNoInput")?.value.trim() || "";
+        const accName = document.getElementById("bankAccountNameInput")?.value.trim() || "";
+        const qrLink = (bankId && accNo)
+          ? `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accNo)}-compact2.png?amount=${Math.round(Number(o.total || 0))}&addInfo=${encodeURIComponent(o.orderId)}&accountName=${encodeURIComponent(accName)}`
+          : "";
+
+        const msg = [
+          `Chào ${o.customerName}, tiệm gửi thông tin chuyển khoản cho đơn #${o.orderId} của bạn ạ:`,
+          `• Số tiền: ${fmtVND(o.total)}`,
+          (bankId && accNo) ? `• Ngân hàng: ${bankId} — STK: ${accNo}${accName ? ` (${accName})` : ""}` : "",
+          `• Nội dung chuyển khoản: ${o.orderId}`,
+          qrLink ? `• Link mã QR quét nhanh: ${qrLink}` : "",
+          `Sau khi chuyển khoản xong bạn nhắn tiệm để tiệm xác nhận và gói hàng ngay nhé!`
+        ].filter(Boolean).join("\n");
+        copyTextToClipboard(msg, `Đã copy thông tin chuyển khoản đơn #${o.orderId}`);
+      }
     }
 
-    // --- Tạo đơn nhanh đa kênh + VietQR gửi DM ---
+    // 4. Form duy nhất: Đơn hàng mới / Tạo đơn từ kênh bán (Instagram / Threads / Zalo / Shopee / Ký gửi)
+    function parsePastedCustomerInfo(rawText) {
+      const text = String(rawText || "").trim();
+      if (!text) return;
+
+      const phoneMatch = text.match(/(?:\+?84|0)(?:[\s.\-]*\d){8,10}/);
+      let phone = "";
+      let textNoPhone = text;
+      if (phoneMatch) {
+        phone = phoneMatch[0].replace(/[\s.\-]/g, "").replace(/^\+?84/, "0");
+        textNoPhone = text.replace(phoneMatch[0], " ");
+      }
+
+      let handle = "";
+      let detectedPlatform = "";
+      const urlMatch = textNoPhone.match(/https?:\/\/(?:www\.)?(instagram\.com|threads\.net|threads\.com|facebook\.com|fb\.com|zalo\.me)\/([^\s,;|]+)/i);
+      const atMatch = textNoPhone.match(/(^|[\s,;|·\-])(@[a-zA-Z0-9._]{2,35})/);
+      if (urlMatch) {
+        const host = urlMatch[1].toLowerCase();
+        const slug = urlMatch[2].replace(/\/$/, "");
+        if (host.includes("instagram")) { detectedPlatform = "Instagram"; handle = "@" + slug.replace(/^@/, ""); }
+        else if (host.includes("threads")) { detectedPlatform = "Threads"; handle = "@" + slug.replace(/^@/, ""); }
+        else if (host.includes("facebook") || host.includes("fb")) { detectedPlatform = "Facebook"; handle = urlMatch[0]; }
+        else if (host.includes("zalo")) { detectedPlatform = "Zalo"; handle = slug; }
+        textNoPhone = textNoPhone.replace(urlMatch[0], " ");
+      } else if (atMatch) {
+        handle = atMatch[2];
+        textNoPhone = textNoPhone.replace(handle, " ");
+      }
+
+      const lines = textNoPhone
+        .split(/\r?\n|\s*[·|;]\s*/)
+        .map(s => s.replace(/^(tên|khách|người nhận|họ tên|sđt|đt|điện thoại|địa chỉ|đc|ig|threads|zalo|fb)\s*[:\-–]\s*/i, "").trim())
+        .filter(Boolean);
+
+      const addrRegex = /(số\s*\d|ngõ|ngách|hẻm|kiệt|đường|phố|tổ|thôn|xóm|ấp|khu phố|kp\.?|phường|p\.|xã|thị trấn|quận|q\.|huyện|thị xã|tp\.?|thành phố|tỉnh)/i;
+      let address = "";
+      let name = "";
+
+      const addrIdx = lines.findIndex((l, idx) => idx > 0 && addrRegex.test(l));
+      if (addrIdx !== -1) {
+        address = lines.slice(addrIdx).join(", ");
+        name = lines.slice(0, addrIdx).join(" ").trim();
+      } else if (lines.length >= 2) {
+        name = lines[0];
+        address = lines.slice(1).join(", ");
+      } else if (lines.length === 1) {
+        const single = lines[0];
+        const commaParts = single.split(",").map(s => s.trim()).filter(Boolean);
+        if (commaParts.length >= 2 && commaParts[0].split(/\s+/).length <= 5) {
+          name = commaParts[0];
+          address = commaParts.slice(1).join(", ");
+        } else {
+          name = single;
+        }
+      }
+
+      if (name) document.getElementById("qoCustName").value = name;
+      if (phone) document.getElementById("qoCustPhone").value = phone;
+      if (address) document.getElementById("qoCustAddress").value = address;
+      if (handle) document.getElementById("qoSocialHandle").value = handle;
+      if (detectedPlatform) {
+        document.getElementById("qoChannel").value = detectedPlatform;
+        syncQuickOrderChannel();
+      }
+    }
+
     function openQuickOrderModal() {
       quickOrderItems = [];
-      document.getElementById("quickOrderForm").style.display = "flex";
-      document.getElementById("quickOrderResultBox").style.display = "none";
-      document.getElementById("quickOrderResultBox").innerHTML = "";
-      document.getElementById("qoChannel").value = "Instagram";
+      qoDiscountManualOverride = false;
+      qoResolvedDiscountSource = "";
+      qoResolvedVoucherCode = "";
       document.getElementById("qoPasteCustomer").value = "";
+      document.getElementById("qoChannel").value = "Instagram";
       document.getElementById("qoCustName").value = "";
       document.getElementById("qoCustPhone").value = "";
       document.getElementById("qoCustAddress").value = "";
@@ -4407,8 +5406,17 @@
       document.getElementById("qoPaymentMethod").value = "Chuyển khoản trước";
       document.getElementById("qoTrackingCode").value = "";
       document.getElementById("qoNote").value = "";
-      const sInp = document.getElementById("qoProdSearchInput");
-      if (sInp) sInp.value = "";
+      document.getElementById("qoProdSearchInput").value = "";
+      const qoVchInp = document.getElementById("qoVoucherCodeInput");
+      if (qoVchInp) qoVchInp.value = "";
+      const qoVchHint = document.getElementById("qoVoucherHint");
+      if (qoVchHint) qoVchHint.textContent = "";
+
+      document.getElementById("quickOrderForm").style.display = "flex";
+      document.getElementById("quickOrderResultBox").style.display = "none";
+
+      populateQuickOrderVoucherSelect();
+      syncQuickOrderChannel();
       filterQuickOrderProductSelect();
       renderQuickOrderItems();
       recalcQuickOrderTotals();
@@ -4421,52 +5429,14 @@
       document.getElementById("quickOrderModal").classList.remove("open");
     }
 
-    function parsePastedCustomerInfo(rawText) {
-      const source = String(rawText || "").trim();
-      if (!source) return;
-      let remaining = source;
-      const handleMatch = remaining.match(/@[A-Za-z0-9._]{2,}|https?:\/\/(?:www\.)?(?:instagram\.com|threads\.net|zalo\.me)\/[A-Za-z0-9._/?=&%-]+/i);
-      if (handleMatch) {
-        document.getElementById("qoSocialHandle").value = handleMatch[0].replace(/[),.;]+$/, "");
-        remaining = remaining.replace(handleMatch[0], " ");
-      }
-      const phoneMatch = remaining.match(/(?:\+?84[ .()-]*)?(?:0[ .()-]*)?(?:\d[ .()-]*){8,10}/g) || [];
-      let normalizedPhone = "";
-      for (const candidate of phoneMatch) {
-        let digits = candidate.replace(/\D/g, "");
-        if (digits.startsWith("84") && digits.length >= 11) digits = "0" + digits.slice(2);
-        if (digits.startsWith("0") && digits.length >= 10 && digits.length <= 11) { normalizedPhone = digits; break; }
-      }
-      if (normalizedPhone) {
-        document.getElementById("qoCustPhone").value = normalizedPhone;
-        remaining = remaining.replace(/(?:\+?84[ .()-]*)?(?:0[ .()-]*)?(?:\d[ .()-]*){8,10}/, " ");
-      }
-      const lines = remaining.split(/\n|[|•·]+|\s+\/\s+/).map(x => x.trim()).filter(Boolean);
-      const addressPattern = /(?:địa\s*chỉ|số\s*nhà|số\s*\d|\b(?:đường|đ|phố|kiệt|ngõ|hẻm|ngách|phường|p\.|xã|x\.|tp\.?|thành\s*phố|tỉnh)\b)/i;
-      let addrParts = [], nameParts = [];
-      lines.forEach(line => {
-        const cleaned = line.replace(/^(?:tên|họ\s*tên|người\s*nhận|khách|sđt|đt|địa\s*chỉ)\s*[:：-]\s*/i, "").trim();
-        if (!cleaned) return;
-        if (addressPattern.test(cleaned) || /,/.test(cleaned)) addrParts.push(cleaned);
-        else nameParts.push(cleaned);
-      });
-      if (!addrParts.length && nameParts.length >= 2) addrParts.push(nameParts.pop());
-      if (nameParts[0] && nameParts[0].length <= 60) document.getElementById("qoCustName").value = nameParts[0].replace(/^[,;-]+|[,;-]+$/g, "").trim();
-      if (addrParts.length) document.getElementById("qoCustAddress").value = addrParts.join(", ").replace(/^[,;-]+|[,;-]+$/g, "").trim();
-    }
-
     function syncQuickOrderChannel() {
       const ch = document.getElementById("qoChannel").value;
-      if (ch === "Shopee") {
+      const isMarketplace = ch === "Shopee" || ch === "Ký gửi";
+      if (isMarketplace) {
         document.getElementById("qoShipFee").value = "0";
         document.getElementById("qoPaymentMethod").value = "Đã thanh toán CK";
-        document.getElementById("qoStatus").value = "Đang giao";
-      } else if (ch === "Ký gửi") {
-        document.getElementById("qoShipFee").value = "0";
-        document.getElementById("qoPaymentMethod").value = "Đã thanh toán CK";
-        document.getElementById("qoStatus").value = "Hoàn thành";
-        if (!document.getElementById("qoCustName").value) {
-          document.getElementById("qoCustName").value = "Điểm ký gửi";
+        if (!document.getElementById("qoNote").value.trim()) {
+          document.getElementById("qoNote").value = `Đơn ${ch}`;
         }
       }
       recalcQuickOrderTotals();
@@ -4476,10 +5446,16 @@
       const q = normalizeText(document.getElementById("qoProdSearchInput")?.value || "");
       const prodSel = document.getElementById("qoAddProdSelect");
       if (!prodSel) return;
-      const matched = allProducts.filter(p => !q || normalizeText(`${p.id} ${p.name} ${p.category}`).includes(q));
-      prodSel.innerHTML = matched.length
-        ? matched.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (Sẵn ${p.stock} ${escapeHtml(p.baseUnit)})</option>`).join("")
-        : `<option value="">-- Không tìm thấy mẫu --</option>`;
+
+      const filtered = allProducts.filter(p => {
+        if (!q) return true;
+        return normalizeText(`${p.id} ${p.name} ${p.category}`).includes(q);
+      });
+
+      prodSel.innerHTML = filtered.length
+        ? filtered.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${p.stock > 0 ? `Sẵn ${p.stock} ${escapeHtml(p.baseUnit)}` : "Hết sẵn • Đặt làm 2–3 tuần"})</option>`).join("")
+        : `<option value="">-- Không tìm thấy mẫu phù hợp --</option>`;
+
       updateQuickOrderModeOptions();
     }
 
@@ -4487,48 +5463,21 @@
       const prodId = document.getElementById("qoAddProdSelect").value;
       const p = allProducts.find(item => item.id === prodId);
       const modeSel = document.getElementById("qoAddModeSelect");
-      if (!p) { modeSel.innerHTML = ""; return; }
+      if (!p) {
+        modeSel.innerHTML = "";
+        return;
+      }
       const isItem = p.productType === "item";
       const hasPack = !isItem && Number(p.packPrice) > 0 && Number(p.packSize) > 1;
       const hasUnit = Number(p.unitPrice) > 0;
       let opts = "";
-      if (hasPack) opts += `<option value="pack">${escapeHtml(p.packUnit || "Gói")} (${p.packSize} ${escapeHtml(p.baseUnit)}) - ${fmtVND(p.packPrice)}</option>`;
-      if (hasUnit || !hasPack) opts += `<option value="unit">Lẻ 1 ${escapeHtml(p.baseUnit)} - ${fmtVND(p.unitPrice)}</option>`;
-      modeSel.innerHTML = opts;
-    }
-
-    function addProductToQuickOrder() {
-      const prodId = document.getElementById("qoAddProdSelect").value;
-      const mode = document.getElementById("qoAddModeSelect").value;
-      const qty = Math.max(1, Number(document.getElementById("qoAddQtyInput").value || 1));
-      const p = allProducts.find(item => item.id === prodId);
-      if (!p) return;
-      const isPack = mode === "pack";
-      const perQty = isPack ? Math.max(1, Number(p.packSize || 1)) : 1;
-      const price = isPack ? Number(p.packPrice || 0) : Number(p.unitPrice || 0);
-      const unitLabel = isPack ? `${p.packUnit || "gói"} (${p.packSize} ${p.baseUnit})` : p.baseUnit;
-      const existing = quickOrderItems.find(it => it.id === p.id && it.buyMode === mode);
-      if (existing) {
-        existing.qty += qty;
-        existing.baseUnits = existing.qty * perQty;
-      } else {
-        quickOrderItems.push({ id: p.id, name: p.name, buyMode: mode, unitLabel, qty, price, baseUnits: qty * perQty });
+      if (hasPack) {
+        opts += `<option value="pack">${escapeHtml(p.packUnit || "Gói")} (${p.packSize} ${escapeHtml(p.baseUnit)}) - ${fmtVND(p.packPrice)}</option>`;
       }
-      renderQuickOrderItems();
-      recalcQuickOrderTotals();
-    }
-
-    function addCustomItemToQuickOrder() {
-      const name = document.getElementById("qoCustomName").value.trim();
-      const price = Math.max(0, Number(document.getElementById("qoCustomPrice").value || 0));
-      const qty = Math.max(1, Number(document.getElementById("qoCustomQty").value || 1));
-      if (!name) { showToast("Bạn nhập tên mục tùy chỉnh nhé"); return; }
-      quickOrderItems.push({ id: "", name, buyMode: "custom", unitLabel: "phần", qty, price, baseUnits: 0 });
-      document.getElementById("qoCustomName").value = "";
-      document.getElementById("qoCustomPrice").value = "";
-      document.getElementById("qoCustomQty").value = "1";
-      renderQuickOrderItems();
-      recalcQuickOrderTotals();
+      if (hasUnit || !hasPack) {
+        opts += `<option value="unit">Lẻ 1 ${escapeHtml(p.baseUnit)} - ${fmtVND(p.unitPrice)}</option>`;
+      }
+      modeSel.innerHTML = opts;
     }
 
     function renderQuickOrderItems() {
@@ -4544,113 +5493,337 @@
             <div style="font-size:11.5px; color:var(--muted);">${fmtVND(it.price)} / ${escapeHtml(it.unitLabel || "phần")}</div>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
-            <button type="button" class="btn btn-soft btn-sm" style="padding:3px 8px;" onclick="quickOrderItems[${idx}].qty>1 ? (quickOrderItems[${idx}].qty--, quickOrderItems[${idx}].baseUnits=Math.round(quickOrderItems[${idx}].baseUnits*(quickOrderItems[${idx}].qty/(quickOrderItems[${idx}].qty+1)))) : quickOrderItems.splice(${idx},1); renderQuickOrderItems(); recalcQuickOrderTotals();">−</button>
+            <button type="button" class="btn btn-soft btn-sm" style="padding:3px 8px;" onclick="changeQuickOrderLineQty(${idx}, -1)">−</button>
             <strong style="min-width:20px; text-align:center; font-size:13px;">${it.qty}</strong>
-            <button type="button" class="btn btn-soft btn-sm" style="padding:3px 8px;" onclick="quickOrderItems[${idx}].qty++; quickOrderItems[${idx}].baseUnits=Math.round(quickOrderItems[${idx}].baseUnits*(quickOrderItems[${idx}].qty/(quickOrderItems[${idx}].qty-1))); renderQuickOrderItems(); recalcQuickOrderTotals();">+</button>
-            <button type="button" class="btn btn-danger btn-sm" style="padding:3px 8px;" onclick="quickOrderItems.splice(${idx},1); renderQuickOrderItems(); recalcQuickOrderTotals();">×</button>
+            <button type="button" class="btn btn-soft btn-sm" style="padding:3px 8px;" onclick="changeQuickOrderLineQty(${idx}, 1)">+</button>
+            <button type="button" class="btn btn-danger btn-sm" style="padding:3px 8px;" onclick="removeQuickOrderLineItem(${idx})">×</button>
           </div>
         </div>
       `).join("");
     }
 
-    function computeQuickOrderTotals() {
-      const subtotal = quickOrderItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 1), 0);
-      const dType = document.getElementById("qoDiscountType").value;
-      const dVal = Math.max(0, Number(document.getElementById("qoDiscountValue").value || 0));
-      const discountAmount = dType === "percent" ? Math.round(subtotal * Math.min(100, dVal) / 100) : Math.min(subtotal, dVal);
-      const shipFee = Math.max(0, Number(document.getElementById("qoShipFee").value || 0));
-      const total = Math.max(0, subtotal - discountAmount + shipFee);
-      return { subtotal, discountType: dType, discountValue: dVal, discountAmount, shipFee, total };
+    function changeQuickOrderLineQty(idx, delta) {
+      const it = quickOrderItems[idx];
+      if (!it) return;
+      const perQty = it.buyMode === "pack"
+        ? Math.max(1, Math.round(Number(it.baseUnits || 1) / Math.max(1, Number(it.qty || 1))))
+        : 1;
+      const nextQty = Number(it.qty || 1) + delta;
+      if (nextQty <= 0) {
+        quickOrderItems.splice(idx, 1);
+      } else {
+        it.qty = nextQty;
+        if (it.buyMode !== "custom" && it.buyMode !== "mix") {
+          it.baseUnits = nextQty * perQty;
+        }
+      }
+      renderQuickOrderItems();
+      recalcQuickOrderTotals();
+    }
+
+    function removeQuickOrderLineItem(idx) {
+      quickOrderItems.splice(idx, 1);
+      renderQuickOrderItems();
+      recalcQuickOrderTotals();
+    }
+
+    function addProductToQuickOrder() {
+      const prodId = document.getElementById("qoAddProdSelect").value;
+      const mode = document.getElementById("qoAddModeSelect").value;
+      const qty = Math.max(1, Number(document.getElementById("qoAddQtyInput").value || 1));
+      const p = allProducts.find(item => item.id === prodId);
+      if (!p) return;
+
+      const isPack = mode === "pack";
+      const perQty = isPack ? Math.max(1, Number(p.packSize || 1)) : 1;
+      const price = isPack ? Number(p.packPrice || 0) : Number(p.unitPrice || 0);
+      const unitLabel = isPack ? `${p.packUnit || "gói"} (${p.packSize} ${p.baseUnit})` : p.baseUnit;
+
+      const existing = quickOrderItems.find(it => it.id === p.id && it.buyMode === mode);
+      if (existing) {
+        existing.qty += qty;
+        existing.baseUnits = existing.qty * perQty;
+      } else {
+        quickOrderItems.push({
+          id: p.id,
+          name: p.name,
+          buyMode: mode,
+          unitLabel,
+          qty,
+          price,
+          baseUnits: qty * perQty
+        });
+      }
+      renderQuickOrderItems();
+      recalcQuickOrderTotals();
+    }
+
+    function addCustomItemToQuickOrder() {
+      const name = document.getElementById("qoCustomName").value.trim();
+      const price = Math.max(0, Number(document.getElementById("qoCustomPrice").value || 0));
+      const qty = Math.max(1, Number(document.getElementById("qoCustomQty").value || 1));
+      if (!name) {
+        showToast("Bạn nhập tên mục tùy chỉnh nhé");
+        return;
+      }
+      quickOrderItems.push({
+        id: "",
+        name,
+        buyMode: "custom",
+        unitLabel: "phần",
+        qty,
+        price,
+        baseUnits: 0
+      });
+      document.getElementById("qoCustomName").value = "";
+      document.getElementById("qoCustomPrice").value = "";
+      document.getElementById("qoCustomQty").value = "1";
+      renderQuickOrderItems();
+      recalcQuickOrderTotals();
+    }
+
+    function populateQuickOrderVoucherSelect() {
+      const sel = document.getElementById("qoVoucherSelect");
+      if (!sel) return;
+      const now = Date.now();
+      const usableVouchers = allVouchers.filter(v => {
+        const isAct = v.active === true || String(v.active).toUpperCase() === "TRUE";
+        const expMs = parseVnDateMs(v.expiresAt);
+        const isExp = expMs > 0 && now > expMs;
+        const isExh = Number(v.usedCount || 0) >= Math.max(1, Number(v.maxUses || 1));
+        return isAct && !isExp && !isExh;
+      });
+      sel.innerHTML = `<option value="">-- Chọn mã từ danh sách (${usableVouchers.length}) --</option>` +
+        usableVouchers.map(v => {
+          const desc = v.discountType === "percent" ? `-${v.discountValue}%` : `-${fmtVND(v.discountValue)}`;
+          const cust = v.customerName ? ` • ${v.customerName}` : "";
+          return `<option value="${escapeHtml(v.code)}">${escapeHtml(v.code)} (${desc}${escapeHtml(cust)})</option>`;
+        }).join("");
+    }
+
+    function onSelectQuickOrderVoucher(codeVal) {
+      const inp = document.getElementById("qoVoucherCodeInput");
+      if (inp) inp.value = String(codeVal || "").trim().toUpperCase();
+      qoDiscountManualOverride = false;
+      recalcQuickOrderTotals();
+    }
+
+    function applyQuickOrderVoucher() {
+      qoDiscountManualOverride = false;
+      const code = (document.getElementById("qoVoucherCodeInput")?.value || "").trim().toUpperCase();
+      if (code) {
+        const found = allVouchers.find(v => String(v.code || "").trim().toUpperCase() === code);
+        if (!found) {
+          showToast("Mã voucher không tồn tại trong danh sách");
+        } else {
+          showToast(`Đã kiểm tra mã ${code}`);
+        }
+      }
+      recalcQuickOrderTotals();
+    }
+
+    function markQuickOrderDiscountManual() {
+      qoDiscountManualOverride = true;
+      qoResolvedDiscountSource = "manual";
     }
 
     function recalcQuickOrderTotals() {
-      const t = computeQuickOrderTotals();
-      const box = document.getElementById("qoTotalsSummary");
-      if (box) {
-        box.innerHTML = `Tiền hàng: <strong>${fmtVND(t.subtotal)}</strong> • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(t.discountAmount)}</strong> • Ship: <strong>${fmtVND(t.shipFee)}</strong><br><strong style="font-size:14.5px; color:var(--primary);">Tổng thanh toán: ${fmtVND(t.total)}</strong>`;
+      const subtotal = quickOrderItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 1), 0);
+      const hintEl = document.getElementById("qoVoucherHint");
+      const rawCode = (document.getElementById("qoVoucherCodeInput")?.value || "").trim().toUpperCase();
+
+      let dType = document.getElementById("qoDiscountType").value;
+      let dVal = Math.max(0, Number(document.getElementById("qoDiscountValue").value || 0));
+      let discountAmount = 0;
+
+      if (qoDiscountManualOverride) {
+        if (dType === "percent") {
+          discountAmount = Math.round(subtotal * Math.min(100, dVal) / 100);
+        } else {
+          discountAmount = Math.min(subtotal, dVal);
+        }
+        qoResolvedDiscountSource = discountAmount > 0 ? "manual" : "";
+        qoResolvedVoucherCode = rawCode;
+        if (hintEl) {
+          hintEl.textContent = discountAmount > 0 ? "Đang áp dụng chiết khấu nhập tay (manual)." : "";
+        }
+      } else {
+        const promoActive = isStorePromoActiveNow();
+        const dPromo = promoActive ? calcRoundedPercentDiscount(subtotal, promoConfigState.percent) : 0;
+
+        let validVch = null;
+        let vchError = "";
+        if (rawCode) {
+          const found = allVouchers.find(v => String(v.code || "").trim().toUpperCase() === rawCode);
+          if (!found) {
+            vchError = `Mã ${rawCode} không tồn tại.`;
+          } else {
+            const isAct = found.active === true || String(found.active).toUpperCase() === "TRUE";
+            const expMs = parseVnDateMs(found.expiresAt);
+            const isExp = expMs > 0 && Date.now() > expMs;
+            const isExh = Number(found.usedCount || 0) >= Math.max(1, Number(found.maxUses || 1));
+            const minOrd = Math.max(0, Number(found.minOrder || 0));
+            if (!isAct) vchError = `Mã ${rawCode} đang tạm khóa.`;
+            else if (isExp) vchError = `Mã ${rawCode} đã hết hạn.`;
+            else if (isExh) vchError = `Mã ${rawCode} đã hết lượt dùng.`;
+            else if (subtotal < minOrd) vchError = `Mã ${rawCode} áp dụng cho đơn từ ${fmtVND(minOrd)}.`;
+            else validVch = found;
+          }
+        }
+
+        if (promoConfigState.mode === "STACKABLE") {
+          const afterPromo = Math.max(0, subtotal - dPromo);
+          const dVoucher = validVch ? calcVoucherDiscountAmount(afterPromo, validVch) : 0;
+          discountAmount = Math.min(subtotal, dPromo + dVoucher);
+          if (dPromo > 0 && dVoucher > 0) {
+            qoResolvedDiscountSource = "stack";
+            qoResolvedVoucherCode = validVch.code;
+          } else if (dVoucher > 0) {
+            qoResolvedDiscountSource = "voucher";
+            qoResolvedVoucherCode = validVch.code;
+          } else if (dPromo > 0) {
+            qoResolvedDiscountSource = "promo";
+            qoResolvedVoucherCode = "";
+          } else {
+            qoResolvedDiscountSource = "";
+            qoResolvedVoucherCode = "";
+          }
+        } else {
+          const dVoucher = validVch ? calcVoucherDiscountAmount(subtotal, validVch) : 0;
+          if (dPromo <= 0 && dVoucher <= 0) {
+            discountAmount = 0;
+            qoResolvedDiscountSource = "";
+            qoResolvedVoucherCode = "";
+          } else if (dVoucher > dPromo) {
+            discountAmount = dVoucher;
+            qoResolvedDiscountSource = "voucher";
+            qoResolvedVoucherCode = validVch.code;
+          } else {
+            discountAmount = dPromo;
+            qoResolvedDiscountSource = "promo";
+            qoResolvedVoucherCode = "";
+            if (validVch && dPromo >= dVoucher) {
+              vchError = `Ưu đãi toàn tiệm (${fmtVND(dPromo)}) ≥ mã ${validVch.code} (${fmtVND(dVoucher)}) nên giữ nguyên lượt voucher cho khách.`;
+            }
+          }
+        }
+
+        document.getElementById("qoDiscountType").value = "amount";
+        document.getElementById("qoDiscountValue").value = String(discountAmount);
+        dType = "amount";
+        dVal = discountAmount;
+
+        if (hintEl) {
+          const srcTxt = formatDiscountSourceLabel(qoResolvedDiscountSource, qoResolvedVoucherCode);
+          hintEl.textContent = [srcTxt ? `Áp dụng: ${srcTxt} (-${fmtVND(discountAmount)})` : "", vchError].filter(Boolean).join(" • ");
+        }
       }
-      return t;
+
+      const shipFee = Math.max(0, Number(document.getElementById("qoShipFee").value || 0));
+      const total = Math.max(0, subtotal - discountAmount + shipFee);
+      const payMethod = document.getElementById("qoPaymentMethod").value;
+      const isPaid = payMethod === "Đã thanh toán CK";
+
+      document.getElementById("qoTotalsSummary").innerHTML = `
+        <div>Tiền hàng: <strong>${fmtVND(subtotal)}</strong> • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(discountAmount)}</strong> • Ship: <strong>${fmtVND(shipFee)}</strong></div>
+        <div style="margin-top:4px; font-size:14.5px; font-weight:700; color:var(--primary);">
+          Tổng đơn: ${fmtVND(total)} — ${isPaid ? "Đã thanh toán CK (0đ COD)" : (payMethod === "Chuyển khoản trước" ? `Chuyển khoản VietQR: ${fmtVND(total)}` : `Thu hộ COD: ${fmtVND(total)}`)}
+        </div>
+      `;
+      return { subtotal, discountType: dType, discountValue: dVal, discountAmount, shipFee, total };
     }
 
     async function submitQuickOrder(e) {
       e.preventDefault();
       if (!quickOrderItems.length) {
-        showToast("Bạn thêm ít nhất 1 sản phẩm vào đơn nhé");
+        showToast("Bạn chọn ít nhất 1 sản phẩm cho đơn nhé");
         return;
       }
+
       const btn = document.getElementById("saveQuickOrderBtn");
       btn.disabled = true;
       btn.textContent = "Đang tạo đơn...";
 
-      const totals = computeQuickOrderTotals();
-      const ch = document.getElementById("qoChannel").value;
+      const totals = recalcQuickOrderTotals();
+      const channel = document.getElementById("qoChannel").value;
       const custName = document.getElementById("qoCustName").value.trim();
-      const phone = document.getElementById("qoCustPhone").value.trim();
-      const address = document.getElementById("qoCustAddress").value.trim() || (ch === "Shopee" ? "Đơn sàn Shopee" : (ch === "Ký gửi" ? "Điểm ký gửi" : ""));
-      const socialHandle = document.getElementById("qoSocialHandle").value.trim();
+      const custPhone = document.getElementById("qoCustPhone").value.trim() || "0000000000";
+      const custAddr = document.getElementById("qoCustAddress").value.trim() || `Khách đặt qua ${channel}`;
+      const socialHandle = document.getElementById("qoSocialHandle").value.trim() || `@${channel.toLowerCase()}`;
       const payMethod = document.getElementById("qoPaymentMethod").value;
+      const status = document.getElementById("qoStatus").value;
+      const trackingCode = document.getElementById("qoTrackingCode").value.trim();
+      const note = document.getElementById("qoNote").value.trim();
+
       const itemsSummary = quickOrderItems.map(i => `${i.name} (${i.qty} ${i.unitLabel || "phần"})`).join("; ");
 
+      const orderPayload = {
+        customerName: custName,
+        phone: custPhone,
+        address: custAddr,
+        platform: channel,
+        socialHandle,
+        items: quickOrderItems,
+        itemsSummary,
+        ...totals,
+        discountSource: totals.discountAmount > 0 ? (qoResolvedDiscountSource || "manual") : "",
+        voucherCode: qoResolvedVoucherCode || "",
+        paymentMethod: payMethod,
+        status,
+        trackingCode,
+        note
+      };
+
       try {
-        const res = await callApi({
-          action: "admin_create_order",
-          order: {
-            channel: ch,
-            platform: ch,
-            customerName: custName,
-            phone,
-            address,
-            socialHandle,
-            status: document.getElementById("qoStatus").value,
-            items: quickOrderItems,
-            itemsSummary,
-            ...totals,
-            paymentMethod: payMethod,
-            trackingCode: document.getElementById("qoTrackingCode").value.trim(),
-            note: document.getElementById("qoNote").value.trim()
-          }
-        });
-        if (res.orders) allOrders = res.orders;
+        const res = await callApi({ action: "admin_create_order", order: orderPayload });
+        allOrders = res.orders || [];
         if (res.products) allProducts = res.products;
+        if (Array.isArray(res.vouchers)) {
+          allVouchers = res.vouchers;
+          renderVouchers();
+        }
         renderOrders();
         renderProducts();
 
-        const created = res.order || {};
-        const oid = created.orderId || "";
+        const created = res.createdOrder || { orderId: "MOI", ...orderPayload };
         const bankId = document.getElementById("bankIdInput")?.value.trim() || "";
         const accNo = document.getElementById("bankAccountNoInput")?.value.trim() || "";
         const accName = document.getElementById("bankAccountNameInput")?.value.trim() || "";
-        const qrUrl = (bankId && accNo && totals.total > 0)
-          ? `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accNo)}-compact2.png?amount=${totals.total}&addInfo=${encodeURIComponent("Thanh toan " + oid)}&accountName=${encodeURIComponent(accName)}`
+        const qrUrl = (bankId && accNo)
+          ? `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accNo)}-compact2.png?amount=${Math.round(Number(created.total || 0))}&addInfo=${encodeURIComponent(created.orderId)}&accountName=${encodeURIComponent(accName)}`
           : "";
 
-        const confirmText = [
-          `Chào ${custName}, Tiệm giấy Thứ Ba đã lên đơn hàng #${oid} cho bạn ạ:`,
-          `• Sản phẩm: ${itemsSummary}`,
-          `• Tổng thanh toán: ${fmtVND(totals.total)} (${payMethod})`,
-          qrUrl ? `• Nội dung CK: Thanh toan ${oid}` : "",
-          `Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
+        const confirmMsg = [
+          `Chào ${created.customerName}, Tiệm giấy Thứ Ba đã lên đơn #${created.orderId} cho bạn ạ:`,
+          `• Sản phẩm: ${created.itemsSummary}`,
+          `• Tổng thanh toán: ${fmtVND(created.total)} (${created.paymentMethod})`,
+          (payMethod === "Chuyển khoản trước" && bankId && accNo)
+            ? `• Chuyển khoản: ${bankId} — STK ${accNo}${accName ? ` (${accName})` : ""} — Nội dung: ${created.orderId}`
+            : "",
+          qrUrl && payMethod === "Chuyển khoản trước" ? `• Link mã QR: ${qrUrl}` : "",
+          `Bạn kiểm tra lại giúp tiệm nhé. Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
         ].filter(Boolean).join("\n");
 
-        document.getElementById("quickOrderForm").style.display = "none";
-        const resBox = document.getElementById("quickOrderResultBox");
-        resBox.style.display = "flex";
-        resBox.innerHTML = `
-          <div style="text-align:center;">
-            <span class="badge badge-ok" style="margin-bottom:6px;">✓ Đã tạo đơn #${escapeHtml(oid)} &amp; trừ kho</span>
-            <div style="font-size:13px; color:var(--muted);">Tổng đơn: <strong style="color:var(--primary);">${fmtVND(totals.total)}</strong></div>
-            ${qrUrl ? `
-              <div style="margin:10px auto; max-width:240px; background:#fff; padding:8px; border-radius:12px; border:1px solid var(--border);">
-                <img src="${qrUrl}" alt="Mã QR VietQR đơn ${escapeHtml(oid)}" style="width:100%; border-radius:8px; display:block;" />
-                <div style="font-size:11px; color:var(--muted); margin-top:4px;">Mã VietQR tự động điền sẵn ${fmtVND(totals.total)}</div>
-              </div>
-              <button type="button" class="btn btn-accent btn-sm" onclick="copyTextToClipboard('${escapeAttrJs(qrUrl)}', 'Đã copy link ảnh VietQR')">Copy link ảnh QR gửi khách</button>
-            ` : ""}
+        const resultBox = document.getElementById("quickOrderResultBox");
+        resultBox.innerHTML = `
+          <div style="background:var(--accent-soft); border:1px solid #C4D9C7; border-radius:12px; padding:12px;">
+            <strong style="color:#2E5A36; font-size:14px;">✓ Đã tạo đơn #${escapeHtml(created.orderId)} thành công!</strong>
+            <div style="font-size:12.5px; color:var(--text); margin-top:4px;">Tổng đơn: <strong>${fmtVND(created.total)}</strong> • Kho đã được tự động cập nhật.</div>
           </div>
-          <button type="button" class="btn btn-primary" onclick="copyTextToClipboard('${escapeAttrJs(confirmText)}', 'Đã copy tin nhắn xác nhận đơn')">Copy tin nhắn xác nhận gửi khách</button>
-          <button type="button" class="btn btn-soft" onclick="closeQuickOrderModal()">Xong &amp; Đóng</button>
+          ${(qrUrl && payMethod === "Chuyển khoản trước") ? `
+            <div style="text-align:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:10px;">
+              <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Mã VietQR động (Đã điền sẵn số tiền &amp; mã #${escapeHtml(created.orderId)}):</div>
+              <img src="${escapeHtml(qrUrl)}" alt="VietQR" style="max-width:210px; border-radius:8px; border:1px solid var(--border);" />
+            </div>
+          ` : ""}
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" style="flex:1;" onclick="copyTextToClipboard('${escapeAttrJs(confirmMsg)}', 'Đã copy tin nhắn xác nhận đơn')">Copy tin nhắn gửi khách</button>
+            <button type="button" class="btn btn-soft" onclick="closeQuickOrderModal()">Xong</button>
+          </div>
         `;
-        showToast(`Đã tạo đơn #${oid}`);
+        document.getElementById("quickOrderForm").style.display = "none";
+        resultBox.style.display = "flex";
+        showToast(`Đã tạo đơn #${created.orderId}`);
       } catch (err) {
         showToast("Lỗi tạo đơn: " + err.message);
       } finally {
@@ -4659,20 +5832,20 @@
       }
     }
 
-    // --- Chuyển đổi tồn kho Chưa gia keo -> Sẵn bán + Nhắc khách chờ ---
+    // 5. Chuyển đổi tồn kho 2 bước (Đợi gia keo -> Sẵn bán) & Báo khách chờ
     function openConvertUnsizedModal(prodId) {
       const p = allProducts.find(item => item.id === prodId);
       if (!p) return;
+
       document.getElementById("convProdId").value = p.id;
-      document.getElementById("convUnsizedTitle").textContent = `Hoàn tất gia keo: ${p.name}`;
+      document.getElementById("convUnsizedTitle").textContent = `Gia keo xong: ${p.name}`;
       document.getElementById("convCurrentSummary").innerHTML = `
-        • Sẵn sàng bán hiện tại: <strong>${p.stock} ${escapeHtml(p.baseUnit)}</strong><br>
-        • Phôi giấy chờ gia keo: <strong>${p.unsizedStock} ${escapeHtml(p.baseUnit)}</strong>
+        Hiện có <strong>${p.unsizedStock} ${escapeHtml(p.baseUnit)}</strong> đang đợi gia keo • Sẵn bán hiện tại: <strong>${p.stock} ${escapeHtml(p.baseUnit)}</strong>.
       `;
       const moveInp = document.getElementById("convMoveQty");
-      moveInp.max = Number(p.unsizedStock || 0);
+      moveInp.max = Number(p.unsizedStock || 1);
       moveInp.value = Number(p.unsizedStock || 1);
-      renderConvWaitlistBox(p);
+      document.getElementById("convWaitlistResultBox").innerHTML = "";
       document.getElementById("convertUnsizedModal").classList.add("open");
     }
 
@@ -4680,69 +5853,76 @@
       document.getElementById("convertUnsizedModal").classList.remove("open");
     }
 
-    function renderConvWaitlistBox(p) {
-      const box = document.getElementById("convWaitlistResultBox");
-      if (!box) return;
-      const waiters = allWaitlist.filter(w => w.productId === p.id);
-      if (!waiters.length) {
-        box.innerHTML = `<div style="font-size:12px; color:var(--muted);">Hiện chưa có khách nào đăng ký nhận tin khi mẫu này có hàng.</div>`;
-        return;
-      }
-      box.innerHTML = `
-        <div style="font-size:12.5px; font-weight:700; color:var(--primary); margin-bottom:6px;">🔔 Khách đang chờ mẫu này (${waiters.length}):</div>
-        ${waiters.map(w => {
-          const remindMsg = `Chào ${w.customerName || "bạn"}, mẫu ${p.name} của Tiệm giấy Thứ Ba vừa gia keo hoàn thiện và có hàng sẵn lại rồi ạ! Bạn nhắn tiệm nếu vẫn cần đặt nhé.`;
-          return `
-            <div style="background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:8px; margin-bottom:6px; font-size:12.5px;">
-              <div><strong>${escapeHtml(w.customerName || "Khách")}</strong> • ${escapeHtml(w.contact)}</div>
-              <div style="display:flex; gap:6px; margin-top:5px;">
-                <button type="button" class="mini-pill-btn msg-btn" onclick="copyTextToClipboard('${escapeAttrJs(remindMsg)}', 'Đã copy tin báo có hàng')">Copy tin báo có hàng</button>
-                <button type="button" class="mini-pill-btn" onclick="removeWaitlistItem('${escapeAttrJs(w.waitId)}', '${escapeAttrJs(p.id)}')">Đã báo xong</button>
-              </div>
-            </div>
-          `;
-        }).join("")}
-      `;
-    }
-
     async function submitConvertUnsized(e) {
       e.preventDefault();
       const prodId = document.getElementById("convProdId").value;
-      const moveQty = Math.max(1, Number(document.getElementById("convMoveQty").value || 0));
+      const moveQty = Math.max(1, Number(document.getElementById("convMoveQty").value || 1));
+      const p = allProducts.find(item => item.id === prodId);
+      if (!p) return;
+
+      if (moveQty > Number(p.unsizedStock || 0)) {
+        showToast("Số lượng chuyển vượt quá lượng giấy đợi gia keo");
+        return;
+      }
+
       const btn = document.getElementById("saveConvertUnsizedBtn");
       btn.disabled = true;
-      btn.textContent = "Đang chuyển kho...";
+      btn.textContent = "Đang cập nhật kho...";
+
+      const updatedProduct = {
+        ...p,
+        stock: Number(p.stock || 0) + moveQty,
+        unsizedStock: Math.max(0, Number(p.unsizedStock || 0) - moveQty),
+        imageUrl: Array.isArray(p.imageUrls) ? p.imageUrls.join("\n") : (p.imageUrl || "")
+      };
+
       try {
-        const res = await callApi({ action: "convert_unsized_stock", id: prodId, moveQty });
-        if (res.products) allProducts = res.products;
+        const res = await callApi({ action: "save_product", product: updatedProduct });
+        allProducts = res.products || [];
         renderProducts();
-        const updatedProd = allProducts.find(item => item.id === prodId);
-        if (updatedProd) {
-          document.getElementById("convCurrentSummary").innerHTML = `
-            • Sẵn sàng bán hiện tại: <strong>${updatedProd.stock} ${escapeHtml(updatedProd.baseUnit)}</strong><br>
-            • Phôi giấy chờ gia keo còn lại: <strong>${updatedProd.unsizedStock} ${escapeHtml(updatedProd.baseUnit)}</strong>
+
+        const matchedWaiters = allWaitlist.filter(w =>
+          w.status !== "Đã báo" &&
+          (w.productId === p.id || normalizeText(w.productName).includes(normalizeText(p.name)))
+        );
+
+        const waitBox = document.getElementById("convWaitlistResultBox");
+        if (matchedWaiters.length > 0) {
+          waitBox.innerHTML = `
+            <div style="background:var(--warn-bg); border:1px solid #F2D7B6; border-radius:10px; padding:10px;">
+              <strong style="color:var(--warn-text); font-size:13px;">🔔 Có ${matchedWaiters.length} khách đang đợi mẫu này:</strong>
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:7px;">
+                ${matchedWaiters.map(w => {
+                  const notifyMsg = `Chào ${w.customerName || "bạn"}, mẫu ${p.name} tại Tiệm giấy Thứ Ba vừa gia keo xong và có hàng sẵn rồi ạ! Bạn ghé web hoặc nhắn tiệm để tiệm giữ giấy cho bạn nhé.`;
+                  return `
+                    <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:7px 9px; font-size:12.5px;">
+                      <div><strong>${escapeHtml(w.customerName || "Khách")}</strong> — ${escapeHtml(w.contact || "")} (${escapeHtml(w.wantedQty || "")})</div>
+                      <div style="margin-top:4px; display:flex; gap:6px;">
+                        <button type="button" class="mini-pill-btn msg-btn" onclick="copyTextToClipboard('${escapeAttrJs(notifyMsg)}', 'Đã copy tin báo có hàng')">Copy tin báo có hàng</button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
           `;
-          renderConvWaitlistBox(updatedProd);
+        } else {
+          closeConvertUnsizedModal();
         }
-        showToast(`Đã chuyển ${moveQty} sang kho sẵn sàng bán!`);
+        showToast(`Đã chuyển ${moveQty} ${p.baseUnit} sang Sẵn bán!`);
       } catch (err) {
-        showToast("Lỗi chuyển kho: " + err.message);
+        showToast("Lỗi cập nhật kho: " + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = "Xác nhận nhập kho sẵn bán";
       }
     }
 
-    async function removeWaitlistItem(waitId, prodId) {
-      try {
-        const res = await callApi({ action: "delete_waitlist", waitId });
-        if (res.waitlist) allWaitlist = res.waitlist;
-        const p = allProducts.find(item => item.id === prodId);
-        if (p) renderConvWaitlistBox(p);
-        showToast("Đã đánh dấu hoàn tất báo khách");
-      } catch (err) {
-        showToast("Lỗi cập nhật: " + err.message);
-      }
+    // 6. Dạy AI trực tiếp từ câu hỏi khách mà AI chưa trả lời được
+    function openFaqModalWithQuestion(questionText) {
+      openFaqModal("");
+      document.getElementById("faqQuestion").value = String(questionText || "").trim();
+      setTimeout(() => document.getElementById("faqAnswer").focus(), 100);
     }
   </script>
 </body>
