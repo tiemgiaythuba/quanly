@@ -2068,6 +2068,15 @@
     let editDiscountSourceState = "";
     let editOriginalVoucherCode = "";
 
+    function parseConfigBoolean(value, defaultValue = false) {
+      if (typeof value === "boolean") return value;
+      if (typeof value === "number") return value !== 0;
+      const normalized = String(value ?? "").trim().toUpperCase();
+      if (["TRUE", "1", "YES", "ON"].includes(normalized)) return true;
+      if (["FALSE", "0", "NO", "OFF", ""].includes(normalized)) return false;
+      return defaultValue;
+    }
+
     const ADMIN_AUTH_STORAGE_KEY = "tiemgiay_admin_auth_v1";
     const ADMIN_CACHE_STORAGE_KEY = "tiemgiay_admin_cache_v1";
     const ADMIN_SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -2446,9 +2455,10 @@
 
       const pCfg = data.promoConfig || data;
       promoConfigState = {
-        enabled: pCfg.enabled !== undefined
-          ? Boolean(pCfg.enabled)
-          : (String(pCfg.PROMO_ENABLED || "").toUpperCase() === "TRUE"),
+        enabled: parseConfigBoolean(
+          pCfg.enabled !== undefined ? pCfg.enabled : pCfg.PROMO_ENABLED,
+          false
+        ),
         label: String(pCfg.label ?? pCfg.PROMO_LABEL ?? ""),
         percent: Math.max(0, Math.min(100, Number(pCfg.percent ?? pCfg.PROMO_PERCENT ?? 10))),
         startAt: Number(pCfg.startAt ?? pCfg.PROMO_START_AT ?? 0),
@@ -2470,12 +2480,14 @@
       updatePromoPolicyPreview();
 
       const vCfg = data.voucherConfig || data;
-      const vInputEn = vCfg.voucherInputEnabled !== undefined
-        ? Boolean(vCfg.voucherInputEnabled)
-        : (String(vCfg.VOUCHER_INPUT_ENABLED ?? "TRUE").toUpperCase() !== "FALSE");
-      const loyEn = vCfg.loyaltyEnabled !== undefined
-        ? Boolean(vCfg.loyaltyEnabled)
-        : (String(vCfg.LOYALTY_VOUCHER_ENABLED || "").toUpperCase() === "TRUE");
+      const vInputEn = parseConfigBoolean(
+        vCfg.voucherInputEnabled !== undefined ? vCfg.voucherInputEnabled : vCfg.VOUCHER_INPUT_ENABLED,
+        true
+      );
+      const loyEn = parseConfigBoolean(
+        vCfg.loyaltyEnabled !== undefined ? vCfg.loyaltyEnabled : vCfg.LOYALTY_VOUCHER_ENABLED,
+        false
+      );
       const loyMin = Math.max(0, Number(vCfg.loyaltyMinSpend ?? vCfg.LOYALTY_MIN_SPEND ?? 200000));
       const loyType = String(vCfg.loyaltyDiscountType ?? vCfg.LOYALTY_DISCOUNT_TYPE ?? "percent") === "amount" ? "amount" : "percent";
       const loyVal = Math.max(0, Number(vCfg.loyaltyDiscountValue ?? vCfg.LOYALTY_DISCOUNT_VALUE ?? 10));
@@ -3514,7 +3526,7 @@
         renderOrders();
         renderProducts();
         const loyaltyNote = res.generatedLoyaltyVoucher
-          ? ` • Đã tặng mã tri ân ${res.generatedLoyaltyVoucher.code}`
+          ? ` • Đã tạo mã tri ân ${res.generatedLoyaltyVoucher.code}; vào Cài đặt → Voucher để copy tin gửi khách`
           : "";
         showToast(`Đã cập nhật đơn #${orderId} → ${newStatus}${loyaltyNote}`);
       } catch (err) {
