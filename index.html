@@ -15,21 +15,21 @@
   <noscript><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:wght@600&display=swap" rel="stylesheet"></noscript>
   <style>
     :root {
-      --bg: #F3EFE8;
-      --surface: #FAF7F2;
+      --bg: #F5F1E9;
+      --surface: #FBF9F5;
       --card: #FFFFFF;
-      --border: #E5DDD0;
-      --primary: #5C4033;
-      --primary-hover: #4A3329;
-      --accent: #4B6B50;
-      --accent-soft: #E8F0E9;
+      --border: #E4DDD1;
+      --primary: #594638;
+      --primary-hover: #44362B;
+      --accent: #68765B;
+      --accent-soft: #EEF1E9;
       --danger: #B84A39;
       --danger-soft: #FBECE9;
       --warn-bg: #FDF3E7;
       --warn-text: #9C5A1E;
-      --text: #2D241E;
-      --muted: #63574D;
-      --shadow: 0 4px 16px rgba(45, 36, 30, 0.06);
+      --text: #2E2923;
+      --muted: #71685E;
+      --shadow: 0 8px 24px rgba(46, 41, 35, 0.08);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,6 +82,9 @@
 
     /* Tabs */
     .tabs {
+      position: sticky;
+      top: 58px;
+      z-index: 18;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 6px;
@@ -477,6 +480,17 @@
     .order-action-grid.has-4 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .order-main-actions { display:grid; grid-template-columns:minmax(0,1fr) 42px; gap:7px; align-items:stretch; }
+    .order-main-actions > .btn { width:100%; min-height:40px; font-size:12.5px; }
+    .order-more { position:relative; }
+    .order-more summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:center; height:100%; min-height:40px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--primary); font-weight:700; }
+    .order-more summary::-webkit-details-marker { display:none; }
+    .order-more-menu { position:absolute; right:0; bottom:calc(100% + 6px); z-index:5; display:flex; flex-direction:column; gap:5px; min-width:190px; padding:7px; background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+    .order-more-menu .btn { width:100%; justify-content:flex-start; }
+    .paste-helper { padding:10px 11px; background:#F0EBDD; border:1px solid var(--border); border-radius:10px; color:var(--muted); font-size:12px; line-height:1.5; }
+    .paste-helper strong { color:var(--primary); }
+    .order-card { border-radius:14px; box-shadow:none; }
+    .order-card:hover { border-color:#D6CBBB; box-shadow:0 2px 8px rgba(46,41,35,.04); }
     @media (min-width: 640px) {
       .order-action-grid.has-4 {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -633,6 +647,205 @@
     @media (max-width: 600px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .tab-btn { font-size: 11px; padding: 8px 2px; }
+      .topbar { min-height:58px; }
+      .tabs { top:58px; gap:4px; padding:6px; margin:0 -2px 12px; background:rgba(251,249,245,.97); border:1px solid var(--border); border-radius:13px; backdrop-filter:blur(10px); }
+      .tab-btn { min-height:40px; border-radius:9px; }
+      .container { padding:12px 12px 30px; }
+      .card { padding:12px; border-radius:13px; }
+      .search-filter-bar { display:grid; grid-template-columns:1fr 1fr; }
+      .search-filter-bar > .input { grid-column:1 / -1; min-width:0 !important; }
+      .search-filter-bar > .select { width:100% !important; }
+      .search-filter-bar > .btn { width:100%; }
+      .order-status-row { grid-template-columns:1fr; gap:4px; }
+      .cust-info-row { gap:6px; }
+      .mini-pill-btn { padding:5px 7px; font-size:11px; }
+    }
+
+    /* Restrained editorial admin theme: warm paper, quiet surfaces, clear actions */
+    :root {
+      --bg: #F5F3EE;
+      --surface: #F8F6F1;
+      --card: #FFFFFF;
+      --border: #E8E3DA;
+      --primary: #594638;
+      --primary-hover: #44362B;
+      --accent: #68765B;
+      --accent-soft: #EEF1E9;
+      --text: #2E2923;
+      --muted: #71685E;
+      --shadow: 0 3px 12px rgba(46,41,35,.045);
+    }
+    body {
+      background: #F5F3EE;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    .topbar {
+      background: rgba(250,249,246,.94);
+      border-bottom: 1px solid rgba(89,70,56,.09);
+      box-shadow: 0 2px 10px rgba(46,41,35,.035);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    .brand h1 { letter-spacing: -.02em; }
+    .container { max-width: 920px; padding-top: 18px; }
+    .tabs {
+      background: rgba(250,249,246,.94);
+      padding: 5px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(46,41,35,.055);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    .tab-btn {
+      background: transparent;
+      border-color: transparent;
+      border-radius: 10px;
+      color: var(--muted);
+      transition: color .18s ease, background .18s ease, transform .24s cubic-bezier(.2,.8,.25,1);
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 2px 5px rgba(62,46,34,.14);
+    }
+    .card, .top-products-card, .stat-box, .chat-session-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: none;
+    }
+    .card { padding: 15px; margin-bottom: 12px; }
+    .order-card { transition: border-color .18s ease, box-shadow .18s ease; }
+    .order-card:hover { border-color: #D8CFC1; box-shadow: var(--shadow); }
+    .stat-box { padding: 12px 14px; }
+    .btn {
+      border-radius: 10px;
+      border: 1px solid transparent;
+      box-shadow: none;
+      transition: transform .26s cubic-bezier(.2,.8,.25,1), background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .btn-primary { background: var(--primary); color:#fff; }
+    .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 3px 8px rgba(62,46,34,.14); }
+    .btn-accent { background: var(--accent); color:#fff; }
+    .btn-soft { background: #F7F5F0; color: var(--text); border-color: var(--border); }
+    .btn-soft:hover { background:#F0ECE4; border-color:#D8CFC1; }
+    .btn-danger { box-shadow:none; }
+    .btn:active, .pill:active, .mini-pill-btn:active, .tab-btn:active, .track-lookup-btn:active {
+      transform: scale(.97);
+      transition-duration: .1s;
+    }
+    .btn::before, .pill::before, .mini-pill-btn::before { content:none; }
+    .input, .select, .textarea {
+      background: #fff;
+      border-color: var(--border);
+      box-shadow: none;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: #9B8B77;
+      box-shadow: 0 0 0 3px rgba(89,70,56,.08);
+    }
+    .pill {
+      background: #fff;
+      border-color: var(--border);
+      box-shadow: none;
+      transition: color .18s ease, background .18s ease, transform .24s cubic-bezier(.2,.8,.25,1);
+    }
+    .pill.active { background: var(--primary); color:#fff; border-color:var(--primary); }
+    .mini-pill-btn { background:#F7F5F0; border-color:var(--border); box-shadow:none; }
+    .order-main-actions > .btn { min-height:42px; border-radius:11px; }
+    .order-more summary { background:#F7F5F0; border-color:var(--border); box-shadow:none; border-radius:11px; }
+    .order-more-menu { border-color:var(--border); box-shadow:0 8px 24px rgba(46,41,35,.12); }
+    .modal-card {
+      background: #FCFBF8;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 55px rgba(45,36,28,.16);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    .modal-backdrop { background:rgba(37,31,25,.32); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+    .paste-helper { background:#F6F3EC; border-color:#E8E3DA; }
+    .filter-pills { scrollbar-width:none; }
+    .filter-pills::-webkit-scrollbar { display:none; }
+    @media (max-width:600px) {
+      .topbar { background:rgba(250,249,246,.96); }
+      .container { padding:12px 12px 34px; }
+      .tabs { background:rgba(250,249,246,.96); }
+      .card { padding:13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
+    }
+
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .order-filter-row { display:flex; align-items:center; margin:2px 0 12px; }
+    .order-filter-select { width:auto; min-width:190px; max-width:100%; padding:8px 34px 8px 12px; border-radius:11px; background-color:#fff; font-weight:600; color:var(--primary); }
+    .order-status-row { grid-template-columns:minmax(112px,.82fr) minmax(0,1.18fr); gap:8px; }
+    .order-status-row > .select { min-width:0; }
+    .order-main-actions { min-width:0; }
+    .order-main-actions > .btn { min-width:0; min-height:38px; padding:7px 8px; font-size:11.8px; white-space:nowrap; }
+    .track-lookup-btn { background:#F7F5F0; color:var(--primary); border:1px solid var(--border); box-shadow:none; }
+    .track-lookup-btn:hover:not(:disabled) { background:#F0ECE4; border-color:#D8CFC1; }
+    .track-lookup-btn:disabled { background:#F7F5F0; color:var(--muted); border-color:var(--border); }
+    .admin-nav-dock { position:fixed; right:max(18px, calc((100vw - 920px)/2 + 18px)); bottom:max(20px, env(safe-area-inset-bottom)); z-index:45; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+    .nav-fab { width:58px; height:58px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.92); border-radius:50%; color:var(--primary); background:rgba(255,255,255,.78); box-shadow:0 8px 24px rgba(46,41,35,.15), inset 0 1px 0 rgba(255,255,255,.98); -webkit-backdrop-filter:blur(16px) saturate(1.25); backdrop-filter:blur(16px) saturate(1.25); cursor:pointer; transition:transform .28s cubic-bezier(.2,.8,.25,1), box-shadow .2s, background .2s; }
+    .nav-fab svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transition:transform .24s ease; }
+    .admin-nav-dock.open .nav-fab { background:rgba(255,255,255,.94); box-shadow:0 10px 28px rgba(46,41,35,.2), inset 0 1px 0 #fff; }
+    .admin-nav-dock.open .nav-fab svg { transform:rotate(90deg); }
+    .nav-fab:active { transform:scale(.94); }
+    .admin-nav-menu { display:flex; flex-direction:column; gap:8px; padding:9px; border:1px solid rgba(255,255,255,.95); border-radius:24px; background:rgba(250,249,246,.84); box-shadow:0 12px 32px rgba(46,41,35,.14), inset 0 1px 0 #fff; -webkit-backdrop-filter:blur(18px) saturate(1.25); backdrop-filter:blur(18px) saturate(1.25); opacity:0; visibility:hidden; transform:translateY(10px) scale(.96); transform-origin:bottom right; transition:opacity .18s ease, transform .26s cubic-bezier(.2,.8,.25,1), visibility .18s; }
+    .admin-nav-dock.open .admin-nav-menu { opacity:1; visibility:visible; transform:translateY(0) scale(1); }
+    .admin-nav-item { width:46px; height:46px; min-height:46px; padding:0; display:grid; place-items:center; color:var(--muted); border:1px solid transparent; border-radius:50%; background:transparent; }
+    .admin-nav-item svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+    .admin-nav-item.active { color:#fff; background:var(--primary); border-color:var(--primary); box-shadow:0 3px 9px rgba(62,46,34,.16); }
+    .admin-nav-item:hover { background:#F1EEE8; }
+    .admin-nav-item.active:hover { background:var(--primary-hover); }
+    @media (max-width:600px) {
+      .order-filter-select { min-width:160px; }
+      .order-status-row { grid-template-columns:minmax(110px,.8fr) minmax(0,1.2fr); gap:6px; }
+      .order-main-actions { grid-template-columns:minmax(0,1fr) 36px; gap:5px; }
+      .order-main-actions > .btn { padding-inline:5px; font-size:10.8px; }
+      .order-more summary { min-height:38px; }
+      .admin-nav-dock { right:16px; bottom:max(16px, env(safe-area-inset-bottom)); }
+    }
+    @media (max-width:360px) {
+      .order-status-row { grid-template-columns:minmax(0,1fr); }
+      .order-main-actions { grid-template-columns:minmax(0,1fr) 40px; }
+    }
+
+    /* Refined motion: same-size icon geometry, soft spring feedback, staggered menu and panel transitions */
+    .admin-nav-item svg { width:22px; height:22px; }
+    .admin-nav-item#navSettings svg { width:22px; height:22px; stroke-width:1.7; }
+    .admin-nav-item#navSettings svg circle { fill:none; }
+    .admin-nav-item { opacity:0; transform:translateY(7px) scale(.92); transition:opacity .2s ease, transform .32s cubic-bezier(.2,.9,.25,1), background .18s ease, color .18s ease; }
+    .admin-nav-dock.open .admin-nav-item { opacity:1; transform:translateY(0) scale(1); }
+    .admin-nav-dock.open .admin-nav-item:nth-child(1) { transition-delay:.015s; }
+    .admin-nav-dock.open .admin-nav-item:nth-child(2) { transition-delay:.035s; }
+    .admin-nav-dock.open .admin-nav-item:nth-child(3) { transition-delay:.055s; }
+    .admin-nav-dock.open .admin-nav-item:nth-child(4) { transition-delay:.075s; }
+    .admin-nav-dock.open .admin-nav-item:nth-child(5) { transition-delay:.095s; }
+    .nav-fab, .admin-nav-item, .btn, .mini-pill-btn, .track-lookup-btn, .order-more summary {
+      transition-timing-function:cubic-bezier(.2,.9,.25,1);
+    }
+    .nav-fab:active, .admin-nav-item:active, .btn:active, .mini-pill-btn:active, .track-lookup-btn:active, .order-more summary:active {
+      transform:scale(.95);
+      transition-duration:.12s;
+    }
+    #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabSettings { transform-origin:top center; }
+    #tabOrders[style*="display: block"], #tabProducts[style*="display: block"], #tabFaqs[style*="display: block"], #tabChats[style*="display: block"], #tabSettings[style*="display: block"] {
+      animation:adminTabEnter .28s cubic-bezier(.2,.8,.25,1) both;
+    }
+    .modal-backdrop.open { animation:adminBackdropIn .2s ease both; }
+    .modal-backdrop.open .modal-card { animation:adminModalEnter .3s cubic-bezier(.2,.85,.25,1) both; }
+    @keyframes adminTabEnter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes adminBackdropIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes adminModalEnter { from { opacity:0; transform:translateY(12px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      .admin-nav-item, .admin-nav-menu, .nav-fab, #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabSettings, .modal-backdrop, .modal-card { animation:none !important; transition:none !important; transform:none !important; }
     }
   </style>
 </head>
@@ -663,13 +876,16 @@
 
     <!-- Màn hình chính sau khi đăng nhập -->
     <div id="dashboardView" style="display:none;">
-      <div class="tabs">
-        <button type="button" class="tab-btn active" id="navOrders" onclick="switchTab('orders')">Đơn hàng</button>
-        <button type="button" class="tab-btn" id="navProducts" onclick="switchTab('products')">Kho giấy</button>
-        <button type="button" class="tab-btn" id="navFaqs" onclick="switchTab('faqs')">Hỏi - Đáp</button>
-        <button type="button" class="tab-btn" id="navChats" onclick="switchTab('chats')">Lịch sử chat</button>
-        <button type="button" class="tab-btn" id="navSettings" onclick="switchTab('settings')">Cài đặt</button>
-      </div>
+      <nav class="admin-nav-dock" id="adminNavDock" aria-label="Điều hướng quản trị">
+        <div class="admin-nav-menu" id="adminNavMenu" aria-hidden="true">
+          <button type="button" class="tab-btn admin-nav-item active" id="navOrders" onclick="switchTab('orders')" aria-label="Đơn hàng" title="Đơn hàng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+          <button type="button" class="tab-btn admin-nav-item" id="navProducts" onclick="switchTab('products')" aria-label="Kho giấy" title="Kho giấy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z M3 7v10l9 4 9-4V7M12 11v10"/></svg></button>
+          <button type="button" class="tab-btn admin-nav-item" id="navFaqs" onclick="switchTab('faqs')" aria-label="Hỏi đáp" title="Hỏi - Đáp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M9 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
+          <button type="button" class="tab-btn admin-nav-item" id="navChats" onclick="switchTab('chats')" aria-label="Lịch sử chat" title="Lịch sử chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></button>
+          <button type="button" class="tab-btn admin-nav-item" id="navSettings" onclick="switchTab('settings')" aria-label="Cài đặt" title="Cài đặt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.49.49 0 0 0-.49-.42h-3.84a.49.49 0 0 0-.49.42l-.36 2.54c-.59.23-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64L4.8 11.06a6.5 6.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.04.71 1.63.94l.36 2.54a.49.49 0 0 0 .49.42h3.84a.49.49 0 0 0 .49-.42l.36-2.54c.59-.23 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <button type="button" class="nav-fab" id="adminNavToggle" aria-label="Mở điều hướng" aria-expanded="false" aria-controls="adminNavMenu" onclick="toggleAdminNav(event)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </nav>
 
       <!-- TAB 1: ĐƠN HÀNG -->
       <section id="tabOrders">
@@ -680,16 +896,20 @@
           <select id="orderMonthFilter" aria-label="Lọc đơn hàng theo tháng" class="select" style="width:155px;" onchange="renderOrders()">
             <option value="">Tất cả các tháng</option>
           </select>
-          <button type="button" class="btn btn-primary btn-sm" onclick="openQuickOrderModal()">+ Tạo đơn nhanh</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openQuickOrderModal()">+ Đơn hàng mới</button>
           <button type="button" class="btn btn-soft btn-sm" onclick="exportTaxRevenueCsv()">Xuất sổ thuế (.csv)</button>
         </div>
-        <div class="filter-pills" id="orderStatusFilters">
-          <button type="button" class="pill active" onclick="setOrderFilter('Tất cả', this)">Tất cả</button>
-          <button type="button" class="pill" onclick="setOrderFilter('Chờ xác nhận', this)">Chờ xác nhận</button>
-          <button type="button" class="pill" onclick="setOrderFilter('Đã xác nhận', this)">Đã xác nhận</button>
-          <button type="button" class="pill" onclick="setOrderFilter('Đang giao', this)">Đang giao</button>
-          <button type="button" class="pill" onclick="setOrderFilter('Hoàn thành', this)">Hoàn thành</button>
-          <button type="button" class="pill" onclick="setOrderFilter('Đã hủy', this)">Đã hủy</button>
+        <div class="order-filter-row">
+          <label class="sr-only" for="orderStatusFilterSelect">Lọc đơn theo trạng thái</label>
+          <select id="orderStatusFilterSelect" class="select order-filter-select" aria-label="Lọc đơn theo trạng thái" onchange="setOrderFilter(this.value)">
+            <option value="Tất cả">Tất cả trạng thái</option>
+            <option value="Chờ xác nhận">Chờ xác nhận</option>
+            <option value="Đã xác nhận">Đã xác nhận</option>
+            <option value="Đang gói">Đang gói</option>
+            <option value="Đang giao">Đang giao</option>
+            <option value="Hoàn thành">Hoàn thành</option>
+            <option value="Đã hủy">Đã hủy</option>
+          </select>
         </div>
         <div id="ordersList"></div>
       </section>
@@ -758,6 +978,18 @@
             </div>
           </div>
           <button type="button" id="saveBankBtn" class="btn btn-primary btn-sm" onclick="saveBankSettings()">Lưu thông tin VietQR</button>
+        </div>
+
+        <!-- Cài đặt cộng đồng Zalo -->
+        <div class="card">
+          <div class="card-top"><strong style="font-size:14.5px; color:var(--primary);">Nhóm Zalo cộng đồng của tiệm</strong></div>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Lời mời nhóm và đường dẫn ảnh QR sẽ được thêm vào mẫu tin nhắn “Copy gửi bưu cục”. Dán link mời nhóm và URL ảnh QR công khai (ví dụ ảnh đã tải lên Drive/website).</p>
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div class="form-group"><label for="zaloGroupLinkInput">Link mời tham gia nhóm Zalo</label><input type="url" id="zaloGroupLinkInput" class="input" placeholder="https://zalo.me/g/..." /></div>
+            <div class="form-group"><label for="zaloGroupQrInput">URL ảnh mã QR nhóm</label><input type="url" id="zaloGroupQrInput" class="input" placeholder="https://.../zalo-group-qr.png" /></div>
+          </div>
+          <button type="button" id="saveZaloGroupBtn" class="btn btn-primary btn-sm" onclick="saveZaloGroupSettings()">Lưu cấu hình nhóm Zalo</button>
+          <div id="zaloGroupQrPreview" style="display:none; margin-top:10px; text-align:center;"><img alt="QR tham gia nhóm Zalo" style="max-width:180px; max-height:180px; border:1px solid var(--border); border-radius:10px; padding:6px; background:#fff;" /></div>
         </div>
 
         <!-- Cài đặt Telegram -->
@@ -1179,19 +1411,19 @@
     </div>
   </div>
 
-  <!-- MODAL: TẠO ĐƠN NHANH ĐA KÊNH + VIETQR GỬI DM -->
+  <!-- FORM DUY NHẤT: ĐƠN HÀNG MỚI / TẠO ĐƠN TỪ KÊNH BÁN -->
   <div class="modal-backdrop" id="quickOrderModal" onclick="if(event.target===this) closeQuickOrderModal()">
     <div class="modal-card">
       <div class="modal-header">
-        <strong style="font-family:'Lora', serif; font-size:16px; color:var(--primary);">Tạo đơn nhanh đa kênh</strong>
+        <strong style="font-family:'Lora', serif; font-size:16px; color:var(--primary);">Đơn hàng mới</strong>
         <button type="button" class="btn btn-soft btn-sm" onclick="closeQuickOrderModal()">Đóng</button>
       </div>
 
       <form id="quickOrderForm" onsubmit="submitQuickOrder(event)" style="display:flex; flex-direction:column; gap:10px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <span style="font-size:11.5px; color:var(--muted);">Điền nhanh:</span>
-          <button type="button" class="mini-pill-btn" onclick="applyQuickOrderPreset('Shopee')">Đơn Shopee</button>
-          <button type="button" class="mini-pill-btn" onclick="applyQuickOrderPreset('Ký gửi')">Ký gửi Reading Cabin</button>
+        <div class="form-group">
+          <label for="qoPasteCustomer">Dán tin nhắn khách — tự điền tên, SĐT, địa chỉ, tài khoản</label>
+          <textarea id="qoPasteCustomer" class="textarea" rows="3" placeholder="Ví dụ: Linh Nguyễn · 0905.123.456 · 12/5 đường ABC, phường X, quận Y, TP Đà Nẵng · @linhpaper" oninput="parsePastedCustomerInfo(this.value)" style="resize:vertical;"></textarea>
+          <div class="paste-helper"><strong>Tự nhận diện ngay trên trình duyệt:</strong> số điện thoại Việt Nam, địa chỉ theo dòng/từ khóa hành chính, tên khách và @username/link MXH. Bạn kiểm tra lại thông tin trước khi tạo đơn nhé.</div>
         </div>
 
         <div class="grid-3">
@@ -1229,7 +1461,7 @@
           <div class="form-group">
             <label for="qoStatus">Trạng thái ban đầu</label>
             <select id="qoStatus" class="select">
-              <option value="Đã xác nhận">Đã xác nhận</option>
+              <option value="Đã xác nhận">Đã xác nhận (đơn tiệm tự lên)</option>
               <option value="Chờ xác nhận">Chờ xác nhận</option>
               <option value="Đang giao">Đang giao</option>
               <option value="Hoàn thành">Hoàn thành</option>
@@ -1628,6 +1860,12 @@
         document.getElementById("bankAccountNoInput").value = data.bankConfig.accountNo || "";
         document.getElementById("bankAccountNameInput").value = data.bankConfig.accountName || "";
       }
+      const communityConfig = data.zaloCommunityConfig || data;
+      const groupLinkInput = document.getElementById("zaloGroupLinkInput");
+      const groupQrInput = document.getElementById("zaloGroupQrInput");
+      if (groupLinkInput) groupLinkInput.value = communityConfig.zaloGroupLink || "";
+      if (groupQrInput) groupQrInput.value = communityConfig.zaloGroupQrUrl || "";
+      updateZaloQrPreview(communityConfig.zaloGroupQrUrl || "");
       if (data.telegramConfig) {
         document.getElementById("telegramTokenInput").value = data.telegramConfig.botToken || "";
         document.getElementById("telegramChatIdInput").value = data.telegramConfig.chatId || "";
@@ -1670,10 +1908,38 @@
       const tabs = ["orders", "products", "faqs", "chats", "settings"];
       tabs.forEach(t => {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
-        document.getElementById("nav" + cap).classList.toggle("active", t === tab);
+        const navBtn = document.getElementById("nav" + cap);
+        navBtn.classList.toggle("active", t === tab);
+        navBtn.setAttribute("aria-current", t === tab ? "page" : "false");
         document.getElementById("tab" + cap).style.display = t === tab ? "block" : "none";
       });
+      closeAdminNav();
     }
+
+    function toggleAdminNav(event) {
+      if (event) event.stopPropagation();
+      const dock = document.getElementById("adminNavDock");
+      const toggle = document.getElementById("adminNavToggle");
+      const isOpen = dock.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      toggle.setAttribute("aria-label", isOpen ? "Đóng điều hướng" : "Mở điều hướng");
+      document.getElementById("adminNavMenu").setAttribute("aria-hidden", String(!isOpen));
+    }
+
+    function closeAdminNav() {
+      const dock = document.getElementById("adminNavDock");
+      const toggle = document.getElementById("adminNavToggle");
+      if (!dock || !toggle) return;
+      dock.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-label", "Mở điều hướng");
+      document.getElementById("adminNavMenu").setAttribute("aria-hidden", "true");
+    }
+
+    document.addEventListener("click", event => {
+      const dock = document.getElementById("adminNavDock");
+      if (dock && !dock.contains(event.target)) closeAdminNav();
+    });
 
     // -------------------------------------------------------------------------
     // TAB 1: QUẢN LÝ ĐƠN HÀNG & THỐNG KÊ TỐI GIẢN
@@ -1700,10 +1966,10 @@
       if (months.includes(curVal)) sel.value = curVal;
     }
 
-    function setOrderFilter(status, btnEl) {
-      orderFilter = status;
-      document.querySelectorAll("#orderStatusFilters .pill").forEach(p => p.classList.remove("active"));
-      btnEl.classList.add("active");
+    function setOrderFilter(status) {
+      orderFilter = status || "Tất cả";
+      const select = document.getElementById("orderStatusFilterSelect");
+      if (select) select.value = orderFilter;
       renderOrders();
     }
 
@@ -1938,14 +2204,14 @@
         return;
       }
 
-      const statuses = ["Chờ xác nhận", "Đã xác nhận", "Đang giao", "Hoàn thành", "Đã hủy"];
+      const statuses = ["Chờ xác nhận", "Đã xác nhận", "Đang gói", "Đang giao", "Hoàn thành", "Đã hủy"];
 
       box.innerHTML = list.map(o => {
         const cleanPhone = String(o.phone || "").replace(/^'/, "");
         let badgeCls = "badge-warn";
         if (o.status === "Hoàn thành") badgeCls = "badge-ok";
         else if (o.status === "Đã hủy") badgeCls = "badge-danger";
-        else if (o.status === "Đã xác nhận" || o.status === "Đang giao") badgeCls = "badge-info";
+        else if (o.status === "Đã xác nhận" || o.status === "Đang gói" || o.status === "Đang giao") badgeCls = "badge-info";
 
         const isPaid = o.paymentMethod === "Đã thanh toán CK";
         const isPendingTransfer = o.paymentMethod === "Chuyển khoản trước" || o.paymentMethod === "Khách báo đã CK";
@@ -1969,7 +2235,7 @@
             : (isPendingTransfer ? "Chờ xác nhận CK" : "COD"));
 
         return `
-          <div class="card">
+          <div class="card order-card">
             <div class="card-top">
               <div>
                 <strong style="color:var(--primary); font-size:14.5px;">#${escapeHtml(o.orderId)} — ${escapeHtml(o.customerName)}</strong>
@@ -2059,21 +2325,22 @@
             <!-- Khối điều khiển cố định chống xô lệch trên điện thoại -->
             <div class="order-controls-wrap">
               <div class="order-status-row">
-                <span class="order-status-label">Trạng thái đơn:</span>
-                <select aria-label="Trạng thái đơn hàng ${escapeHtml(o.orderId)}" class="select" style="padding:6px 10px; font-size:12.5px;" onchange="changeOrderStatus('${safeOrderId}', this.value)">
+                <select aria-label="Trạng thái đơn hàng ${escapeHtml(o.orderId)}" class="select" onchange="changeOrderStatus('${safeOrderId}', this.value)">
                   ${statuses.map(st => `<option value="${st}" ${st === o.status ? 'selected' : ''}>${st}</option>`).join("")}
                 </select>
+                <div class="order-main-actions">
+                  <button type="button" class="btn btn-primary" onclick="copyOrderStatusTemplate('${safeOrderId}', '${o.status === 'Đã xác nhận' || o.status === 'Đang gói' ? 'shipped' : 'confirm'}')">${o.status === 'Đã xác nhận' || o.status === 'Đang gói' ? 'Copy gửi bưu cục' : 'Copy mẫu xác nhận'}</button>
+                  <details class="order-more"><summary aria-label="Thêm thao tác đơn">⌄</summary><div class="order-more-menu">
+                    <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'confirm'); this.closest('details').open=false;">Copy mẫu xác nhận</button>
+                    <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'shipped'); this.closest('details').open=false;">Copy gửi bưu cục</button>
+                    ${isPendingTransfer ? `<button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'remind_qr'); this.closest('details').open=false;">Nhắc chuyển khoản</button>` : ""}
+                  </div></details>
+                </div>
               </div>
               <div class="order-action-grid ${isPendingTransfer ? 'has-4' : ''}">
                 ${isPendingTransfer ? `<button type="button" class="btn btn-accent btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">✓ Xác nhận CK</button>` : ""}
                 <button type="button" class="btn btn-soft btn-sm" onclick="openEditOrderModal('${safeOrderId}')">Sửa đơn</button>
-                <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderConfirmationTemplate('${safeOrderId}')">Sao chép đơn</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrderWithConfirm('${safeOrderId}', this)">Xóa đơn</button>
-              </div>
-              <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin-top:4px;">
-                <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'confirm')">Mẫu xác nhận</button>
-                <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'shipped')">Mẫu gửi bưu cục</button>
-                <button type="button" class="btn btn-soft btn-sm" onclick="copyOrderStatusTemplate('${safeOrderId}', 'remind_qr')">Nhắc chuyển khoản</button>
               </div>
             </div>
           </div>
@@ -3187,6 +3454,27 @@
       }
     }
 
+    async function saveZaloGroupSettings() {
+      const btn = document.getElementById("saveZaloGroupBtn");
+      const zaloGroupLink = document.getElementById("zaloGroupLinkInput").value.trim();
+      const zaloGroupQrUrl = document.getElementById("zaloGroupQrInput").value.trim();
+      btn.disabled = true; btn.textContent = "Đang lưu...";
+      try {
+        const res = await callApi({ action: "save_settings", zaloGroupLink, zaloGroupQrUrl, zaloCommunityConfig: { zaloGroupLink, zaloGroupQrUrl } });
+        showToast("Đã lưu cấu hình nhóm Zalo");
+        updateZaloQrPreview(zaloGroupQrUrl);
+      } catch (err) { showToast("Lỗi lưu cấu hình Zalo: " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "Lưu cấu hình nhóm Zalo"; }
+    }
+
+    function updateZaloQrPreview(url) {
+      const box = document.getElementById("zaloGroupQrPreview");
+      if (!box) return;
+      const img = box.querySelector("img");
+      if (url) { img.src = url; box.style.display = "block"; }
+      else { img.removeAttribute("src"); box.style.display = "none"; }
+    }
+
     async function saveTelegramSettings() {
       const btn = document.getElementById("saveTelegramBtn");
       const telegramBotToken = document.getElementById("telegramTokenInput").value.trim();
@@ -3453,9 +3741,10 @@
 
       let msg = "";
       if (tplType === "confirm") {
+        const isTransfer = o.paymentMethod === "Chuyển khoản trước" || o.paymentMethod === "Khách báo đã CK";
         const payLine = isPaid
           ? `Đã thanh toán chuyển khoản (0đ COD)`
-          : `Thu hộ COD: ${fmtVND(o.total)}`;
+          : (isTransfer ? `Chuyển khoản trước: ${fmtVND(o.total)} (nội dung CK: ${o.orderId})` : `Thu hộ COD: ${fmtVND(o.total)}`);
         msg = [
           `Chào ${o.customerName}, Tiệm giấy Thứ Ba xác nhận đơn hàng #${o.orderId} của bạn ạ:`,
           `• Sản phẩm: ${o.itemsSummary}`,
@@ -3468,11 +3757,16 @@
         const trackLine = o.trackingCode
           ? `• Mã vận đơn của bạn: ${o.trackingCode}`
           : `• Đơn hàng của bạn đã được bàn giao cho đơn vị vận chuyển ạ.`;
+        const zaloGroupLink = document.getElementById("zaloGroupLinkInput")?.value.trim() || "";
+        const zaloGroupQr = document.getElementById("zaloGroupQrInput")?.value.trim() || "";
         msg = [
           `Chào ${o.customerName}, đơn giấy #${o.orderId} của bạn đã được tiệm gửi đi rồi ạ!`,
           trackLine,
-          `Khi nhận hàng bạn giúp tiệm quay video lại, trong trường hợp hàng có vấn đề tiệm sẽ hỗ trợ bạn kịp thời ạ. Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
-        ].join("\n");
+          `Khi nhận hàng bạn giúp tiệm quay video lại, trong trường hợp hàng có vấn đề tiệm sẽ hỗ trợ bạn kịp thời ạ.`,
+          zaloGroupLink ? `Mời bạn tham gia nhóm Zalo của tiệm để cập nhật giấy mới và ưu đãi: ${zaloGroupLink}` : "",
+          zaloGroupQr ? `Mã QR tham gia nhóm Zalo: ${zaloGroupQr}` : "",
+          `Cảm ơn bạn đã ủng hộ Tiệm giấy Thứ Ba!`
+        ].filter(Boolean).join("\n");
       } else if (tplType === "remind_qr") {
         const bankLine = (bankId && accNo)
           ? `\n• Ngân hàng: ${bankId} — STK: ${accNo}${accName ? ` (${accName})` : ""}\n• Nội dung CK: Thanh toan ${o.orderId}`
@@ -3545,6 +3839,7 @@
       document.getElementById("quickOrderResultBox").style.display = "none";
       document.getElementById("quickOrderResultBox").innerHTML = "";
       document.getElementById("qoChannel").value = "Instagram";
+      document.getElementById("qoPasteCustomer").value = "";
       document.getElementById("qoCustName").value = "";
       document.getElementById("qoCustPhone").value = "";
       document.getElementById("qoCustAddress").value = "";
@@ -3568,18 +3863,51 @@
       document.getElementById("quickOrderModal").classList.remove("open");
     }
 
-    function applyQuickOrderPreset(preset) {
-      document.getElementById("qoChannel").value = preset;
-      if (preset === "Shopee") {
-        if (!document.getElementById("qoCustName").value.trim()) document.getElementById("qoCustName").value = "Khách Shopee";
-        document.getElementById("qoShipFee").value = "0";
-        document.getElementById("qoPaymentMethod").value = "Đã thanh toán CK";
-      } else if (preset === "Ký gửi") {
-        document.getElementById("qoCustName").value = "Reading Cabin (Ký gửi)";
-        document.getElementById("qoShipFee").value = "0";
-        document.getElementById("qoPaymentMethod").value = "Đã thanh toán CK";
+    function parsePastedCustomerInfo(rawText) {
+      const source = String(rawText || "").trim();
+      if (!source) return;
+      let remaining = source;
+      const handleMatch = remaining.match(/@[A-Za-z0-9._]{2,}|https?:\/\/(?:www\.)?(?:instagram\.com|threads\.net|zalo\.me)\/[A-Za-z0-9._/?=&%-]+/i);
+      if (handleMatch) {
+        document.getElementById("qoSocialHandle").value = handleMatch[0].replace(/[),.;]+$/, "");
+        remaining = remaining.replace(handleMatch[0], " ");
       }
-      recalcQuickOrderTotals();
+      const phoneMatch = remaining.match(/(?:\+?84[ .()-]*)?(?:0[ .()-]*)?(?:\d[ .()-]*){8,10}/g) || [];
+      let normalizedPhone = "";
+      for (const candidate of phoneMatch) {
+        let digits = candidate.replace(/\D/g, "");
+        if (digits.startsWith("84") && digits.length >= 11) digits = "0" + digits.slice(2);
+        if (digits.startsWith("0") && digits.length >= 10 && digits.length <= 11) { normalizedPhone = digits; break; }
+      }
+      if (normalizedPhone) {
+        document.getElementById("qoCustPhone").value = normalizedPhone;
+        const removeDigits = normalizedPhone.startsWith("0") ? "84" + normalizedPhone.slice(1) : normalizedPhone;
+        remaining = remaining.replace(/(?:\+?84[ .()-]*)?(?:0[ .()-]*)?(?:\d[ .()-]*){8,10}/, " ");
+      }
+      const lines = remaining.split(/\n|[|•·]+|\s+\/\s+/).map(x => x.trim()).filter(Boolean);
+      const addressPattern = /(?:địa\s*chỉ|số\s*nhà|số\s*\d|\b(?:đường|đ|phố|kiệt|ngõ|hẻm|ngách|phường|p\.|xã|x\.|quận|q\.|huyện|thị\s*xã|tp\.?|thành\s*phố|tỉnh|ấp|thôn|tổ)\b)/i;
+      let address = "";
+      let nameCandidate = "";
+      for (const line of lines) {
+        if (!address && (addressPattern.test(line) || ((line.match(/,/g) || []).length >= 2 && /\d/.test(line)))) {
+          address = line.replace(/^\s*(?:địa\s*chỉ|address)\s*[:：-]?\s*/i, "").replace(/^[\s/|•·]+|[\s/|•·]+$/g, "").trim();
+          continue;
+        }
+        if (!nameCandidate && line && !/\d/.test(line) && !/^(?:tên|khách|người nhận)\s*[:：-]/i.test(line)) nameCandidate = line;
+      }
+      if (!address) {
+        const inline = remaining.match(/(?:địa\s*chỉ\s*[:：-]?\s*)?((?:số\s*\d[^\n,;]*|[^\n;]*(?:phường|xã|quận|huyện|thành\s*phố|tỉnh|đường|kiệt|ngõ|hẻm)[^\n;]*))/i);
+        if (inline) address = inline[1].trim();
+      }
+      if (address) {
+        document.getElementById("qoCustAddress").value = address;
+        remaining = remaining.replace(address, " ");
+      }
+      remaining = remaining.replace(/https?:\/\/\S+/gi, " ").replace(/@[A-Za-z0-9._]+/g, " ")
+        .replace(/(?:sđt|điện thoại|phone|tel|tên|khách hàng|người nhận|địa chỉ)\s*[:：-]?/gi, " ")
+        .replace(/[|•,;]+/g, " ").replace(/\s+/g, " ").trim();
+      const candidate = nameCandidate || remaining;
+      if (candidate && !/\d/.test(candidate) && candidate.length <= 60) document.getElementById("qoCustName").value = candidate;
     }
 
     function syncQuickOrderChannel() {
