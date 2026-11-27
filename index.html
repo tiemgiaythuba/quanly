@@ -84,6 +84,8 @@
     .topbar-icon-btn:hover { background: #F0ECE4; border-color: #D8CFC1; }
     .topbar-icon-btn:active { transform: scale(.92); }
     .topbar-icon-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .topbar-icon-btn.is-loading svg { animation: adminRefreshSpin .8s linear infinite; }
+    @keyframes adminRefreshSpin { to { transform: rotate(360deg); } }
 
     .container { max-width: 860px; margin: 0 auto; padding: 14px; }
 
@@ -1161,9 +1163,11 @@
     <!-- Màn hình đăng nhập -->
     <div id="loginView" class="login-box">
       <h2 style="font-family:'Lora', serif; color:var(--primary); margin-bottom:6px;">Đăng nhập vào tiệm</h2>
-      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Hệ thống nhận diện tài khoản Google của bạn và tự áp dụng đúng quyền Owner, Manager hoặc Staff.</p>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Nhập mật khẩu và tên người thực hiện để quản lý kho giấy, đơn hàng, lịch sử chat &amp; cài đặt.</p>
       <form onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:10px;">
-        <button type="submit" class="btn btn-primary" id="loginBtn">Tiếp tục bằng tài khoản Google</button>
+        <input type="text" id="adminActor" aria-label="Tên người thực hiện" class="input" placeholder="Tên người thực hiện (ví dụ: Bao)" maxlength="60" />
+        <input type="password" id="adminPass" aria-label="Mật khẩu" class="input" placeholder="Mật khẩu quản lý..." required />
+        <button type="submit" class="btn btn-primary" id="loginBtn">Vào trang quản lý</button>
       </form>
       <div id="loginError" style="color:var(--danger); font-size:12.5px; margin-top:10px; display:none;"></div>
     </div>
@@ -2062,8 +2066,7 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbBP4TCXCwWPNOlCVhe2ke8FcG2DrH_FmVunFesAptU4eEVPuNJizwQnbBlAGycXMf/exec";
 
     let adminPassword = "";
-    let adminActor = "Google account";
-    let currentAdminUser = null;
+    let adminActor = "Quản trị viên";
     let allAuditLogs = [];
     let allProducts = [];
     let allFaqs = [];
@@ -2166,6 +2169,7 @@
     function handleLogout() {
       adminPassword = "";
       clearAdminSession();
+      document.getElementById("adminPass").value = "";
       setLoggedInUi(false);
       showToast("Đã đăng xuất khỏi trang quản lý");
     }
@@ -2398,7 +2402,7 @@
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ ...payload, adminActor })
+        body: JSON.stringify({ ...payload, password: adminPassword, adminActor })
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Thao tác thất bại");
@@ -2413,8 +2417,8 @@
       e.preventDefault();
       const btn = document.getElementById("loginBtn");
       const errBox = document.getElementById("loginError");
-      adminPassword = "";
-      adminActor = "Google account";
+      adminPassword = document.getElementById("adminPass").value.trim();
+      adminActor = (document.getElementById("adminActor").value || "Quản trị viên").trim() || "Quản trị viên";
       errBox.style.display = "none";
       btn.disabled = true;
       btn.textContent = "Đang kiểm tra...";
@@ -2438,7 +2442,8 @@
     async function loadAllData(silent = false) {
       const btn = document.getElementById("refreshBtn");
       btn.disabled = true;
-      btn.textContent = "↻ Đang tải...";
+      btn.classList.add("is-loading");
+      btn.setAttribute("aria-busy", "true");
       try {
         const data = await callApi({ action: "get_all" });
         saveAdminSession(adminPassword);
@@ -2456,7 +2461,8 @@
         }
       } finally {
         btn.disabled = false;
-        btn.textContent = "↻ Làm mới";
+        btn.classList.remove("is-loading");
+        btn.removeAttribute("aria-busy");
       }
     }
 
@@ -2475,13 +2481,6 @@
     });
 
     function applyAllData(data) {
-      currentAdminUser = data.adminUser || currentAdminUser;
-      const settingsNav = document.getElementById("navSettings");
-      if (settingsNav && currentAdminUser) {
-        const isOwner = String(currentAdminUser.role || "").toLowerCase() === "owner";
-        settingsNav.style.display = isOwner ? "grid" : "none";
-        settingsNav.title = isOwner ? "Cài đặt" : "Chỉ Owner được mở cài đặt";
-      }
       allProducts = data.products || [];
       allFaqs = data.faqs || [];
       allOrders = data.orders || [];
