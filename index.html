@@ -919,6 +919,14 @@
       text-align: center;
     }
     .toast.show { opacity: 1; }
+    .api-activity { position:fixed; top:0; left:0; right:0; z-index:120; display:flex; align-items:center; gap:9px; min-height:34px; padding:6px 14px; color:#fff; background:rgba(45,36,30,.94); box-shadow:0 4px 14px rgba(46,41,35,.18); font-size:12px; font-weight:600; opacity:0; transform:translateY(-110%); pointer-events:none; transition:opacity .18s ease,transform .22s ease; }
+    .api-activity.active { opacity:1; transform:translateY(0); }
+    .api-activity::before { content:""; width:14px; height:14px; flex:0 0 14px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:apiSpin .7s linear infinite; }
+    .api-activity-bar { position:absolute; left:0; right:0; bottom:0; height:2px; overflow:hidden; background:rgba(255,255,255,.18); }
+    .api-activity-bar::after { content:""; display:block; width:35%; height:100%; background:#D8C6A4; animation:apiProgress 1.15s ease-in-out infinite; }
+    @keyframes apiSpin { to { transform:rotate(360deg); } }
+    @keyframes apiProgress { from { transform:translateX(-110%); } to { transform:translateX(330%); } }
+    @media (prefers-reduced-motion:reduce) { .api-activity::before,.api-activity-bar::after { animation:none; } }
 
     @media (max-width: 600px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -1159,6 +1167,7 @@
   </style>
 </head>
 <body>
+  <div class="api-activity" id="apiActivity" role="status" aria-live="polite" aria-hidden="true">Đang xử lý yêu cầu...<span class="api-activity-bar" aria-hidden="true"></span></div>
   <header class="topbar">
     <div class="brand">
       <img src="logo.png" alt="Logo Tiệm giấy Thứ Ba" width="34" height="34" decoding="async" onerror="this.style.display='none'" />
@@ -2465,16 +2474,46 @@
       }
     }
 
+    let apiRequestsInFlight = 0;
+    let apiActivityDelayTimer = null;
+    function updateApiActivity() {
+      const indicator = document.getElementById("apiActivity");
+      if (!indicator) return;
+      if (apiRequestsInFlight > 0) {
+        if (!apiActivityDelayTimer) apiActivityDelayTimer = setTimeout(() => {
+          apiActivityDelayTimer = null;
+          if (apiRequestsInFlight > 0) { indicator.classList.add("active"); indicator.setAttribute("aria-hidden", "false"); }
+        }, 140);
+      } else {
+        if (apiActivityDelayTimer) { clearTimeout(apiActivityDelayTimer); apiActivityDelayTimer = null; }
+        indicator.classList.remove("active");
+        indicator.setAttribute("aria-hidden", "true");
+      }
+    }
+
     async function callApi(payload) {
-      const res = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ ...payload, password: adminPassword, adminActor })
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Thao tác thất bại");
-      if (Array.isArray(data.auditLogs)) allAuditLogs = data.auditLogs;
-      return data;
+      apiRequestsInFlight++;
+      updateApiActivity();
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ ...payload, password: adminPassword, adminActor })
+        });
+        let data;
+        try { data = await res.json(); }
+        catch (parseErr) { throw new Error(`Máy chủ trả về dữ liệu không hợp lệ (HTTP ${res.status})`); }
+        if (!res.ok) throw new Error(data.error || `Yêu cầu thất bại (HTTP ${res.status})`);
+        if (!data.ok) throw new Error(data.error || "Thao tác thất bại");
+        if (Array.isArray(data.auditLogs)) allAuditLogs = data.auditLogs;
+        return data;
+      } catch (err) {
+        if (err instanceof TypeError) throw new Error("Mất kết nối tới máy chủ. Kiểm tra mạng rồi thử lại.");
+        throw err;
+      } finally {
+        apiRequestsInFlight = Math.max(0, apiRequestsInFlight - 1);
+        updateApiActivity();
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -3410,7 +3449,7 @@
                 </div>
               </div>
               <div class="order-action-grid ${isPendingTransfer ? 'has-3' : 'has-2'}">
-                ${isPendingTransfer ? `<button type="button" class="btn btn-accent btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">✓ Xác nhận CK</button>` : ""}
+                ${isPendingTransfer ? `<button type="button" class="btn btn-accent btn-sm" onclick="toggleOrderPayment('${safeOrderId}', this)">✓ Xác nhận CK</button>` : ""}
                 <button type="button" class="btn btn-soft btn-sm" onclick="openEditOrderModal('${safeOrderId}')">Sửa đơn</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrderWithConfirm('${safeOrderId}', this)">Xóa đơn</button>
               </div>
@@ -3595,9 +3634,11 @@
       copyTextToClipboard(msg, `Đã sao chép thông tin đơn #${orderId}`);
     }
 
-    async function toggleOrderPayment(orderId) {
+    async function toggleOrderPayment(orderId, btn) {
       const o = allOrders.find(item => String(item.orderId) === String(orderId));
-      if (!o) return;
+      if (!o || btn?.disabled) return;
+      const oldLabel = btn?.textContent || "✓ Xác nhận CK";
+      if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Đang cập nhật..."; }
       const nextPay = o.paymentMethod === "Đã thanh toán CK" ? "COD" : "Đã thanh toán CK";
       try {
         let items = [];
@@ -3630,6 +3671,7 @@
         showToast(`Đã đổi đơn #${orderId} sang ${nextPay}`);
       } catch (err) {
         showToast("Lỗi đổi thanh toán: " + err.message);
+        if (btn) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = oldLabel; }
       }
     }
 
@@ -4114,7 +4156,7 @@
             <div class="item-action-grid ${!isItem && Number(p.unsizedStock || 0) > 0 ? 'has-4' : ''}">
               ${!isItem && Number(p.unsizedStock || 0) > 0 ? `<button type="button" class="btn btn-accent btn-sm" onclick="openConvertUnsizedModal('${safeId}')">Gia keo xong (${p.unsizedStock})</button>` : ""}
               <button type="button" class="btn btn-soft btn-sm" onclick="openProductModal('${safeId}')">Sửa</button>
-              <button type="button" class="btn btn-soft btn-sm" onclick="toggleProdVis('${safeId}', ${!p.visible})">${p.visible ? "Ẩn menu" : "Hiện menu"}</button>
+              <button type="button" class="btn btn-soft btn-sm" onclick="toggleProdVis('${safeId}', ${!p.visible}, this)">${p.visible ? "Ẩn menu" : "Hiện menu"}</button>
               <button type="button" class="btn btn-danger btn-sm" onclick="deleteProductWithConfirm('${safeId}', this)">Xóa mẫu</button>
             </div>
           </div>
@@ -4184,6 +4226,7 @@
 
         const res = await callApi({
           action: "upload_image",
+          imageType: "product",
           base64,
           mimeType: file.type || "image/jpeg",
           fileName: file.name
@@ -4276,7 +4319,10 @@
       }
     }
 
-    async function toggleProdVis(id, nextVis) {
+    async function toggleProdVis(id, nextVis, btn) {
+      if (btn?.disabled) return;
+      const oldLabel = btn?.textContent || "Đổi hiển thị";
+      if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Đang cập nhật..."; }
       try {
         const res = await callApi({ action: "toggle_product_visibility", id, visible: nextVis });
         allProducts = res.products || [];
@@ -4284,6 +4330,7 @@
         showToast(nextVis ? "Đã hiện sản phẩm trên menu" : "Đã ẩn sản phẩm khỏi menu");
       } catch (err) {
         showToast("Lỗi đổi hiển thị: " + err.message);
+        if (btn) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = oldLabel; }
       }
     }
 
@@ -4716,6 +4763,7 @@
     }
 
     let feedbackImageUploadInProgress = false;
+    let feedbackSaveBusy = false;
     const MAX_FEEDBACK_IMAGES = 8;
 
     function getFeedbackImageUrls() {
@@ -4815,7 +4863,7 @@
             reader.readAsDataURL(file);
           });
           if (!base64) throw new Error(`Ảnh ${index + 1} rỗng hoặc không đọc được`);
-          const result = await callApi({ action: "upload_image", base64, mimeType: file.type, fileName: file.name });
+          const result = await callApi({ action: "upload_image", imageType: "feedback", base64, mimeType: file.type, fileName: file.name });
           if (!result.imageUrl) throw new Error(`Máy chủ chưa trả về đường dẫn cho ảnh ${index + 1}`);
           setFeedbackImageUrls([...getFeedbackImageUrls(), result.imageUrl]);
           uploadedCount++;
@@ -4830,6 +4878,9 @@
         if (input) input.value = "";
       }
     }
+
+    const feedbackDeleteConfirmTimers = new Map();
+    const feedbackActionBusy = new Set();
 
     function renderFeedbackAdminList() {
       const box = document.getElementById("feedbackAdminList");
@@ -4846,10 +4897,10 @@
         const statusLabel = item.status === "published" ? "Đã đăng" : (item.status === "hidden" ? "Đang ẩn" : "Bản nháp");
         const statusClass = item.status === "published" ? "badge-ok" : (item.status === "hidden" ? "badge-hidden" : "badge-warn");
         return `<div class="feedback-admin-card ${item.status !== "published" ? "is-hidden" : ""}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><strong style="font-size:13px;">${escapeHtml(item.customerHandle || "Khách hàng")}</strong><span class="badge ${statusClass}">${statusLabel}</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><strong style="font-size:13px;">${escapeHtml(item.customerHandle || "Khách hàng")}</strong><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><span class="badge ${statusClass}">${statusLabel}</span><span class="badge badge-info" title="Tổng lượt thích công khai">♥ ${Math.max(0, Number(item.likes || 0))}</span></span></div>
           <div style="font-size:12.5px; line-height:1.5; margin-top:5px; white-space:pre-line;">${escapeHtml(item.content || "")}</div>
           <div class="feedback-admin-meta"><span>${escapeHtml(item.paperType || "Chưa ghi loại giấy")}</span>${item.purchaseDate ? `<span>Mua ${escapeHtml(feedbackDateDisplay(item.purchaseDate))}</span>` : ""}${item.orderId ? `<span>Đơn #${escapeHtml(item.orderId)}</span>` : ""}${item.consent ? `<span>Đã có đồng ý</span>` : `<span style="color:var(--warn-text);">Chưa xác nhận đồng ý</span>`}</div>
-          <div class="feedback-admin-actions"><button type="button" class="btn btn-soft btn-sm" onclick="editFeedback('${escapeAttrJs(item.id)}')">Sửa</button><button type="button" class="btn btn-soft btn-sm" onclick="toggleFeedbackStatus('${escapeAttrJs(item.id)}')">${item.status === "published" ? "Ẩn" : "Đăng"}</button><button type="button" class="btn btn-danger btn-sm" onclick="deleteFeedback('${escapeAttrJs(item.id)}')">Xóa</button></div>
+          <div class="feedback-admin-actions"><button type="button" class="btn btn-soft btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="editFeedback('${escapeAttrJs(item.id)}')">Sửa</button><button type="button" class="btn btn-soft btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="toggleFeedbackStatus('${escapeAttrJs(item.id)}', this)">${feedbackActionBusy.has(String(item.id)) ? "Đang cập nhật..." : (item.status === "published" ? "Ẩn" : "Đăng")}</button><button type="button" class="btn ${feedbackDeleteConfirmTimers.has(String(item.id)) ? "btn-danger-confirm" : "btn-danger"} btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="deleteFeedback('${escapeAttrJs(item.id)}', this)">${feedbackActionBusy.has(String(item.id)) ? "Đang xóa..." : (feedbackDeleteConfirmTimers.has(String(item.id)) ? "Bấm lại để xóa" : "Xóa")}</button></div>
         </div>`;
       }).join("");
     }
@@ -4892,13 +4943,16 @@
     }
 
     async function persistFeedbacks(successMessage) {
-      await callApi({ action: "save_settings", feedbacks: allFeedbacks, feedbackConfig: { items: allFeedbacks } });
+      const result = await callApi({ action: "save_settings", feedbacks: allFeedbacks, feedbackConfig: { items: allFeedbacks } });
+      if (Array.isArray(result.feedbacks)) allFeedbacks = result.feedbacks;
       renderFeedbackAdminList();
       showToast(successMessage);
+      return result;
     }
 
     async function saveFeedback(event) {
       event.preventDefault();
+      if (feedbackSaveBusy) return;
       if (feedbackImageUploadInProgress) { showToast("Vui lòng chờ tải ảnh xong trước khi lưu"); return; }
       const consent = document.getElementById("feedbackConsentInput").checked;
       const editId = document.getElementById("feedbackEditId").value.trim();
@@ -4928,8 +4982,8 @@
         id: editId || `FB${Date.now()}`,
         orderId,
         customerHandle: document.getElementById("feedbackCustomerInput").value.trim(),
-        customerName: linkedOrder?.customerName || "",
-        platform: linkedOrder ? normalizePlatformName(linkedOrder.platform) : "",
+        customerName: linkedOrder?.customerName || existing?.customerName || "",
+        platform: linkedOrder ? normalizePlatformName(linkedOrder.platform) : (existing?.platform || ""),
         purchaseDate: document.getElementById("feedbackPurchaseDateInput").value,
         hidePurchaseDate: document.getElementById("feedbackHideDateInput").checked,
         paperType: products.length ? products.map(product => product.name).filter(Boolean).join(", ") : manualPaperType,
@@ -4940,6 +4994,8 @@
         imageUrls: imageUrls,
         status,
         consent,
+        likes: Math.max(0, Number(existing?.likes || 0)),
+        likedBy: Array.isArray(existing?.likedBy) ? existing.likedBy : [],
         createdAt: existing?.createdAt || now,
         updatedAt: now,
         publishedAt: status === "published"
@@ -4948,6 +5004,8 @@
       };
       const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
       const btn = document.getElementById("saveFeedbackBtn");
+      feedbackSaveBusy = true;
+      btn.setAttribute("aria-busy", "true");
       btn.disabled = true;
       btn.textContent = "Đang lưu...";
       try {
@@ -4960,31 +5018,49 @@
         renderFeedbackAdminList();
         showToast("Lỗi lưu feedback: " + err.message);
       } finally {
+        feedbackSaveBusy = false;
+        btn.removeAttribute("aria-busy");
         btn.disabled = false;
         btn.textContent = "Lưu feedback";
       }
     }
 
-    async function toggleFeedbackStatus(id) {
-      const item = allFeedbacks.find(feedback => String(feedback.id) === String(id));
-      if (!item) return;
+    async function toggleFeedbackStatus(id, btn) {
+      const key = String(id);
+      const item = allFeedbacks.find(feedback => String(feedback.id) === key);
+      if (!item || feedbackActionBusy.has(key)) return;
       const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
       const next = item.status === "published" ? "hidden" : "published";
-      if (next === "published" && !item.consent) {
-        showToast("Feedback này chưa xác nhận khách đồng ý cho đăng");
-        return;
-      }
+      if (next === "published" && !item.consent) { showToast("Feedback này chưa xác nhận khách đồng ý cho đăng"); return; }
+      feedbackActionBusy.add(key);
+      if (btn) { btn.disabled = true; btn.textContent = "Đang cập nhật..."; }
       item.status = next;
       item.publishedAt = next === "published" ? (item.publishedAt || new Date().toISOString()) : "";
       item.updatedAt = new Date().toISOString();
-      try { await persistFeedbacks(next === "published" ? "Đã đăng feedback" : "Đã ẩn feedback"); } catch (err) { allFeedbacks = previousFeedbacks; renderFeedbackAdminList(); showToast("Lỗi cập nhật feedback: " + err.message); }
+      try { await persistFeedbacks(next === "published" ? "Đã đăng feedback" : "Đã ẩn feedback"); }
+      catch (err) { allFeedbacks = previousFeedbacks; showToast("Lỗi cập nhật feedback: " + err.message); }
+      finally { feedbackActionBusy.delete(key); renderFeedbackAdminList(); }
     }
 
-    async function deleteFeedback(id) {
-      if (!window.confirm("Xóa feedback này?")) return;
+    async function deleteFeedback(id, btn) {
+      const key = String(id);
+      if (feedbackActionBusy.has(key)) return;
+      if (!feedbackDeleteConfirmTimers.has(key)) {
+        if (btn) { btn.dataset.originalLabel = btn.textContent; btn.textContent = "Bấm lại để xóa"; btn.classList.remove("btn-danger"); btn.classList.add("btn-danger-confirm"); }
+        const timer = setTimeout(() => { feedbackDeleteConfirmTimers.delete(key); renderFeedbackAdminList(); }, 3500);
+        feedbackDeleteConfirmTimers.set(key, timer);
+        return;
+      }
+      clearTimeout(feedbackDeleteConfirmTimers.get(key));
+      feedbackDeleteConfirmTimers.delete(key);
       const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
-      allFeedbacks = allFeedbacks.filter(item => String(item.id) !== String(id));
-      try { await persistFeedbacks("Đã xóa feedback"); } catch (err) { allFeedbacks = previousFeedbacks; renderFeedbackAdminList(); showToast("Lỗi xóa feedback: " + err.message); }
+      feedbackActionBusy.add(key);
+      if (btn) { btn.disabled = true; btn.textContent = "Đang xóa..."; }
+      allFeedbacks = allFeedbacks.filter(item => String(item.id) !== key);
+      renderFeedbackAdminList();
+      try { await persistFeedbacks("Đã xóa feedback"); }
+      catch (err) { allFeedbacks = previousFeedbacks; showToast("Lỗi xóa feedback: " + err.message); }
+      finally { feedbackActionBusy.delete(key); renderFeedbackAdminList(); }
     }
 
     // TAB 6: CÀI ĐẶT (ƯU ĐÃI TOÀN TIỆM, VOUCHER, VIETQR, TELEGRAM, FREESHIP, EMAIL, AI)
@@ -5201,7 +5277,7 @@
 
             <div class="item-action-grid" style="margin-top:8px; padding-top:8px;">
               <button type="button" class="btn btn-soft btn-sm" onclick="openVoucherModal('${safeId}')">Sửa mã</button>
-              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVoucherActive('${safeId}')">${v.isActive ? "Khóa mã" : "Mở khóa"}</button>
+              <button type="button" class="btn btn-soft btn-sm" onclick="toggleVoucherActive('${safeId}', this)">${v.isActive ? "Khóa mã" : "Mở khóa"}</button>
               <button type="button" class="btn btn-danger btn-sm" onclick="deleteVoucherWithConfirm('${safeId}', this)">Xóa mã</button>
             </div>
           </div>
@@ -5313,10 +5389,12 @@
       }
     }
 
-    async function toggleVoucherActive(voucherIdOrCode) {
+    async function toggleVoucherActive(voucherIdOrCode, btn) {
       const v = allVouchers.find(item => String(item.voucherId || item.code) === String(voucherIdOrCode));
-      if (!v) return;
+      if (!v || btn?.disabled) return;
+      const oldLabel = btn?.textContent || "Đổi trạng thái";
       const currentAct = v.active === true || String(v.active).toUpperCase() === "TRUE";
+      if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = "Đang cập nhật..."; }
       try {
         const res = await callApi({
           action: "save_voucher",
@@ -5330,6 +5408,7 @@
         showToast(!currentAct ? `Đã kích hoạt mã ${v.code}` : `Đã tạm khóa mã ${v.code}`);
       } catch (err) {
         showToast("Lỗi cập nhật trạng thái mã: " + err.message);
+        if (btn) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = oldLabel; }
       }
     }
 
@@ -5627,6 +5706,9 @@
       const current = btn.dataset.enabled === "true";
       const next = !current;
       btn.disabled = true;
+      const previousText = btn.textContent;
+      btn.setAttribute("aria-busy", "true");
+      btn.textContent = "Đang cập nhật trạng thái AI...";
       try {
         await callApi({ action: "save_settings", aiEnabled: next });
         updateAiToggleUi(next);
@@ -5635,6 +5717,9 @@
         showToast("Lỗi đổi chế độ AI: " + err.message);
       } finally {
         btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        if (btn.dataset.enabled === String(next)) updateAiToggleUi(next);
+        else btn.textContent = previousText;
       }
     }
 
@@ -5648,7 +5733,12 @@
 
       try {
         const res = await callApi({ action: "test_ai" });
-        box.innerHTML = `<strong style="color:var(--accent);">✓ Kết nối AI thành công!</strong><br/>Phản hồi thử: "${escapeHtml(res.reply)}"`;
+        if (!String(res.source || "").startsWith("ai:") || res.aiError) {
+          const detail = res.aiError ? `<br/><span>${escapeHtml(res.aiError)}</span>` : "";
+          box.innerHTML = `<strong style="color:var(--warn-text);">⚠ Gemini chưa phản hồi; hệ thống đang dùng câu trả lời dự phòng.</strong><br/>Phản hồi dự phòng: "${escapeHtml(res.reply || "")}"${detail}`;
+        } else {
+          box.innerHTML = `<strong style="color:var(--accent);">✓ Kết nối AI thành công (${escapeHtml(res.source)})</strong><br/>Phản hồi thử: "${escapeHtml(res.reply)}"`;
+        }
       } catch (err) {
         box.innerHTML = `<strong style="color:var(--danger);">✕ Lỗi kết nối AI:</strong> ${escapeHtml(err.message)}`;
       } finally {
@@ -6459,3 +6549,4 @@
   </script>
 </body>
 </html>
+
