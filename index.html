@@ -180,6 +180,7 @@
     .feedback-field-stack { display:grid; grid-template-columns:minmax(0,1fr); gap:9px; width:100%; }
     .feedback-field-stack > .form-group { width:100%; min-width:0; }
     .feedback-form .input, .feedback-form .select, .feedback-form .textarea { width:100%; max-width:100%; min-width:0; }
+    .feedback-image-preview { display:none; width:min(100%,360px); max-height:220px; object-fit:contain; object-position:left center; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
 
     /* Cards & Lists */
     .card {
@@ -1286,7 +1287,18 @@
             </div>
             <div class="form-group"><label>Sản phẩm trong đơn — tick loại giấy muốn ghi nhận</label><div id="feedbackProductsPicker" style="display:flex; flex-direction:column; gap:6px; padding:9px; border:1px solid var(--border); border-radius:10px; background:var(--surface);"><span style="font-size:12px; color:var(--muted);">Chọn một đơn để xem sản phẩm.</span></div></div>
             <div class="form-group"><label for="feedbackContentInput">Nội dung feedback *</label><textarea id="feedbackContentInput" class="textarea" required maxlength="1000" rows="4" placeholder="Nhập lời nhận xét của khách..."></textarea></div>
-            <div class="form-group"><label for="feedbackImageInput">URL ảnh feedback (không bắt buộc)</label><input id="feedbackImageInput" class="input" type="url" placeholder="https://.../feedback.jpg" /></div>
+            <div class="form-group">
+              <label>Ảnh feedback (không bắt buộc)</label>
+              <input type="hidden" id="feedbackImageInput" />
+              <input type="file" id="feedbackImageFile" accept="image/*" style="display:none;" onchange="handleFeedbackImageUpload(event)" />
+              <div style="display:flex; gap:7px; flex-wrap:wrap;">
+                <button type="button" id="feedbackImagePickBtn" class="btn btn-soft btn-sm" onclick="document.getElementById('feedbackImageFile').click()">Chọn ảnh từ thiết bị</button>
+                <button type="button" id="feedbackImageClearBtn" class="btn btn-danger btn-sm" style="display:none;" onclick="clearFeedbackImage()">Xóa ảnh</button>
+              </div>
+              <img id="feedbackImagePreview" class="feedback-image-preview" alt="Xem trước ảnh feedback" />
+              <span id="feedbackImageStatus" style="font-size:11.5px; color:var(--accent);"></span>
+              <span style="font-size:11px; color:var(--muted);">Ảnh sẽ được tải lên Google Drive khi chọn (tối đa 8 MB).</span>
+            </div>
             <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted);"><input type="checkbox" id="feedbackConsentInput" /> Đã được khách đồng ý cho đăng feedback</label>
             <div style="display:flex; gap:7px; flex-wrap:wrap;"><button type="submit" id="saveFeedbackBtn" class="btn btn-primary btn-sm">Lưu feedback</button><button type="button" id="cancelFeedbackBtn" class="btn btn-soft btn-sm" onclick="resetFeedbackForm()" style="display:none;">Hủy chỉnh sửa</button></div>
           </form>
@@ -1709,7 +1721,7 @@
         </div>
 
         <div class="form-group">
-          <label>Hình ảnh sản phẩm (Tối đa 3 ảnh — bấm chọn từ máy để tải tự động)</label>
+          <label>Hình ảnh sản phẩm (Tối đa 3 ảnh, 8 MB/ảnh — chọn từ máy để tải tự động)</label>
           <div class="img-slots-grid">
             <div class="img-slot-box">
               <img id="imgPrev0" class="img-slot-preview" alt="Ảnh 1" />
@@ -4138,6 +4150,16 @@
     async function handleSlotImageUpload(slotIdx, e) {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
+      if (String(file.type || "").toLowerCase() === "image/svg+xml") {
+        e.target.value = "";
+        showToast("Định dạng SVG chưa được hỗ trợ; hãy chọn PNG, JPG, WEBP hoặc ảnh raster khác");
+        return;
+      }
+      if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
+        e.target.value = "";
+        showToast("Ảnh phải có dung lượng từ 1 byte đến tối đa 8 MB");
+        return;
+      }
 
       const statusEl = document.getElementById("uploadStatus");
       statusEl.textContent = `Đang tải ảnh (${slotIdx + 1}) lên Google Drive...`;
@@ -4163,6 +4185,8 @@
       } catch (err) {
         statusEl.textContent = "";
         showToast("Lỗi tải ảnh: " + err.message);
+      } finally {
+        if (e.target) e.target.value = "";
       }
     }
 
@@ -4681,6 +4705,76 @@
       showToast("Đã tự điền thông tin từ đơn hàng");
     }
 
+    let feedbackImageUploadInProgress = false;
+
+    function renderFeedbackImagePreview(url = "") {
+      const imageUrl = String(url || document.getElementById("feedbackImageInput")?.value || "").trim();
+      const preview = document.getElementById("feedbackImagePreview");
+      const clearBtn = document.getElementById("feedbackImageClearBtn");
+      if (preview) {
+        preview.src = imageUrl;
+        preview.style.display = imageUrl ? "block" : "none";
+      }
+      if (clearBtn) clearBtn.style.display = imageUrl ? "inline-flex" : "none";
+    }
+
+    function clearFeedbackImage() {
+      if (feedbackImageUploadInProgress) return;
+      const urlInput = document.getElementById("feedbackImageInput");
+      const fileInput = document.getElementById("feedbackImageFile");
+      const status = document.getElementById("feedbackImageStatus");
+      if (urlInput) urlInput.value = "";
+      if (fileInput) fileInput.value = "";
+      if (status) status.textContent = "";
+      renderFeedbackImagePreview("");
+    }
+
+    async function handleFeedbackImageUpload(event) {
+      const input = event?.target || document.getElementById("feedbackImageFile");
+      const file = input?.files?.[0];
+      if (!file) return;
+      const status = document.getElementById("feedbackImageStatus");
+      const saveBtn = document.getElementById("saveFeedbackBtn");
+      const cancelBtn = document.getElementById("cancelFeedbackBtn");
+      const pickBtn = document.getElementById("feedbackImagePickBtn");
+      const clearBtn = document.getElementById("feedbackImageClearBtn");
+      if (!/^image\//i.test(file.type) || file.type.toLowerCase() === "image/svg+xml") {
+        showToast("Vui lòng chọn tệp ảnh hợp lệ (không hỗ trợ SVG)");
+        input.value = "";
+        return;
+      }
+      if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
+        showToast("Ảnh phải có dung lượng từ 1 byte đến tối đa 8 MB");
+        input.value = "";
+        return;
+      }
+      if (feedbackImageUploadInProgress) return;
+      feedbackImageUploadInProgress = true;
+      if (status) status.textContent = "Đang tải ảnh feedback lên Google Drive...";
+      [saveBtn, cancelBtn, pickBtn, clearBtn, input].forEach(button => { if (button) button.disabled = true; });
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+          reader.onerror = () => reject(new Error("Không đọc được tệp ảnh"));
+          reader.readAsDataURL(file);
+        });
+        if (!base64) throw new Error("Tệp ảnh rỗng hoặc không đọc được");
+        const result = await callApi({ action: "upload_image", base64, mimeType: file.type, fileName: file.name });
+        if (!result.imageUrl) throw new Error("Máy chủ chưa trả về đường dẫn ảnh");
+        document.getElementById("feedbackImageInput").value = result.imageUrl;
+        renderFeedbackImagePreview(result.imageUrl);
+        if (status) status.textContent = "Đã tải ảnh lên. Ảnh sẽ được gắn vào feedback khi bạn lưu.";
+      } catch (err) {
+        if (status) status.textContent = "";
+        showToast("Lỗi tải ảnh feedback: " + (err.message || "Không xác định"));
+      } finally {
+        feedbackImageUploadInProgress = false;
+        [saveBtn, cancelBtn, pickBtn, clearBtn, input].forEach(button => { if (button) button.disabled = false; });
+        if (input) input.value = "";
+      }
+    }
+
     function renderFeedbackAdminList() {
       const box = document.getElementById("feedbackAdminList");
       const badge = document.getElementById("feedbackAdminCountBadge");
@@ -4712,6 +4806,9 @@
       if (cancel) cancel.style.display = "none";
       const status = document.getElementById("feedbackStatusInput");
       if (status) status.value = "draft";
+      const imageStatus = document.getElementById("feedbackImageStatus");
+      if (imageStatus) imageStatus.textContent = "";
+      renderFeedbackImagePreview("");
       renderFeedbackProductPicker();
     }
 
@@ -4729,6 +4826,9 @@
       document.getElementById("feedbackPaperInput").value = item.paperType || "";
       document.getElementById("feedbackContentInput").value = item.content || "";
       document.getElementById("feedbackImageInput").value = item.imageUrl || "";
+      renderFeedbackImagePreview(item.imageUrl || "");
+      const imageStatus = document.getElementById("feedbackImageStatus");
+      if (imageStatus) imageStatus.textContent = "";
       document.getElementById("feedbackStatusInput").value = item.status || "draft";
       document.getElementById("feedbackConsentInput").checked = Boolean(item.consent);
       renderFeedbackProductPicker(item.productIds || (item.products || []).map(product => product.productId || product.id || product.name));
@@ -4744,6 +4844,7 @@
 
     async function saveFeedback(event) {
       event.preventDefault();
+      if (feedbackImageUploadInProgress) { showToast("Vui lòng chờ tải ảnh xong trước khi lưu"); return; }
       const status = document.getElementById("feedbackStatusInput").value;
       const consent = document.getElementById("feedbackConsentInput").checked;
       if (status === "published" && !consent) {
