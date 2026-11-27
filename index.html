@@ -1161,11 +1161,9 @@
     <!-- Màn hình đăng nhập -->
     <div id="loginView" class="login-box">
       <h2 style="font-family:'Lora', serif; color:var(--primary); margin-bottom:6px;">Đăng nhập vào tiệm</h2>
-      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Nhập mật khẩu để quản lý kho giấy, đơn hàng, lịch sử chat &amp; cài đặt.</p>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Hệ thống nhận diện tài khoản Google của bạn và tự áp dụng đúng quyền Owner, Manager hoặc Staff.</p>
       <form onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:10px;">
-        <input type="text" id="adminActor" aria-label="Tên người thực hiện" class="input" placeholder="Tên người thực hiện (ví dụ: Bao)" maxlength="60" />
-        <input type="password" id="adminPass" aria-label="Mật khẩu" class="input" placeholder="Mật khẩu quản lý..." required />
-        <button type="submit" class="btn btn-primary" id="loginBtn">Vào trang quản lý</button>
+        <button type="submit" class="btn btn-primary" id="loginBtn">Tiếp tục bằng tài khoản Google</button>
       </form>
       <div id="loginError" style="color:var(--danger); font-size:12.5px; margin-top:10px; display:none;"></div>
     </div>
@@ -2064,7 +2062,8 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbBP4TCXCwWPNOlCVhe2ke8FcG2DrH_FmVunFesAptU4eEVPuNJizwQnbBlAGycXMf/exec";
 
     let adminPassword = "";
-    let adminActor = "Quản trị viên";
+    let adminActor = "Google account";
+    let currentAdminUser = null;
     let allAuditLogs = [];
     let allProducts = [];
     let allFaqs = [];
@@ -2167,7 +2166,6 @@
     function handleLogout() {
       adminPassword = "";
       clearAdminSession();
-      document.getElementById("adminPass").value = "";
       setLoggedInUi(false);
       showToast("Đã đăng xuất khỏi trang quản lý");
     }
@@ -2400,7 +2398,7 @@
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ ...payload, password: adminPassword, adminActor })
+        body: JSON.stringify({ ...payload, adminActor })
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Thao tác thất bại");
@@ -2415,8 +2413,8 @@
       e.preventDefault();
       const btn = document.getElementById("loginBtn");
       const errBox = document.getElementById("loginError");
-      adminPassword = document.getElementById("adminPass").value.trim();
-      adminActor = (document.getElementById("adminActor").value || "Quản trị viên").trim() || "Quản trị viên";
+      adminPassword = "";
+      adminActor = "Google account";
       errBox.style.display = "none";
       btn.disabled = true;
       btn.textContent = "Đang kiểm tra...";
@@ -2477,6 +2475,13 @@
     });
 
     function applyAllData(data) {
+      currentAdminUser = data.adminUser || currentAdminUser;
+      const settingsNav = document.getElementById("navSettings");
+      if (settingsNav && currentAdminUser) {
+        const isOwner = String(currentAdminUser.role || "").toLowerCase() === "owner";
+        settingsNav.style.display = isOwner ? "grid" : "none";
+        settingsNav.title = isOwner ? "Cài đặt" : "Chỉ Owner được mở cài đặt";
+      }
       allProducts = data.products || [];
       allFaqs = data.faqs || [];
       allOrders = data.orders || [];
