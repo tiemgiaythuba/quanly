@@ -180,7 +180,12 @@
     .feedback-field-stack { display:grid; grid-template-columns:minmax(0,1fr); gap:9px; width:100%; }
     .feedback-field-stack > .form-group { width:100%; min-width:0; }
     .feedback-form .input, .feedback-form .select, .feedback-form .textarea { width:100%; max-width:100%; min-width:0; }
-    .feedback-image-preview { display:none; width:min(100%,360px); max-height:220px; object-fit:contain; object-position:left center; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    .feedback-image-preview-list { display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+    .feedback-image-preview-item { position:relative; width:88px; height:88px; overflow:hidden; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+    .feedback-image-preview-item img { display:block; width:100%; height:100%; object-fit:cover; }
+    .feedback-image-remove { position:absolute; top:4px; right:4px; width:24px; height:24px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.8); border-radius:50%; background:rgba(51,43,36,.78); color:#fff; font-family:inherit; font-size:16px; font-weight:600; line-height:1; cursor:pointer; }
+    .feedback-image-remove:hover { background:#8D3547; }
+    .feedback-consent-hint { font-size:11px; line-height:1.45; color:var(--muted); }
 
     /* Cards & Lists */
     .card {
@@ -1273,12 +1278,12 @@
             <strong style="font-size:14.5px; color:var(--primary);">Feedback khách hàng</strong>
             <span id="feedbackAdminCountBadge" class="badge badge-info">0 đã đăng</span>
           </div>
-          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Tạo feedback thủ công và liên kết đơn hàng để tự điền sản phẩm, ngày mua và tài khoản khách. Chỉ feedback ở trạng thái “Đã đăng” mới hiển thị trên nút trái tim ở trang khách.</p>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Liên kết đơn hàng để tự điền sản phẩm, ngày mua và tài khoản khách. Khi tạo mới, tick checkbox đồng ý để đăng ngay lúc lưu; nếu chưa tick, feedback được giữ ở bản nháp. Feedback đã ẩn vẫn giữ trạng thái đó khi chỉ sửa nội dung.</p>
           <form id="feedbackForm" class="feedback-form" onsubmit="saveFeedback(event)" style="display:flex; flex-direction:column; gap:9px; margin-bottom:12px;">
             <input type="hidden" id="feedbackEditId" />
             <div class="feedback-field-stack">
               <div class="form-group"><label for="feedbackOrderSearch">Tìm đơn theo mã hoặc tên khách</label><input id="feedbackOrderSearch" class="input" placeholder="VD: DH001 hoặc Minh Anh" oninput="populateFeedbackOrderSelect()" /><select id="feedbackOrderSelect" class="select" style="margin-top:6px;" onchange="fillFeedbackFromOrder()"><option value="">— Đơn ngoài web / nhập thủ công —</option></select></div>
-              <div class="form-group"><label for="feedbackStatusInput">Trạng thái</label><select id="feedbackStatusInput" class="select"><option value="draft">Bản nháp</option><option value="published">Đã đăng</option><option value="hidden">Đang ẩn</option></select></div>
+              <input type="hidden" id="feedbackStatusInput" value="draft" />
             </div>
             <div class="feedback-field-stack">
               <div class="form-group"><label for="feedbackCustomerInput">Tên tài khoản / tên hiển thị *</label><input id="feedbackCustomerInput" class="input" required maxlength="120" placeholder="VD: @minhthu" /></div>
@@ -1290,16 +1295,21 @@
             <div class="form-group">
               <label>Ảnh feedback (không bắt buộc)</label>
               <input type="hidden" id="feedbackImageInput" />
-              <input type="file" id="feedbackImageFile" accept="image/*" style="display:none;" onchange="handleFeedbackImageUpload(event)" />
+              <input type="hidden" id="feedbackImageUrlsInput" value="[]" />
+              <input type="file" id="feedbackImageFile" accept="image/*" multiple style="display:none;" onchange="handleFeedbackImageUpload(event)" />
               <div style="display:flex; gap:7px; flex-wrap:wrap;">
-                <button type="button" id="feedbackImagePickBtn" class="btn btn-soft btn-sm" onclick="document.getElementById('feedbackImageFile').click()">Chọn ảnh từ thiết bị</button>
-                <button type="button" id="feedbackImageClearBtn" class="btn btn-danger btn-sm" style="display:none;" onclick="clearFeedbackImage()">Xóa ảnh</button>
+                <button type="button" id="feedbackImagePickBtn" class="btn btn-soft btn-sm" onclick="document.getElementById('feedbackImageFile').click()">Chọn nhiều ảnh từ thiết bị</button>
+                <button type="button" id="feedbackImageClearBtn" class="btn btn-danger btn-sm" style="display:none;" onclick="clearFeedbackImage()">Gỡ hết ảnh</button>
               </div>
-              <img id="feedbackImagePreview" class="feedback-image-preview" alt="Xem trước ảnh feedback" />
+              <span id="feedbackImageCount" style="font-size:11.5px; color:var(--muted);">Chưa chọn ảnh (tối đa 8).</span>
+              <div id="feedbackImagePreviewList" class="feedback-image-preview-list" aria-label="Ảnh đã chọn cho feedback"></div>
               <span id="feedbackImageStatus" style="font-size:11.5px; color:var(--accent);"></span>
-              <span style="font-size:11px; color:var(--muted);">Ảnh sẽ được tải lên Google Drive khi chọn (tối đa 8 MB).</span>
+              <span style="font-size:11px; color:var(--muted);">Mỗi ảnh tối đa 8 MB; ảnh sẽ tải lên Google Drive khi chọn.</span>
             </div>
-            <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted);"><input type="checkbox" id="feedbackConsentInput" /> Đã được khách đồng ý cho đăng feedback</label>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted);"><input type="checkbox" id="feedbackConsentInput" /> Khách đồng ý cho đăng feedback</label>
+              <span class="feedback-consent-hint">Feedback mới sẽ được đăng khi lưu nếu đã xác nhận đồng ý; nếu chưa tick thì sẽ ở bản nháp.</span>
+            </div>
             <div style="display:flex; gap:7px; flex-wrap:wrap;"><button type="submit" id="saveFeedbackBtn" class="btn btn-primary btn-sm">Lưu feedback</button><button type="button" id="cancelFeedbackBtn" class="btn btn-soft btn-sm" onclick="resetFeedbackForm()" style="display:none;">Hủy chỉnh sửa</button></div>
           </form>
           <div id="feedbackAdminList"></div>
@@ -4706,67 +4716,113 @@
     }
 
     let feedbackImageUploadInProgress = false;
+    const MAX_FEEDBACK_IMAGES = 8;
 
-    function renderFeedbackImagePreview(url = "") {
-      const imageUrl = String(url || document.getElementById("feedbackImageInput")?.value || "").trim();
-      const preview = document.getElementById("feedbackImagePreview");
+    function getFeedbackImageUrls() {
+      const listInput = document.getElementById("feedbackImageUrlsInput");
+      const legacyInput = document.getElementById("feedbackImageInput");
+      let urls = [];
+      try {
+        const parsed = JSON.parse(listInput?.value || "[]");
+        if (Array.isArray(parsed)) urls = parsed;
+      } catch (err) {}
+      if (!urls.length && legacyInput?.value) urls = [legacyInput.value];
+      return [...new Set(urls.map(url => String(url || "").trim()).filter(url => /^https?:\/\//i.test(url)))].slice(0, MAX_FEEDBACK_IMAGES);
+    }
+
+    function setFeedbackImageUrls(urls) {
+      const cleanUrls = [...new Set((Array.isArray(urls) ? urls : [])
+        .map(url => String(url || "").trim())
+        .filter(url => /^https?:\/\//i.test(url)))].slice(0, MAX_FEEDBACK_IMAGES);
+      const listInput = document.getElementById("feedbackImageUrlsInput");
+      const legacyInput = document.getElementById("feedbackImageInput");
+      if (listInput) listInput.value = JSON.stringify(cleanUrls);
+      if (legacyInput) legacyInput.value = cleanUrls[0] || "";
+      renderFeedbackImagePreview(cleanUrls);
+    }
+
+    function renderFeedbackImagePreview(urls) {
+      const imageUrls = Array.isArray(urls) ? urls : getFeedbackImageUrls();
+      const box = document.getElementById("feedbackImagePreviewList");
       const clearBtn = document.getElementById("feedbackImageClearBtn");
-      if (preview) {
-        preview.src = imageUrl;
-        preview.style.display = imageUrl ? "block" : "none";
+      const count = document.getElementById("feedbackImageCount");
+      if (box) {
+        box.innerHTML = imageUrls.map((url, index) => `<div class="feedback-image-preview-item">
+          <img src="${escapeHtml(url)}" alt="Ảnh feedback ${index + 1}" loading="lazy" onerror="this.style.opacity='.35'" />
+          <button type="button" class="feedback-image-remove" aria-label="Gỡ ảnh ${index + 1}" title="Gỡ ảnh này" onclick="removeFeedbackImage(${index})">×</button>
+        </div>`).join("");
       }
-      if (clearBtn) clearBtn.style.display = imageUrl ? "inline-flex" : "none";
+      if (clearBtn) clearBtn.style.display = imageUrls.length ? "inline-flex" : "none";
+      if (count) count.textContent = imageUrls.length ? `${imageUrls.length}/${MAX_FEEDBACK_IMAGES} ảnh đã chọn` : `Chưa chọn ảnh (tối đa ${MAX_FEEDBACK_IMAGES}).`;
+    }
+
+    function removeFeedbackImage(index) {
+      if (feedbackImageUploadInProgress) return;
+      const urls = getFeedbackImageUrls();
+      if (index < 0 || index >= urls.length) return;
+      urls.splice(index, 1);
+      setFeedbackImageUrls(urls);
     }
 
     function clearFeedbackImage() {
       if (feedbackImageUploadInProgress) return;
-      const urlInput = document.getElementById("feedbackImageInput");
       const fileInput = document.getElementById("feedbackImageFile");
       const status = document.getElementById("feedbackImageStatus");
-      if (urlInput) urlInput.value = "";
       if (fileInput) fileInput.value = "";
       if (status) status.textContent = "";
-      renderFeedbackImagePreview("");
+      setFeedbackImageUrls([]);
     }
 
     async function handleFeedbackImageUpload(event) {
       const input = event?.target || document.getElementById("feedbackImageFile");
-      const file = input?.files?.[0];
-      if (!file) return;
+      const files = Array.from(input?.files || []);
+      if (!files.length) return;
+      const currentUrls = getFeedbackImageUrls();
+      if (currentUrls.length + files.length > MAX_FEEDBACK_IMAGES) {
+        showToast(`Mỗi feedback tối đa ${MAX_FEEDBACK_IMAGES} ảnh; hiện đã chọn ${currentUrls.length}`);
+        input.value = "";
+        return;
+      }
+      for (const file of files) {
+        if (!/^image\//i.test(file.type) || file.type.toLowerCase() === "image/svg+xml") {
+          showToast("Vui lòng chọn tệp ảnh hợp lệ (không hỗ trợ SVG)");
+          input.value = "";
+          return;
+        }
+        if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
+          showToast("Mỗi ảnh phải có dung lượng từ 1 byte đến tối đa 8 MB");
+          input.value = "";
+          return;
+        }
+      }
+
       const status = document.getElementById("feedbackImageStatus");
       const saveBtn = document.getElementById("saveFeedbackBtn");
       const cancelBtn = document.getElementById("cancelFeedbackBtn");
       const pickBtn = document.getElementById("feedbackImagePickBtn");
       const clearBtn = document.getElementById("feedbackImageClearBtn");
-      if (!/^image\//i.test(file.type) || file.type.toLowerCase() === "image/svg+xml") {
-        showToast("Vui lòng chọn tệp ảnh hợp lệ (không hỗ trợ SVG)");
-        input.value = "";
-        return;
-      }
-      if (file.size <= 0 || file.size > 8 * 1024 * 1024) {
-        showToast("Ảnh phải có dung lượng từ 1 byte đến tối đa 8 MB");
-        input.value = "";
-        return;
-      }
-      if (feedbackImageUploadInProgress) return;
       feedbackImageUploadInProgress = true;
-      if (status) status.textContent = "Đang tải ảnh feedback lên Google Drive...";
       [saveBtn, cancelBtn, pickBtn, clearBtn, input].forEach(button => { if (button) button.disabled = true; });
+      let uploadedCount = 0;
       try {
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
-          reader.onerror = () => reject(new Error("Không đọc được tệp ảnh"));
-          reader.readAsDataURL(file);
-        });
-        if (!base64) throw new Error("Tệp ảnh rỗng hoặc không đọc được");
-        const result = await callApi({ action: "upload_image", base64, mimeType: file.type, fileName: file.name });
-        if (!result.imageUrl) throw new Error("Máy chủ chưa trả về đường dẫn ảnh");
-        document.getElementById("feedbackImageInput").value = result.imageUrl;
-        renderFeedbackImagePreview(result.imageUrl);
-        if (status) status.textContent = "Đã tải ảnh lên. Ảnh sẽ được gắn vào feedback khi bạn lưu.";
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          if (status) status.textContent = `Đang tải ảnh ${index + 1}/${files.length} lên Google Drive...`;
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+            reader.onerror = () => reject(new Error("Không đọc được tệp ảnh"));
+            reader.readAsDataURL(file);
+          });
+          if (!base64) throw new Error(`Ảnh ${index + 1} rỗng hoặc không đọc được`);
+          const result = await callApi({ action: "upload_image", base64, mimeType: file.type, fileName: file.name });
+          if (!result.imageUrl) throw new Error(`Máy chủ chưa trả về đường dẫn cho ảnh ${index + 1}`);
+          setFeedbackImageUrls([...getFeedbackImageUrls(), result.imageUrl]);
+          uploadedCount++;
+        }
+        if (status) status.textContent = `${uploadedCount} ảnh đã tải lên. Hãy lưu feedback để áp dụng.`;
       } catch (err) {
-        if (status) status.textContent = "";
+        if (status) status.textContent = uploadedCount ? `Đã tải ${uploadedCount}/${files.length} ảnh; bạn có thể lưu hoặc thử tải phần còn lại.` : "";
         showToast("Lỗi tải ảnh feedback: " + (err.message || "Không xác định"));
       } finally {
         feedbackImageUploadInProgress = false;
@@ -4808,7 +4864,7 @@
       if (status) status.value = "draft";
       const imageStatus = document.getElementById("feedbackImageStatus");
       if (imageStatus) imageStatus.textContent = "";
-      renderFeedbackImagePreview("");
+      setFeedbackImageUrls([]);
       renderFeedbackProductPicker();
     }
 
@@ -4825,8 +4881,7 @@
       document.getElementById("feedbackHideDateInput").checked = Boolean(item.hidePurchaseDate);
       document.getElementById("feedbackPaperInput").value = item.paperType || "";
       document.getElementById("feedbackContentInput").value = item.content || "";
-      document.getElementById("feedbackImageInput").value = item.imageUrl || "";
-      renderFeedbackImagePreview(item.imageUrl || "");
+      setFeedbackImageUrls(Array.isArray(item.imageUrls) && item.imageUrls.length ? item.imageUrls : (item.imageUrl ? [item.imageUrl] : []));
       const imageStatus = document.getElementById("feedbackImageStatus");
       if (imageStatus) imageStatus.textContent = "";
       document.getElementById("feedbackStatusInput").value = item.status || "draft";
@@ -4845,13 +4900,18 @@
     async function saveFeedback(event) {
       event.preventDefault();
       if (feedbackImageUploadInProgress) { showToast("Vui lòng chờ tải ảnh xong trước khi lưu"); return; }
-      const status = document.getElementById("feedbackStatusInput").value;
       const consent = document.getElementById("feedbackConsentInput").checked;
-      if (status === "published" && !consent) {
-        showToast("Bạn cần xác nhận khách đã đồng ý cho đăng feedback");
-        return;
-      }
       const editId = document.getElementById("feedbackEditId").value.trim();
+      const existing = editId ? allFeedbacks.find(item => String(item.id) === editId) : null;
+      const originalConsent = existing ? Boolean(existing.consent) : false;
+      let status;
+      if (!existing) status = consent ? "published" : "draft";
+      else if (consent !== originalConsent) status = consent ? "published" : "hidden";
+      else if (!consent && existing.status === "published") status = "hidden";
+      else if (existing.status === "hidden") status = "hidden";
+      else if (consent) status = "published";
+      else status = existing.status || "draft";
+      document.getElementById("feedbackStatusInput").value = status;
       const orderId = document.getElementById("feedbackOrderSelect").value.trim();
       const linkedOrder = allOrders.find(order => String(order.orderId) === String(orderId));
       const productChecks = [...document.querySelectorAll(".feedback-product-check:checked")];
@@ -4863,7 +4923,7 @@
         return;
       }
       const now = new Date().toISOString();
-      const existing = editId ? allFeedbacks.find(item => String(item.id) === editId) : null;
+      const imageUrls = getFeedbackImageUrls();
       const item = {
         id: editId || `FB${Date.now()}`,
         orderId,
@@ -4876,12 +4936,15 @@
         productIds,
         products,
         content: document.getElementById("feedbackContentInput").value.trim(),
-        imageUrl: document.getElementById("feedbackImageInput").value.trim(),
+        imageUrl: imageUrls[0] || "",
+        imageUrls: imageUrls,
         status,
         consent,
         createdAt: existing?.createdAt || now,
         updatedAt: now,
-        publishedAt: status === "published" ? (existing?.publishedAt || now) : ""
+        publishedAt: status === "published"
+          ? (existing?.status === "published" && existing?.publishedAt ? existing.publishedAt : now)
+          : ""
       };
       const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
       const btn = document.getElementById("saveFeedbackBtn");
