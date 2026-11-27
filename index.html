@@ -32,7 +32,7 @@
       --shadow: 0 8px 24px rgba(46, 41, 35, 0.08);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     button, a, input, select, textarea, [role="button"] { -webkit-tap-highlight-color: transparent; }
     button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:2px solid #9B8B77; outline-offset:2px; }
 
@@ -159,6 +159,8 @@
 
     .input, .select, .textarea {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       padding: 9px 11px;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -170,11 +172,14 @@
     }
     .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); }
 
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .feedback-field-stack { display:grid; grid-template-columns:minmax(0,1fr); gap:9px; width:100%; }
+    .feedback-field-stack > .form-group { width:100%; min-width:0; }
+    .feedback-form .input, .feedback-form .select, .feedback-form .textarea { width:100%; max-width:100%; min-width:0; }
 
     /* Cards & Lists */
     .card {
@@ -1099,6 +1104,7 @@
     .admin-nav-dock.open .admin-nav-item:nth-child(3) { transition-delay:.055s; }
     .admin-nav-dock.open .admin-nav-item:nth-child(4) { transition-delay:.075s; }
     .admin-nav-dock.open .admin-nav-item:nth-child(5) { transition-delay:.095s; }
+    .admin-nav-dock.open .admin-nav-item:nth-child(6) { transition-delay:.115s; }
     .nav-fab, .admin-nav-item, .btn, .mini-pill-btn, .track-lookup-btn, .order-more-btn, .tg-select-trigger {
       transition-timing-function:cubic-bezier(.2,.9,.25,1);
     }
@@ -1106,8 +1112,8 @@
       transform:scale(.95);
       transition-duration:.12s;
     }
-    #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabSettings { transform-origin:top center; }
-    #tabOrders[style*="display: block"], #tabProducts[style*="display: block"], #tabFaqs[style*="display: block"], #tabChats[style*="display: block"], #tabSettings[style*="display: block"] {
+    #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabFeedback, #tabSettings { transform-origin:top center; }
+    #tabOrders[style*="display: block"], #tabProducts[style*="display: block"], #tabFaqs[style*="display: block"], #tabChats[style*="display: block"], #tabFeedback[style*="display: block"], #tabSettings[style*="display: block"] {
       animation:adminTabEnter .28s cubic-bezier(.2,.8,.25,1) both;
     }
     .modal-backdrop.open { animation:adminBackdropIn .2s ease both; }
@@ -1116,7 +1122,7 @@
     @keyframes adminBackdropIn { from { opacity:0; } to { opacity:1; } }
     @keyframes adminModalEnter { from { opacity:0; transform:translateY(12px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
     @media (prefers-reduced-motion: reduce) {
-      .admin-nav-item, .admin-nav-menu, .nav-fab, #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabSettings, .modal-backdrop, .modal-card { animation:none !important; transition:none !important; transform:none !important; }
+      .admin-nav-item, .admin-nav-menu, .nav-fab, #tabOrders, #tabProducts, #tabFaqs, #tabChats, #tabFeedback, #tabSettings, .modal-backdrop, .modal-card { animation:none !important; transition:none !important; transform:none !important; }
     }
 
     /* Bổ sung nhẹ cho nhãn đặt làm 2-3 tuần và danh sách voucher */
@@ -1138,6 +1144,12 @@
       padding: 11px 12px;
       margin-bottom: 8px;
     }
+    .feedback-admin-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:11px 12px; margin-bottom:8px; }
+    .feedback-form { width:100%; min-width:0; }
+    .feedback-form label { overflow-wrap:anywhere; }
+    .feedback-admin-card.is-hidden { opacity:.72; }
+    .feedback-admin-meta { display:flex; flex-wrap:wrap; gap:5px 10px; color:var(--muted); font-size:11.5px; margin-top:5px; }
+    .feedback-admin-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
   </style>
 </head>
 <body>
@@ -1180,6 +1192,7 @@
           <button type="button" class="tab-btn admin-nav-item" id="navProducts" onclick="switchTab('products')" aria-label="Kho giấy" title="Kho giấy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z M3 7v10l9 4 9-4V7M12 11v10"/></svg></button>
           <button type="button" class="tab-btn admin-nav-item" id="navFaqs" onclick="switchTab('faqs')" aria-label="Hỏi đáp" title="Hỏi - Đáp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/><path d="M9 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg></button>
           <button type="button" class="tab-btn admin-nav-item" id="navChats" onclick="switchTab('chats')" aria-label="Lịch sử chat" title="Lịch sử chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></button>
+          <button type="button" class="tab-btn admin-nav-item" id="navFeedback" onclick="switchTab('feedback')" aria-label="Feedback khách hàng" title="Feedback khách hàng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5Z"/></svg></button>
           <button type="button" class="tab-btn admin-nav-item" id="navSettings" onclick="switchTab('settings')" aria-label="Cài đặt" title="Cài đặt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.62.06-.94s-.02-.63-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.63-.94l-.36-2.54a.49.49 0 0 0-.49-.42h-3.84a.49.49 0 0 0-.49.42l-.36 2.54c-.59.23-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64L4.8 11.06a6.5 6.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.04.71 1.63.94l.36 2.54a.49.49 0 0 0 .49.42h3.84a.49.49 0 0 0 .49-.42l.36-2.54c.59-.23 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         <button type="button" class="nav-fab" id="adminNavToggle" aria-label="Mở điều hướng" aria-expanded="false" aria-controls="adminNavMenu" onclick="toggleAdminNav(event)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
@@ -1251,7 +1264,38 @@
         <div id="chatLogsList"></div>
       </section>
 
-      <!-- TAB 5: CÀI ĐẶT -->
+      <!-- TAB 5: FEEDBACK KHÁCH HÀNG -->
+      <section id="tabFeedback" style="display:none;">
+        <!-- Quản lý feedback khách hàng -->
+        <div class="card">
+          <div class="card-top">
+            <strong style="font-size:14.5px; color:var(--primary);">Feedback khách hàng</strong>
+            <span id="feedbackAdminCountBadge" class="badge badge-info">0 đã đăng</span>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Tạo feedback thủ công và liên kết đơn hàng để tự điền sản phẩm, ngày mua và tài khoản khách. Chỉ feedback ở trạng thái “Đã đăng” mới hiển thị trên nút trái tim ở trang khách.</p>
+          <form id="feedbackForm" class="feedback-form" onsubmit="saveFeedback(event)" style="display:flex; flex-direction:column; gap:9px; margin-bottom:12px;">
+            <input type="hidden" id="feedbackEditId" />
+            <div class="feedback-field-stack">
+              <div class="form-group"><label for="feedbackOrderSearch">Tìm đơn theo mã hoặc tên khách</label><input id="feedbackOrderSearch" class="input" placeholder="VD: DH001 hoặc Minh Anh" oninput="populateFeedbackOrderSelect()" /><select id="feedbackOrderSelect" class="select" style="margin-top:6px;" onchange="fillFeedbackFromOrder()"><option value="">— Đơn ngoài web / nhập thủ công —</option></select></div>
+              <div class="form-group"><label for="feedbackStatusInput">Trạng thái</label><select id="feedbackStatusInput" class="select"><option value="draft">Bản nháp</option><option value="published">Đã đăng</option><option value="hidden">Đang ẩn</option></select></div>
+            </div>
+            <div class="feedback-field-stack">
+              <div class="form-group"><label for="feedbackCustomerInput">Tên tài khoản / tên hiển thị *</label><input id="feedbackCustomerInput" class="input" required maxlength="120" placeholder="VD: @minhthu" /></div>
+              <div class="form-group"><label for="feedbackPurchaseDateInput">Ngày mua</label><input id="feedbackPurchaseDateInput" class="input" type="date" /><label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11.5px; color:var(--muted);"><input type="checkbox" id="feedbackHideDateInput" /> Ẩn ngày mua khi đăng</label></div>
+              <div class="form-group"><label for="feedbackPaperInput">Loại giấy / sản phẩm nhập tay</label><input id="feedbackPaperInput" class="input" maxlength="180" placeholder="Dùng cho đơn ngoài web hoặc bổ sung" /></div>
+            </div>
+            <div class="form-group"><label>Sản phẩm trong đơn — tick loại giấy muốn ghi nhận</label><div id="feedbackProductsPicker" style="display:flex; flex-direction:column; gap:6px; padding:9px; border:1px solid var(--border); border-radius:10px; background:var(--surface);"><span style="font-size:12px; color:var(--muted);">Chọn một đơn để xem sản phẩm.</span></div></div>
+            <div class="form-group"><label for="feedbackContentInput">Nội dung feedback *</label><textarea id="feedbackContentInput" class="textarea" required maxlength="1000" rows="4" placeholder="Nhập lời nhận xét của khách..."></textarea></div>
+            <div class="form-group"><label for="feedbackImageInput">URL ảnh feedback (không bắt buộc)</label><input id="feedbackImageInput" class="input" type="url" placeholder="https://.../feedback.jpg" /></div>
+            <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted);"><input type="checkbox" id="feedbackConsentInput" /> Đã được khách đồng ý cho đăng feedback</label>
+            <div style="display:flex; gap:7px; flex-wrap:wrap;"><button type="submit" id="saveFeedbackBtn" class="btn btn-primary btn-sm">Lưu feedback</button><button type="button" id="cancelFeedbackBtn" class="btn btn-soft btn-sm" onclick="resetFeedbackForm()" style="display:none;">Hủy chỉnh sửa</button></div>
+          </form>
+          <div id="feedbackAdminList"></div>
+        </div>
+
+      </section>
+
+      <!-- TAB 6: CÀI ĐẶT -->
       <section id="tabSettings" style="display:none;">
         <!-- Cài đặt Kiểu 1: Ưu đãi đồng loạt toàn tiệm & Quy tắc chống xung đột -->
         <div class="card">
@@ -1408,9 +1452,9 @@
           </div>
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font-size:12px; color:var(--muted); margin-bottom:10px; line-height:1.5;">
             <strong style="color:var(--primary);">Cách kết nối không lỗi <code>chat not found</code>:</strong><br/>
-            1. Mở bot của bạn trên Telegram và bấm nút <strong>Bắt đầu (/start)</strong> (hoặc nhắn "hi" cho bot).<br/>
-            2. Dán <strong>Bot Token</strong> vào ô bên dưới rồi bấm <strong>Tự động lấy Chat ID</strong>.<br/>
-            3. Bấm <strong>Gửi tin nhắn test</strong> để kiểm tra thông báo tức thì.
+1. Mở bot của bạn trên Telegram và bấm nút <strong>Bắt đầu (/start)</strong> (hoặc nhắn "hi" cho bot).<br/>
+2. Dán <strong>Bot Token</strong> vào ô bên dưới rồi bấm <strong>Tự động lấy Chat ID</strong>.<br/>
+3. Bấm <strong>Gửi tin nhắn test</strong> để kiểm tra thông báo tức thì.
           </div>
           <div class="grid-2" style="margin-bottom:10px;">
             <div class="form-group">
@@ -2072,6 +2116,7 @@
     let allFaqs = [];
     let allOrders = [];
     let allChatLogs = [];
+    let allFeedbacks = [];
     let shopShipCost = 15000;
     let orderFilter = "Tất cả";
     let productFilter = "all";
@@ -2488,6 +2533,9 @@
       allAuditLogs = Array.isArray(data.auditLogs) ? data.auditLogs : [];
       allWaitlist = data.waitlist || [];
       allVouchers = data.vouchers || [];
+      allFeedbacks = Array.isArray(data.feedbacks)
+        ? data.feedbacks
+        : (Array.isArray(data.feedbackConfig?.items) ? data.feedbackConfig.items : []);
 
       const pCfg = data.promoConfig || data;
       promoConfigState = {
@@ -2591,6 +2639,8 @@
       if (kitSel) kitSel.value = freeshipKitVal ? "true" : "false";
       if (enabledSel) enabledSel.value = freeshipEnabledVal ? "true" : "false";
       updateCustomerShipPolicyPreview();
+      populateFeedbackOrderSelect();
+      renderFeedbackAdminList();
 
       populateMonthFilter();
       populateCategorySuggestions();
@@ -2603,7 +2653,7 @@
     }
 
     function switchTab(tab) {
-      const tabs = ["orders", "products", "faqs", "chats", "settings"];
+      const tabs = ["orders", "products", "faqs", "chats", "feedback", "settings"];
       tabs.forEach(t => {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
         const navBtn = document.getElementById("nav" + cap);
@@ -3036,7 +3086,7 @@
         return `https://www.instagram.com/${encodeURIComponent(clean)}/`;
       }
       if (plat.includes("threads")) {
-        return `https://www.threads.net/@${encodeURIComponent(clean)}`;
+        return `https://www.threads.com/@${encodeURIComponent(clean)}`;
       }
       if (plat.includes("facebook")) {
         if (/\s/.test(clean)) {
@@ -3287,7 +3337,7 @@
                 <div style="border-top:1px dashed var(--border); padding-top:6px; font-size:12.5px; color:var(--muted);">
                   Tiền hàng: <strong>${fmtVND(o.subtotal)}</strong>
                   ${discountAmt > 0 ? ` • Giảm giá: <strong style="color:var(--accent);">-${fmtVND(discountAmt)}</strong>${discountSrcLabel ? ` <span style="font-size:11.5px; color:var(--accent);">(${escapeHtml(discountSrcLabel)})</span>` : ""}` : ""}
-                  • Ship khách trả: <strong>${Number(o.shipFee) === 0 ? "Miễn phí" : fmtVND(o.shipFee)}</strong>
+- Ship khách trả: <strong>${Number(o.shipFee) === 0 ? "Miễn phí" : fmtVND(o.shipFee)}</strong>
                 </div>
                 <div style="margin-top:3px; font-weight:700; color:var(--primary);">
                   ${isPaid
@@ -4534,7 +4584,246 @@
     }
 
     // -------------------------------------------------------------------------
-    // TAB 5: CÀI ĐẶT (ƯU ĐÃI TOÀN TIỆM, VOUCHER, VIETQR, TELEGRAM, FREESHIP, EMAIL, AI)
+    function feedbackDateToInput(value) {
+      const raw = String(value || "").trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      const m = raw.match(/^(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/);
+      return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+    }
+
+    function feedbackDateDisplay(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : raw;
+    }
+
+    function getFeedbackOrderItems(order) {
+      let items = [];
+      try { items = JSON.parse(order.itemsJson || "[]"); } catch (e) {}
+      return Array.isArray(items) ? items.filter(Boolean) : [];
+    }
+    function getOrderFeedbackProducts(order) {
+      const names = getFeedbackOrderItems(order).map(item => item.name).filter(Boolean);
+      return names.length ? names.join(", ") : String(order.itemsSummary || "").trim();
+    }
+    function getFeedbackProductOptions(order) {
+      const result = [];
+      const add = (id, name) => {
+        const productId = String(id || "").trim();
+        const productName = String(name || "").trim();
+        if (!productName) return;
+        const key = productId || `manual:${productName}`;
+        if (!result.some(item => item.key === key)) result.push({ key, productId, name: productName });
+      };
+      getFeedbackOrderItems(order).forEach(item => {
+        add(item.id, item.name);
+        if (Array.isArray(item.mixBreakdown)) item.mixBreakdown.forEach(part => add(part.id, part.name));
+      });
+      if (!result.length) String(order.itemsSummary || "").split(/\s*;\s*/).forEach(name => add("", name));
+      return result;
+    }
+    function getSafeFeedbackCustomer(order) {
+      const platform = normalizePlatformName(order.platform);
+      const parsed = parseSocialHandleWithBackup(order.socialHandle, platform);
+      if (platform === "Zalo") {
+        if (parsed.hasBackup && parsed.backupHandle && ["Instagram", "Threads"].includes(parsed.backupPlatform)) return `${parsed.backupHandle} • ${parsed.backupPlatform}`;
+        return `${order.customerName || "Bạn"} • Zalo`;
+      }
+      return parsed.mainHandle || order.customerName || "Khách hàng";
+    }
+    function renderFeedbackProductPicker(selectedIds = []) {
+      const box = document.getElementById("feedbackProductsPicker");
+      const orderId = document.getElementById("feedbackOrderSelect")?.value;
+      const order = allOrders.find(item => String(item.orderId) === String(orderId));
+      if (!box) return;
+      const selected = new Set((selectedIds || []).map(String));
+      if (!order) {
+        box.innerHTML = `<span style="font-size:12px; color:var(--muted);">Chọn một đơn để xem sản phẩm; đơn ngoài web dùng ô nhập tay bên trên.</span>`;
+        return;
+      }
+      const options = getFeedbackProductOptions(order);
+      box.innerHTML = options.length ? options.map((item, index) => {
+        const inputId = `feedbackProduct_${index}`;
+        const value = item.productId || item.name;
+        return `<label for="${escapeAttrJs(inputId)}" style="display:flex; align-items:center; gap:7px; font-size:12px;"><input type="checkbox" id="${escapeAttrJs(inputId)}" class="feedback-product-check" value="${escapeAttrJs(value)}" data-product-id="${escapeAttrJs(item.productId)}" data-product-name="${escapeAttrJs(item.name)}" ${selected.has(String(value)) ? "checked" : ""} /> <span>${escapeHtml(item.name)}</span>${item.productId ? `<code style="margin-left:auto; color:var(--muted);">${escapeHtml(item.productId)}</code>` : ""}</label>`;
+      }).join("") : `<span style="font-size:12px; color:var(--muted);">Không đọc được sản phẩm trong đơn; hãy nhập tay.</span>`;
+    }
+
+    function populateFeedbackOrderSelect() {
+      const select = document.getElementById("feedbackOrderSelect");
+      if (!select) return;
+      const current = select.value;
+      const selectedProducts = [...document.querySelectorAll(".feedback-product-check:checked")].map(input => input.value);
+      const query = normalizeText(document.getElementById("feedbackOrderSearch")?.value || "");
+      select.innerHTML = `<option value="">— Nhập thủ công —</option>` + allOrders
+        .slice()
+        .filter(order => !query || String(order.orderId) === String(current) || normalizeText(`${order.orderId} ${order.customerName} ${order.phone} ${order.socialHandle}`).includes(query))
+        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
+        .map(order => `<option value="${escapeHtml(order.orderId)}">#${escapeHtml(order.orderId)} — ${escapeHtml(order.customerName || "Khách")} (${escapeHtml(order.createdAt || "")})</option>`)
+        .join("");
+      if (current && allOrders.some(order => String(order.orderId) === String(current))) select.value = current;
+      renderFeedbackProductPicker(selectedProducts);
+    }
+
+    function fillFeedbackFromOrder() {
+      const orderId = document.getElementById("feedbackOrderSelect")?.value;
+      if (!orderId) { renderFeedbackProductPicker(); return; }
+      const order = allOrders.find(item => String(item.orderId) === String(orderId));
+      if (!order) return;
+      const customer = document.getElementById("feedbackCustomerInput");
+      const date = document.getElementById("feedbackPurchaseDateInput");
+      const paper = document.getElementById("feedbackPaperInput");
+      if (customer) customer.value = getSafeFeedbackCustomer(order);
+      if (date) date.value = feedbackDateToInput(order.createdAt);
+      if (paper) paper.value = getOrderFeedbackProducts(order);
+      renderFeedbackProductPicker(getFeedbackProductOptions(order).map(item => item.productId || item.name));
+      showToast("Đã tự điền thông tin từ đơn hàng");
+    }
+
+    function renderFeedbackAdminList() {
+      const box = document.getElementById("feedbackAdminList");
+      const badge = document.getElementById("feedbackAdminCountBadge");
+      if (!box) return;
+      const list = Array.isArray(allFeedbacks) ? allFeedbacks : [];
+      const publishedCount = list.filter(item => item.status === "published").length;
+      if (badge) badge.textContent = `${publishedCount} đã đăng`;
+      if (!list.length) {
+        box.innerHTML = `<div style="padding:14px 0; color:var(--muted); font-size:12px;">Chưa có feedback nào. Bạn có thể tạo feedback đầu tiên ở form trên.</div>`;
+        return;
+      }
+      box.innerHTML = list.slice().sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))).map(item => {
+        const statusLabel = item.status === "published" ? "Đã đăng" : (item.status === "hidden" ? "Đang ẩn" : "Bản nháp");
+        const statusClass = item.status === "published" ? "badge-ok" : (item.status === "hidden" ? "badge-hidden" : "badge-warn");
+        return `<div class="feedback-admin-card ${item.status !== "published" ? "is-hidden" : ""}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><strong style="font-size:13px;">${escapeHtml(item.customerHandle || "Khách hàng")}</strong><span class="badge ${statusClass}">${statusLabel}</span></div>
+          <div style="font-size:12.5px; line-height:1.5; margin-top:5px; white-space:pre-line;">${escapeHtml(item.content || "")}</div>
+          <div class="feedback-admin-meta"><span>${escapeHtml(item.paperType || "Chưa ghi loại giấy")}</span>${item.purchaseDate ? `<span>Mua ${escapeHtml(feedbackDateDisplay(item.purchaseDate))}</span>` : ""}${item.orderId ? `<span>Đơn #${escapeHtml(item.orderId)}</span>` : ""}${item.consent ? `<span>Đã có đồng ý</span>` : `<span style="color:var(--warn-text);">Chưa xác nhận đồng ý</span>`}</div>
+          <div class="feedback-admin-actions"><button type="button" class="btn btn-soft btn-sm" onclick="editFeedback('${escapeAttrJs(item.id)}')">Sửa</button><button type="button" class="btn btn-soft btn-sm" onclick="toggleFeedbackStatus('${escapeAttrJs(item.id)}')">${item.status === "published" ? "Ẩn" : "Đăng"}</button><button type="button" class="btn btn-danger btn-sm" onclick="deleteFeedback('${escapeAttrJs(item.id)}')">Xóa</button></div>
+        </div>`;
+      }).join("");
+    }
+
+    function resetFeedbackForm() {
+      document.getElementById("feedbackForm")?.reset();
+      const editId = document.getElementById("feedbackEditId");
+      const cancel = document.getElementById("cancelFeedbackBtn");
+      if (editId) editId.value = "";
+      if (cancel) cancel.style.display = "none";
+      const status = document.getElementById("feedbackStatusInput");
+      if (status) status.value = "draft";
+      renderFeedbackProductPicker();
+    }
+
+    function editFeedback(id) {
+      const item = allFeedbacks.find(feedback => String(feedback.id) === String(id));
+      if (!item) return;
+      const orderSearch = document.getElementById("feedbackOrderSearch");
+      if (orderSearch) orderSearch.value = "";
+      populateFeedbackOrderSelect();
+      document.getElementById("feedbackEditId").value = item.id;
+      document.getElementById("feedbackOrderSelect").value = item.orderId || "";
+      document.getElementById("feedbackCustomerInput").value = item.customerHandle || "";
+      document.getElementById("feedbackPurchaseDateInput").value = feedbackDateToInput(item.purchaseDate);
+      document.getElementById("feedbackHideDateInput").checked = Boolean(item.hidePurchaseDate);
+      document.getElementById("feedbackPaperInput").value = item.paperType || "";
+      document.getElementById("feedbackContentInput").value = item.content || "";
+      document.getElementById("feedbackImageInput").value = item.imageUrl || "";
+      document.getElementById("feedbackStatusInput").value = item.status || "draft";
+      document.getElementById("feedbackConsentInput").checked = Boolean(item.consent);
+      renderFeedbackProductPicker(item.productIds || (item.products || []).map(product => product.productId || product.id || product.name));
+      document.getElementById("cancelFeedbackBtn").style.display = "inline-flex";
+      document.getElementById("feedbackForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    async function persistFeedbacks(successMessage) {
+      await callApi({ action: "save_settings", feedbacks: allFeedbacks, feedbackConfig: { items: allFeedbacks } });
+      renderFeedbackAdminList();
+      showToast(successMessage);
+    }
+
+    async function saveFeedback(event) {
+      event.preventDefault();
+      const status = document.getElementById("feedbackStatusInput").value;
+      const consent = document.getElementById("feedbackConsentInput").checked;
+      if (status === "published" && !consent) {
+        showToast("Bạn cần xác nhận khách đã đồng ý cho đăng feedback");
+        return;
+      }
+      const editId = document.getElementById("feedbackEditId").value.trim();
+      const orderId = document.getElementById("feedbackOrderSelect").value.trim();
+      const linkedOrder = allOrders.find(order => String(order.orderId) === String(orderId));
+      const productChecks = [...document.querySelectorAll(".feedback-product-check:checked")];
+      const products = productChecks.map(input => ({ productId: input.dataset.productId || "", name: input.dataset.productName || "" }));
+      const productIds = products.map(product => product.productId).filter(Boolean);
+      const manualPaperType = document.getElementById("feedbackPaperInput").value.trim();
+      if (!products.length && !manualPaperType) {
+        showToast("Hãy tick ít nhất một loại giấy trong đơn hoặc nhập loại giấy thủ công");
+        return;
+      }
+      const now = new Date().toISOString();
+      const existing = editId ? allFeedbacks.find(item => String(item.id) === editId) : null;
+      const item = {
+        id: editId || `FB${Date.now()}`,
+        orderId,
+        customerHandle: document.getElementById("feedbackCustomerInput").value.trim(),
+        customerName: linkedOrder?.customerName || "",
+        platform: linkedOrder ? normalizePlatformName(linkedOrder.platform) : "",
+        purchaseDate: document.getElementById("feedbackPurchaseDateInput").value,
+        hidePurchaseDate: document.getElementById("feedbackHideDateInput").checked,
+        paperType: products.length ? products.map(product => product.name).filter(Boolean).join(", ") : manualPaperType,
+        productIds,
+        products,
+        content: document.getElementById("feedbackContentInput").value.trim(),
+        imageUrl: document.getElementById("feedbackImageInput").value.trim(),
+        status,
+        consent,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        publishedAt: status === "published" ? (existing?.publishedAt || now) : ""
+      };
+      const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
+      const btn = document.getElementById("saveFeedbackBtn");
+      btn.disabled = true;
+      btn.textContent = "Đang lưu...";
+      try {
+        if (existing) allFeedbacks = allFeedbacks.map(feedback => String(feedback.id) === editId ? item : feedback);
+        else allFeedbacks.unshift(item);
+        await persistFeedbacks(existing ? "Đã cập nhật feedback" : "Đã tạo feedback");
+        resetFeedbackForm();
+      } catch (err) {
+        allFeedbacks = previousFeedbacks;
+        renderFeedbackAdminList();
+        showToast("Lỗi lưu feedback: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lưu feedback";
+      }
+    }
+
+    async function toggleFeedbackStatus(id) {
+      const item = allFeedbacks.find(feedback => String(feedback.id) === String(id));
+      if (!item) return;
+      const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
+      const next = item.status === "published" ? "hidden" : "published";
+      if (next === "published" && !item.consent) {
+        showToast("Feedback này chưa xác nhận khách đồng ý cho đăng");
+        return;
+      }
+      item.status = next;
+      item.publishedAt = next === "published" ? (item.publishedAt || new Date().toISOString()) : "";
+      item.updatedAt = new Date().toISOString();
+      try { await persistFeedbacks(next === "published" ? "Đã đăng feedback" : "Đã ẩn feedback"); } catch (err) { allFeedbacks = previousFeedbacks; renderFeedbackAdminList(); showToast("Lỗi cập nhật feedback: " + err.message); }
+    }
+
+    async function deleteFeedback(id) {
+      if (!window.confirm("Xóa feedback này?")) return;
+      const previousFeedbacks = allFeedbacks.map(feedback => ({ ...feedback }));
+      allFeedbacks = allFeedbacks.filter(item => String(item.id) !== String(id));
+      try { await persistFeedbacks("Đã xóa feedback"); } catch (err) { allFeedbacks = previousFeedbacks; renderFeedbackAdminList(); showToast("Lỗi xóa feedback: " + err.message); }
+    }
+
+    // TAB 6: CÀI ĐẶT (ƯU ĐÃI TOÀN TIỆM, VOUCHER, VIETQR, TELEGRAM, FREESHIP, EMAIL, AI)
     // -------------------------------------------------------------------------
     function updatePromoPolicyPreview() {
       const enabled = document.getElementById("promoEnabledInput")?.value === "true";
