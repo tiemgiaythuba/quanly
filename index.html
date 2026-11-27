@@ -67,6 +67,23 @@
       align-items: center;
       flex-shrink: 0;
     }
+    .topbar-icon-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--primary);
+      display: inline-grid;
+      place-items: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .15s, background .2s, border-color .2s;
+    }
+    .topbar-icon-btn:hover { background: #F0ECE4; border-color: #D8CFC1; }
+    .topbar-icon-btn:active { transform: scale(.92); }
+    .topbar-icon-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 
     .container { max-width: 860px; margin: 0 auto; padding: 14px; }
 
@@ -476,12 +493,10 @@
     }
     .order-action-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 6px;
     }
-    .order-action-grid.has-4 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    .order-action-grid.has-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .order-main-actions { display:grid; grid-template-columns:minmax(0,1fr) 42px; gap:7px; align-items:stretch; }
     .order-main-actions > .btn { width:100%; min-height:40px; font-size:12.5px; }
     .order-more { position:relative; min-width:0; }
@@ -742,9 +757,7 @@
     .order-card.menu-open { position:relative; z-index:35; }
     .order-card:hover { border-color:#D6CBBB; box-shadow:0 2px 8px rgba(46,41,35,.04); }
     @media (min-width: 640px) {
-      .order-action-grid.has-4 {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
+      .order-action-grid.has-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     .order-action-grid .btn,
     .item-action-grid .btn {
@@ -970,6 +983,13 @@
     .card { padding: 15px; margin-bottom: 12px; }
     .order-card { transition: border-color .18s ease, box-shadow .18s ease; }
     .order-card:hover { border-color: #D8CFC1; box-shadow: var(--shadow); }
+    .order-audit-details { margin-top:10px; border-top:1px dashed var(--border); padding-top:8px; font-size:12px; color:var(--muted); }
+    .order-audit-details summary { cursor:pointer; color:var(--primary); font-weight:700; }
+    .order-audit-list { display:grid; gap:6px; margin-top:7px; }
+    .order-audit-list > div { padding:6px 8px; border-radius:8px; background:var(--bg-soft); line-height:1.4; }
+    .order-audit-list strong { color:var(--text); }
+    .order-secondary-details { margin:10px 0 8px; }
+    .order-secondary-details summary { cursor:pointer; color:var(--primary); font-size:12px; font-weight:700; padding:7px 0; }
     .stat-box { padding: 12px 14px; }
     .btn {
       border-radius: 10px;
@@ -1125,9 +1145,15 @@
       <h1>Quản lý — Tiệm giấy Thứ Ba</h1>
     </div>
     <div class="topbar-actions">
-      <a href="index.html" target="_blank" class="btn btn-soft btn-sm" style="text-decoration:none;">Trang khách ↗</a>
-      <button type="button" id="refreshBtn" class="btn btn-soft btn-sm" style="display:none;" onclick="loadAllData()">↻ Làm mới</button>
-      <button type="button" id="logoutBtn" class="btn btn-soft btn-sm" style="display:none;" onclick="handleLogout()">Đăng xuất</button>
+      <a href="index.html" target="_blank" class="topbar-icon-btn" title="Mở trang khách" aria-label="Mở trang khách">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l1 13H3L4 7Z"></path><path d="M8 7a4 4 0 0 1 8 0"></path></svg>
+      </a>
+      <button type="button" id="refreshBtn" class="topbar-icon-btn" title="Làm mới dữ liệu" aria-label="Làm mới dữ liệu" style="display:none;" onclick="loadAllData()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.8-4L3 10"></path><path d="M3 5v5h5"></path><path d="M4 13a8 8 0 0 0 14.8 4L21 14"></path><path d="M21 19v-5h-5"></path></svg>
+      </button>
+      <button type="button" id="logoutBtn" class="topbar-icon-btn" title="Đăng xuất" aria-label="Đăng xuất" style="display:none;" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5"></path><path d="M14 8l4 4-4 4"></path><path d="M18 12H8"></path></svg>
+      </button>
     </div>
   </header>
 
@@ -1135,10 +1161,9 @@
     <!-- Màn hình đăng nhập -->
     <div id="loginView" class="login-box">
       <h2 style="font-family:'Lora', serif; color:var(--primary); margin-bottom:6px;">Đăng nhập vào tiệm</h2>
-      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Nhập mật khẩu để quản lý kho giấy, đơn hàng, lịch sử chat &amp; cài đặt.</p>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">Hệ thống nhận diện tài khoản Google của bạn và tự áp dụng đúng quyền Owner, Manager hoặc Staff.</p>
       <form onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:10px;">
-        <input type="password" id="adminPass" aria-label="Mật khẩu" class="input" placeholder="Mật khẩu quản lý..." required />
-        <button type="submit" class="btn btn-primary" id="loginBtn">Vào trang quản lý</button>
+        <button type="submit" class="btn btn-primary" id="loginBtn">Tiếp tục bằng tài khoản Google</button>
       </form>
       <div id="loginError" style="color:var(--danger); font-size:12.5px; margin-top:10px; display:none;"></div>
     </div>
@@ -2037,6 +2062,9 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbBP4TCXCwWPNOlCVhe2ke8FcG2DrH_FmVunFesAptU4eEVPuNJizwQnbBlAGycXMf/exec";
 
     let adminPassword = "";
+    let adminActor = "Google account";
+    let currentAdminUser = null;
+    let allAuditLogs = [];
     let allProducts = [];
     let allFaqs = [];
     let allOrders = [];
@@ -2138,7 +2166,6 @@
     function handleLogout() {
       adminPassword = "";
       clearAdminSession();
-      document.getElementById("adminPass").value = "";
       setLoggedInUi(false);
       showToast("Đã đăng xuất khỏi trang quản lý");
     }
@@ -2371,10 +2398,11 @@
       const res = await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ ...payload, password: adminPassword })
+        body: JSON.stringify({ ...payload, adminActor })
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Thao tác thất bại");
+      if (Array.isArray(data.auditLogs)) allAuditLogs = data.auditLogs;
       return data;
     }
 
@@ -2385,7 +2413,8 @@
       e.preventDefault();
       const btn = document.getElementById("loginBtn");
       const errBox = document.getElementById("loginError");
-      adminPassword = document.getElementById("adminPass").value.trim();
+      adminPassword = "";
+      adminActor = "Google account";
       errBox.style.display = "none";
       btn.disabled = true;
       btn.textContent = "Đang kiểm tra...";
@@ -2446,10 +2475,18 @@
     });
 
     function applyAllData(data) {
+      currentAdminUser = data.adminUser || currentAdminUser;
+      const settingsNav = document.getElementById("navSettings");
+      if (settingsNav && currentAdminUser) {
+        const isOwner = String(currentAdminUser.role || "").toLowerCase() === "owner";
+        settingsNav.style.display = isOwner ? "grid" : "none";
+        settingsNav.title = isOwner ? "Cài đặt" : "Chỉ Owner được mở cài đặt";
+      }
       allProducts = data.products || [];
       allFaqs = data.faqs || [];
       allOrders = data.orders || [];
       allChatLogs = data.chatLogs || [];
+      allAuditLogs = Array.isArray(data.auditLogs) ? data.auditLogs : [];
       allWaitlist = data.waitlist || [];
       allVouchers = data.vouchers || [];
 
@@ -3169,6 +3206,10 @@
           ? buildCustomerSocialUrl(parsedSocial.backupPlatform, parsedSocial.backupHandle)
           : "";
         const trackInfo = detectTrackingCarrier(o.trackingCode);
+        const orderAudit = allAuditLogs.filter(log => String(log.entityId) === String(o.orderId)).slice(0, 8);
+        const auditHtml = orderAudit.length
+          ? `<details class="order-audit-details"><summary>Lịch sử thao tác (${orderAudit.length})</summary><div class="order-audit-list">${orderAudit.map(log => `<div><strong>${escapeHtml(log.action)}</strong> • ${escapeHtml(log.actor)}<br><span>${escapeHtml(log.createdAt)} — ${escapeHtml(log.summary)}</span></div>`).join("")}</div></details>`
+          : `<details class="order-audit-details"><summary>Lịch sử thao tác</summary><div style="color:var(--muted); font-size:12px;">Chưa có bản ghi thao tác cho đơn này.</div></details>`;
 
         const payBadgeClass = isPaid ? "badge-ok" : (isPendingTransfer ? "badge-warn" : "badge-info");
         const payBadgeLabel = isPaid
@@ -3181,7 +3222,9 @@
           <div class="card order-card">
             <div class="card-top">
               <div>
-                <strong style="color:var(--primary); font-size:14.5px;">#${escapeHtml(o.orderId)} — ${escapeHtml(o.customerName)}</strong>
+                <strong style="display:block; color:var(--primary); font-size:14.5px;">#${escapeHtml(o.orderId)}</strong>
+                <div style="font-size:13px; font-weight:700; color:var(--text); margin-top:3px; overflow-wrap:anywhere;">${escapeHtml(o.customerName)}</div>
+                <div style="font-size:13px; font-weight:700; color:var(--primary); margin-top:3px;">Tổng: ${fmtVND(o.total)}</div>
                 <div style="font-size:12px; color:var(--muted);">${escapeHtml(o.createdAt)}</div>
               </div>
               <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
@@ -3191,7 +3234,9 @@
               </div>
             </div>
 
-            <div style="font-size:13px; margin-bottom:8px; display:flex; flex-direction:column; gap:3px;">
+            <details class="order-secondary-details">
+              <summary>Chi tiết khách, sản phẩm và giao hàng</summary>
+            <div style="font-size:13px; margin:8px 0; display:flex; flex-direction:column; gap:3px;">
               <!-- Dòng 1: Tên người nhận + Copy tên -->
               <div class="cust-info-row">
                 <div class="cust-info-text">👤 <strong>${escapeHtml(o.customerName)}</strong></div>
@@ -3254,6 +3299,7 @@
               </div>
               ${o.note ? `<div style="color:var(--warn-text); font-size:12.5px; margin-top:2px;">Ghi chú: ${escapeHtml(o.note)}</div>` : ""}
             </div>
+            </details>
 
             <!-- Ô nhập nhanh mã vận đơn + Nút tự động nhận diện tra cứu -->
             <div class="tracking-row">
@@ -3292,12 +3338,13 @@
                   </div>
                 </div>
               </div>
-              <div class="order-action-grid ${isPendingTransfer ? 'has-4' : ''}">
+              <div class="order-action-grid ${isPendingTransfer ? 'has-3' : 'has-2'}">
                 ${isPendingTransfer ? `<button type="button" class="btn btn-accent btn-sm" onclick="toggleOrderPayment('${safeOrderId}')">✓ Xác nhận CK</button>` : ""}
                 <button type="button" class="btn btn-soft btn-sm" onclick="openEditOrderModal('${safeOrderId}')">Sửa đơn</button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrderWithConfirm('${safeOrderId}', this)">Xóa đơn</button>
               </div>
             </div>
+            ${auditHtml}
           </div>
         `;
       }).join("");
