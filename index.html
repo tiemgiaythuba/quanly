@@ -5948,7 +5948,7 @@
     function updateKeyBadgeUi(info) {
       const badge = document.getElementById("aiKeyStatusBadge");
       if (!badge) return;
-      if (info && info.configured) {
+      if (info && (info.hasKey || info.configured)) {
         badge.className = "badge badge-ok";
         badge.textContent = `Đã lưu Key (${info.masked || "AIza..."})`;
       } else {
