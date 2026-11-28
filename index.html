@@ -204,6 +204,15 @@
       gap: 10px;
       margin-bottom: 8px;
     }
+    .admin-sort-handle { flex:none; width:34px; min-width:34px; height:36px; padding:0; display:inline-grid; place-items:center; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--muted); font-family:inherit; font-size:16px; font-weight:700; line-height:1; letter-spacing:-3px; cursor:grab; touch-action:none; user-select:none; }
+    .admin-sort-handle:hover:not(:disabled) { background:#EDE6DA; color:var(--primary); }
+    .admin-sort-handle:active:not(:disabled) { cursor:grabbing; }
+    .admin-sort-handle:disabled { opacity:.42; cursor:not-allowed; }
+    .admin-sortable-card { transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
+    .admin-sortable-card.is-pointer-dragging { opacity:.5; box-shadow:0 0 0 2px var(--accent), var(--shadow); }
+    .admin-sortable-card.is-drop-target { box-shadow:0 -3px 0 var(--accent); }
+    .admin-sort-hint { margin:7px 0 9px; color:var(--muted); font-size:11.5px; }
+    .ai-usage-summary { margin-top:9px; padding:9px 10px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:11.5px; line-height:1.45; }
 
     .badge {
       display: inline-flex;
@@ -219,6 +228,17 @@
     .badge-danger { background: var(--danger-soft); color: var(--danger); }
     .badge-info { background: #E9EFF6; color: #2C5282; }
     .badge-hidden { background: #ECE7DF; color: #63574D; }
+
+    .admin-action-card { border:1px solid #E6D6C4; background:linear-gradient(135deg,#FFFDF9,#F8F3EA); border-radius:14px; padding:13px 14px; margin-bottom:12px; }
+    .admin-action-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .admin-action-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .admin-action-item { min-width:0; display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--text); font:inherit; text-align:left; cursor:pointer; transition:transform .18s ease,border-color .18s ease,background .18s ease; }
+    .admin-action-item:hover { transform:translateY(-1px); border-color:#CFC3B0; background:#FBF9F5; }
+    .admin-action-item:active { transform:scale(.985); }
+    .admin-action-label { font-size:12px; line-height:1.35; }
+    .admin-action-count { flex:none; min-width:25px; height:25px; display:grid; place-items:center; border-radius:999px; background:var(--warn-bg); color:var(--warn-text); font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+    .admin-action-count.zero { background:var(--accent-soft); color:#2E5A36; }
+    @media(max-width:520px) { .admin-action-list { grid-template-columns:1fr; } }
 
     .stats-bar {
       display: grid;
@@ -1216,6 +1236,10 @@
       <!-- TAB 1: ĐƠN HÀNG -->
       <section id="tabOrders">
         <div class="stats-bar" id="orderStats"></div>
+        <section id="adminActionCard" class="admin-action-card" aria-labelledby="adminActionTitle">
+          <div class="admin-action-head"><strong id="adminActionTitle" style="font-size:14px;color:var(--primary);">Danh sách cần xử lý</strong><span id="adminActionTotal" class="badge badge-info">0 việc</span></div>
+          <div id="adminActionList" class="admin-action-list"></div>
+        </section>
         <div id="topProductsChartBox"></div>
         <div class="search-filter-bar">
           <input type="text" id="orderSearchInput" aria-label="Tìm đơn hàng" class="input" style="flex:1; min-width:190px;" placeholder="Tìm tên khách, SĐT, tài khoản, mã đơn..." oninput="renderOrders()" />
@@ -1252,6 +1276,7 @@
           <button type="button" class="pill" onclick="setProductFilter('low', this)">Sắp hết / Hết</button>
           <button type="button" class="pill" onclick="setProductFilter('preorder', this)">Có đặt trước</button>
         </div>
+        <div id="productSortHint" class="admin-sort-hint" role="status">Kéo tay nắm để sắp xếp thứ tự hiển thị trên trang khách.</div>
         <div id="productsList"></div>
       </section>
 
@@ -1287,7 +1312,7 @@
             <strong style="font-size:14.5px; color:var(--primary);">Feedback khách hàng</strong>
             <span id="feedbackAdminCountBadge" class="badge badge-info">0 đã đăng</span>
           </div>
-          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Liên kết đơn hàng để tự điền sản phẩm, ngày mua và tài khoản khách. Khi tạo mới, tick checkbox đồng ý để đăng ngay lúc lưu; nếu chưa tick, feedback được giữ ở bản nháp. Feedback đã ẩn vẫn giữ trạng thái đó khi chỉ sửa nội dung.</p>
+          <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Liên kết đơn hàng để tự điền sản phẩm, ngày mua và tài khoản khách. Khi tạo mới, tick checkbox đồng ý để đăng ngay lúc lưu; nếu chưa tick, feedback được giữ ở bản nháp. Feedback đã ẩn vẫn giữ trạng thái đó khi chỉ sửa nội dung. Kéo tay nắm ⋮⋮ trên mỗi thẻ để đổi thứ tự; vị trí mới cũng áp dụng trên trang khách.</p>
           <form id="feedbackForm" class="feedback-form" onsubmit="saveFeedback(event)" style="display:flex; flex-direction:column; gap:9px; margin-bottom:12px;">
             <input type="hidden" id="feedbackEditId" />
             <div class="feedback-field-stack">
@@ -1502,6 +1527,14 @@
             <button type="button" id="saveTelegramBtn" class="btn btn-primary btn-sm" onclick="saveTelegramSettings()">Lưu cấu hình Telegram</button>
             <button type="button" id="testTelegramBtn" class="btn btn-soft btn-sm" onclick="testSendTelegram()">Gửi tin nhắn test</button>
           </div>
+          <div style="border-top:1px dashed var(--border); margin-top:12px; padding-top:11px;">
+            <strong style="display:block; color:var(--primary); font-size:13px; margin-bottom:5px;">Cảnh báo tồn kho thấp qua Telegram</strong>
+            <p style="font-size:12px; color:var(--muted); margin-bottom:9px;">Gửi một cảnh báo khi tồn của sản phẩm đang hiển thị chạm ngưỡng; không gửi lặp cho đến khi nhập thêm vượt ngưỡng rồi tồn lại giảm xuống. Mặc định 5 đơn vị. Nhập 0 để tắt.</p>
+            <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;">
+              <div class="form-group" style="width:min(220px,100%);"><label for="lowStockThresholdInput">Ngưỡng tồn thấp (đơn vị cơ bản)</label><input type="number" id="lowStockThresholdInput" class="input" min="0" max="100000" step="1" value="5" /></div>
+              <button type="button" id="saveLowStockThresholdBtn" class="btn btn-primary btn-sm" onclick="saveLowStockThreshold()">Lưu ngưỡng cảnh báo</button>
+            </div>
+          </div>
         </div>
 
         <!-- Cài đặt Chính sách Phí ship & Freeship áp dụng cho khách -->
@@ -1587,6 +1620,8 @@
             <button type="button" id="testAiBtn" class="btn btn-accent" onclick="testAiConnection()">Kiểm tra kết nối AI</button>
           </div>
           <div id="aiTestResultBox" style="display:none; margin-top:10px; padding:10px; border-radius:10px; background:var(--surface); border:1px solid var(--border); font-size:12.5px;"></div>
+          <div id="aiUsageSummary" class="ai-usage-summary" role="status">Đang tải thống kê các lượt chat gần đây…</div>
+          <div style="margin-top:5px;color:var(--muted);font-size:10.5px;line-height:1.4;">Thống kê dựa trên tối đa 500 lượt chat gần nhất; tỷ lệ thành công tính trên các lượt có thử gọi Gemini. Câu trả lời nội bộ và lượt bị chặn được tách riêng. Mặc định: tối đa 20 tin/phút mỗi phiên, 120 tin/phút toàn tiệm, 3.000 tin/ngày; Gemini tối đa 8 lượt/phút mỗi phiên, 60 lượt/phút toàn tiệm và 500 lượt/ngày. Script Properties tương ứng: CHAT_SESSION_PER_MINUTE, CHAT_GLOBAL_PER_MINUTE, CHAT_DAILY_REQUEST_LIMIT, AI_SESSION_PER_MINUTE, AI_GLOBAL_PER_MINUTE, AI_DAILY_CALL_LIMIT.</div>
         </div>
       </section>
     </div>
@@ -2140,17 +2175,21 @@
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbBP4TCXCwWPNOlCVhe2ke8FcG2DrH_FmVunFesAptU4eEVPuNJizwQnbBlAGycXMf/exec";
 
-    let adminPassword = "";
+    let adminPassword = ""; // Chỉ giữ trong bộ nhớ trong lúc đăng nhập; không lưu lâu dài.
+    let adminSessionToken = "";
     let adminActor = "Quản trị viên";
     let allAuditLogs = [];
     let allProducts = [];
     let allFaqs = [];
     let allOrders = [];
     let allChatLogs = [];
+    let chatRateLimitStats = { blocked: 0, byReason: {} };
     let allFeedbacks = [];
     let shopShipCost = 15000;
     let orderFilter = "Tất cả";
     let productFilter = "all";
+    let adminOrderTaskFilter = "";
+    let lowStockThreshold = 5;
     let chatFilterMode = "all";
     let editingOrderItems = [];
     let currentProductImages = [];
@@ -2184,55 +2223,58 @@
       return defaultValue;
     }
 
-    const ADMIN_AUTH_STORAGE_KEY = "tiemgiay_admin_auth_v1";
-    const ADMIN_CACHE_STORAGE_KEY = "tiemgiay_admin_cache_v1";
-    const ADMIN_SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+    const ADMIN_AUTH_STORAGE_KEY = "tiemgiay_admin_session_v2";
+    const ADMIN_CACHE_STORAGE_KEY = "tiemgiay_admin_cache_v2";
+    const ADMIN_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 
-    function saveAdminSession(pass) {
+    function saveAdminSession(token) {
+      adminSessionToken = String(token || "");
       try {
-        localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, JSON.stringify({
-          password: pass,
-          savedAt: Date.now()
-        }));
+        if (adminSessionToken) sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, JSON.stringify({ token: adminSessionToken, savedAt: Date.now() }));
+        else sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+        // Remove legacy long-lived plaintext password and persistent order cache.
+        localStorage.removeItem("tiemgiay_admin_auth_v1");
+        localStorage.removeItem("tiemgiay_admin_cache_v1");
       } catch (e) {}
     }
 
     function clearAdminSession() {
+      adminSessionToken = "";
       try {
-        localStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
-        localStorage.removeItem(ADMIN_CACHE_STORAGE_KEY);
+        sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+        sessionStorage.removeItem(ADMIN_CACHE_STORAGE_KEY);
+        localStorage.removeItem("tiemgiay_admin_auth_v1");
+        localStorage.removeItem("tiemgiay_admin_cache_v1");
       } catch (e) {}
     }
 
     function loadSavedAdminSession() {
       try {
-        const raw = localStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
+        // Migrate safely by discarding any previous raw password instead of reusing it.
+        localStorage.removeItem("tiemgiay_admin_auth_v1");
+        localStorage.removeItem("tiemgiay_admin_cache_v1");
+        const raw = sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
         if (!raw) return "";
         const parsed = JSON.parse(raw);
-        if (!parsed || !parsed.password) return "";
-        if (Date.now() - Number(parsed.savedAt || 0) > ADMIN_SESSION_TTL_MS) {
+        if (!parsed || !parsed.token || Date.now() - Number(parsed.savedAt || 0) > ADMIN_SESSION_TTL_MS) {
           clearAdminSession();
           return "";
         }
-        return String(parsed.password);
+        return String(parsed.token);
       } catch (e) {
         return "";
       }
     }
 
     function saveAdminDataCache(data) {
-      try {
-        localStorage.setItem(ADMIN_CACHE_STORAGE_KEY, JSON.stringify(data));
-      } catch (e) {}
+      try { sessionStorage.setItem(ADMIN_CACHE_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
     }
 
     function loadAdminDataCache() {
       try {
-        const raw = localStorage.getItem(ADMIN_CACHE_STORAGE_KEY);
+        const raw = sessionStorage.getItem(ADMIN_CACHE_STORAGE_KEY);
         return raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        return null;
-      }
+      } catch (e) { return null; }
     }
 
     function setLoggedInUi(isLoggedIn) {
@@ -2242,7 +2284,8 @@
       document.getElementById("logoutBtn").style.display = isLoggedIn ? "inline-block" : "none";
     }
 
-    function handleLogout() {
+    async function handleLogout() {
+      try { if (adminSessionToken) await callApi({ action: "admin_logout" }); } catch (e) {}
       adminPassword = "";
       clearAdminSession();
       document.getElementById("adminPass").value = "";
@@ -2263,11 +2306,15 @@
     }
 
     function escapeAttrJs(str) {
+      // HTML-attribute encoding first prevents entity decoding from creating JS quotes.
       return String(str ?? "")
+        .replace(/&/g, "&amp;")
         .replace(/\\/g, "\\\\")
         .replace(/'/g, "\\'")
         .replace(/"/g, "&quot;")
-        .replace(/\r?\n/g, " ");
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/[\r\n\u2028\u2029]/g, " ");
     }
 
     function fmtVND(amount) {
@@ -2494,11 +2541,16 @@
     async function callApi(payload) {
       apiRequestsInFlight++;
       updateApiActivity();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       try {
+        const requestBody = { ...payload, adminActor };
+        if (payload.action !== "admin_login") requestBody.adminSessionToken = adminSessionToken;
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ ...payload, password: adminPassword, adminActor })
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
         });
         let data;
         try { data = await res.json(); }
@@ -2508,9 +2560,11 @@
         if (Array.isArray(data.auditLogs)) allAuditLogs = data.auditLogs;
         return data;
       } catch (err) {
+        if (err && err.name === "AbortError") throw new Error("Yêu cầu quá thời gian chờ. Kiểm tra kết nối rồi thử lại.");
         if (err instanceof TypeError) throw new Error("Mất kết nối tới máy chủ. Kiểm tra mạng rồi thử lại.");
         throw err;
       } finally {
+        clearTimeout(timeoutId);
         apiRequestsInFlight = Math.max(0, apiRequestsInFlight - 1);
         updateApiActivity();
       }
@@ -2530,13 +2584,18 @@
       btn.textContent = "Đang kiểm tra...";
 
       try {
-        const data = await callApi({ action: "admin_login" });
-        saveAdminSession(adminPassword);
+        const data = await callApi({ action: "admin_login", password: adminPassword });
+        if (!data.sessionToken) throw new Error("Máy chủ chưa cấp phiên đăng nhập. Hãy triển khai lại code.gs rồi thử lại.");
+        saveAdminSession(data.sessionToken);
+        adminPassword = "";
+        document.getElementById("adminPass").value = "";
         saveAdminDataCache(data);
         setLoggedInUi(true);
         applyAllData(data);
-        showToast("Đăng nhập thành công");
+        showToast("Đăng nhập thành công — phiên có hiệu lực tối đa 6 giờ");
       } catch (err) {
+        adminPassword = "";
+        document.getElementById("adminPass").value = "";
         errBox.textContent = err.message;
         errBox.style.display = "block";
       } finally {
@@ -2552,12 +2611,11 @@
       btn.setAttribute("aria-busy", "true");
       try {
         const data = await callApi({ action: "get_all" });
-        saveAdminSession(adminPassword);
         saveAdminDataCache(data);
         applyAllData(data);
         if (!silent) showToast("Đã cập nhật dữ liệu mới nhất");
       } catch (err) {
-        if (String(err.message || "").includes("Sai mật khẩu")) {
+        if (String(err.message || "").includes("Sai mật khẩu") || String(err.message || "").includes("Phiên đăng nhập")) {
           clearAdminSession();
           adminPassword = "";
           setLoggedInUi(false);
@@ -2574,14 +2632,13 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       initCustomSelects();
-      const savedPass = loadSavedAdminSession();
-      if (savedPass) {
-        adminPassword = savedPass;
+      initAdminReordering();
+      const savedToken = loadSavedAdminSession();
+      if (savedToken) {
+        adminSessionToken = savedToken;
         setLoggedInUi(true);
         const cached = loadAdminDataCache();
-        if (cached) {
-          applyAllData(cached);
-        }
+        if (cached) applyAllData(cached);
         loadAllData(true);
       }
     });
@@ -2591,6 +2648,7 @@
       allFaqs = data.faqs || [];
       allOrders = data.orders || [];
       allChatLogs = data.chatLogs || [];
+      chatRateLimitStats = data.chatRateLimitStats || { blocked: 0, byReason: {} };
       allAuditLogs = Array.isArray(data.auditLogs) ? data.auditLogs : [];
       allWaitlist = data.waitlist || [];
       allVouchers = data.vouchers || [];
@@ -2655,7 +2713,7 @@
         document.getElementById("notifyEmailInput").value = data.notifyEmail || "";
       }
       if (data.aiEnabled !== undefined) {
-        updateAiToggleUi(Boolean(data.aiEnabled));
+        updateAiToggleUi(parseConfigBoolean(data.aiEnabled, false));
       }
       if (data.geminiKeyInfo) {
         updateKeyBadgeUi(data.geminiKeyInfo);
@@ -2675,6 +2733,9 @@
         document.getElementById("telegramTokenInput").value = data.telegramConfig.botToken || "";
         document.getElementById("telegramChatIdInput").value = data.telegramConfig.chatId || "";
       }
+      lowStockThreshold = Math.max(0, Number(data.lowStockThreshold ?? 5));
+      const lowStockInput = document.getElementById("lowStockThresholdInput");
+      if (lowStockInput) lowStockInput.value = lowStockThreshold;
       if (data.shopShipCost !== undefined) {
         shopShipCost = Math.max(0, Number(data.shopShipCost));
         const shipInp = document.getElementById("shopShipCostInput");
@@ -2688,8 +2749,8 @@
       const freeshipThresh = policySrc.freeshipMinOrder !== undefined
         ? Math.max(0, Number(policySrc.freeshipMinOrder))
         : (policySrc.freeshipThreshold !== undefined ? Math.max(0, Number(policySrc.freeshipThreshold)) : 200000);
-      const freeshipKitVal = policySrc.freeshipKit !== undefined ? Boolean(policySrc.freeshipKit) : true;
-      const freeshipEnabledVal = policySrc.freeshipEnabled !== undefined ? Boolean(policySrc.freeshipEnabled) : true;
+      const freeshipKitVal = parseConfigBoolean(policySrc.freeshipKit, true);
+      const freeshipEnabledVal = parseConfigBoolean(policySrc.freeshipEnabled, true);
 
       const custShipInp = document.getElementById("customerShipFeeInput");
       const threshInp = document.getElementById("freeshipThresholdInput");
@@ -2714,6 +2775,7 @@
     }
 
     function switchTab(tab) {
+      if (tab !== "orders") adminOrderTaskFilter = "";
       const tabs = ["orders", "products", "faqs", "chats", "feedback", "settings"];
       tabs.forEach(t => {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
@@ -3032,6 +3094,7 @@
     }
 
     function setOrderFilter(status) {
+      adminOrderTaskFilter = "";
       orderFilter = status || "Tất cả";
       const select = document.getElementById("orderStatusFilterSelect");
       if (select) select.value = orderFilter;
@@ -3275,15 +3338,53 @@
       return validOrders;
     }
 
+    function renderAdminActionList() {
+      const box = document.getElementById("adminActionList");
+      if (!box) return;
+      const waiting = allOrders.filter(o => String(o.status || "") === "Chờ xác nhận").length;
+      const payments = allOrders.filter(o => String(o.status || "") !== "Đã hủy" && ["Chuyển khoản trước", "Khách báo đã CK"].includes(String(o.paymentMethod || ""))).length;
+      const drafts = allFeedbacks.filter(f => String(f.status || "draft").toLowerCase() === "draft").length;
+      const low = lowStockThreshold > 0 ? allProducts.filter(p => p.visible !== false && Number(p.stock || 0) <= lowStockThreshold).length : 0;
+      const tasks = [
+        { key:"waiting", label:"Đơn chờ xác nhận", count:waiting },
+        { key:"payment", label:"Đối soát chuyển khoản", count:payments },
+        { key:"feedback", label:"Feedback bản nháp", count:drafts },
+        { key:"stock", label:`Sản phẩm tồn thấp (≤ ${lowStockThreshold})`, count:low }
+      ];
+      const total = tasks.reduce((sum, task) => sum + task.count, 0);
+      const totalEl = document.getElementById("adminActionTotal");
+      if (totalEl) { totalEl.textContent = `${total} việc`; totalEl.className = `badge ${total ? "badge-warn" : "badge-ok"}`; }
+      box.innerHTML = tasks.map(task => `<button type="button" class="admin-action-item" onclick="openAdminTask('${task.key}')"><span class="admin-action-label">${escapeHtml(task.label)}</span><span class="admin-action-count ${task.count ? "" : "zero"}">${task.count}</span></button>`).join("");
+    }
+
+    function openAdminTask(key) {
+      if (key === "waiting") { switchTab("orders"); setOrderFilter("Chờ xác nhận"); return; }
+      if (key === "payment") {
+        switchTab("orders");
+        adminOrderTaskFilter = "payment";
+        orderFilter = "Tất cả";
+        const sel = document.getElementById("orderStatusFilterSelect"); if (sel) sel.value = "Tất cả";
+        renderOrders();
+        return;
+      }
+      if (key === "feedback") { switchTab("feedback"); return; }
+      if (key === "stock") {
+        switchTab("products");
+        const lowBtn = document.querySelector("#productStatusFilters .pill:nth-child(4)");
+        if (lowBtn) setProductFilter("low", lowBtn);
+      }
+    }
+
     function renderOrders() {
+      renderAdminActionList();
       const baseFiltered = getBaseFilteredOrders();
       const validOrders = renderOrderStats();
 
       renderTopProductsChart(validOrders);
 
-      const list = orderFilter === "Tất cả"
-        ? baseFiltered
-        : baseFiltered.filter(o => o.status === orderFilter);
+      const list = adminOrderTaskFilter === "payment"
+        ? baseFiltered.filter(o => String(o.status || "") !== "Đã hủy" && ["Chuyển khoản trước", "Khách báo đã CK"].includes(String(o.paymentMethod || "")))
+        : (orderFilter === "Tất cả" ? baseFiltered : baseFiltered.filter(o => o.status === orderFilter));
 
       const box = document.getElementById("ordersList");
       if (!list.length) {
@@ -4085,16 +4186,148 @@
       return needsMap;
     }
 
+    let adminSortDragState = null;
+    let adminSortPersistBusy = false;
+
+    function getSortableCards(container, type) {
+      return [...container.querySelectorAll(`[data-sort-card="${type}"]`)];
+    }
+
+    function getSortableIds(container, type) {
+      return getSortableCards(container, type).map(card => String(card.dataset.sortId || ""));
+    }
+
+    function moveSortableCard(handle, destination) {
+      const type = handle.dataset.sortHandle;
+      const container = handle.closest(type === "product" ? "#productsList" : "#feedbackAdminList");
+      const card = handle.closest(`[data-sort-card="${type}"]`);
+      if (!container || !card || !destination) return false;
+      const cards = getSortableCards(container, type);
+      const from = cards.indexOf(card);
+      const to = cards.indexOf(destination);
+      if (from < 0 || to < 0 || from === to) return false;
+      if (from < to) container.insertBefore(card, destination.nextSibling);
+      else container.insertBefore(card, destination);
+      return true;
+    }
+
+    async function persistAdminSort(container, type, previousIds) {
+      const ids = getSortableIds(container, type);
+      if (ids.length < 2 || ids.every((id, index) => id === previousIds[index])) return;
+      if (adminSortPersistBusy) { showToast("Đang lưu một thứ tự khác; chờ xong rồi thử lại nhé."); if (type === "product") renderProducts(); else renderFeedbackAdminList(); return; }
+      adminSortPersistBusy = true;
+      if (type === "product") {
+        const previous = allProducts.slice();
+        const byId = new Map(allProducts.map(product => [String(product.id), product]));
+        allProducts = ids.map(id => byId.get(id)).filter(Boolean);
+        renderProducts();
+        try {
+          const result = await callApi({ action: "reorder_products", ids });
+          allProducts = Array.isArray(result.products) ? result.products : allProducts;
+          renderProducts();
+          showToast("Đã lưu thứ tự sản phẩm. Khách sẽ thấy thứ tự mới sau khi tải lại trang.");
+        } catch (err) {
+          allProducts = previous;
+          renderProducts();
+          showToast("Chưa lưu được thứ tự sản phẩm: " + err.message);
+        }
+      } else {
+        const previous = allFeedbacks.map(item => ({ ...item }));
+        const byId = new Map(allFeedbacks.map(item => [String(item.id), item]));
+        allFeedbacks = ids.map(id => byId.get(id)).filter(Boolean).map((item, index) => ({ ...item, displayOrder: index }));
+        renderFeedbackAdminList();
+        try {
+          const result = await callApi({ action: "reorder_feedbacks", ids });
+          allFeedbacks = Array.isArray(result.feedbacks) ? result.feedbacks : allFeedbacks;
+          renderFeedbackAdminList();
+          showToast("Đã lưu thứ tự feedback; trang khách sẽ thấy thứ tự mới sau khi tải lại.");
+        } catch (err) {
+          allFeedbacks = previous;
+          renderFeedbackAdminList();
+          showToast("Chưa lưu được thứ tự feedback: " + err.message);
+        }
+      }
+      adminSortPersistBusy = false;
+    }
+
+    function initAdminReordering() {
+      [
+        { id: "productsList", type: "product" },
+        { id: "feedbackAdminList", type: "feedback" }
+      ].forEach(({ id, type }) => {
+        const container = document.getElementById(id);
+        if (!container || container.dataset.sortBound === "1") return;
+        container.dataset.sortBound = "1";
+        container.addEventListener("pointerdown", event => {
+          const handle = event.target.closest(`[data-sort-handle="${type}"]`);
+          if (!handle || handle.disabled || adminSortPersistBusy) return;
+          const card = handle.closest(`[data-sort-card="${type}"]`);
+          if (!card) return;
+          event.preventDefault();
+          adminSortDragState = { type, container, card, pointerId: event.pointerId, handle, previousIds: getSortableIds(container, type), moved: false };
+          try { handle.setPointerCapture(event.pointerId); } catch (e) {}
+          card.classList.add("is-pointer-dragging");
+        });
+        container.addEventListener("pointermove", event => {
+          const state = adminSortDragState;
+          if (!state || state.container !== container || state.pointerId !== event.pointerId) return;
+          const over = document.elementFromPoint(event.clientX, event.clientY)?.closest(`[data-sort-card="${type}"]`);
+          getSortableCards(container, type).forEach(card => card.classList.remove("is-drop-target"));
+          if (!over || over === state.card || over.parentElement !== container) return;
+          over.classList.add("is-drop-target");
+          const rect = over.getBoundingClientRect();
+          const before = event.clientY < rect.top + rect.height / 2;
+          const oldNext = state.card.nextElementSibling;
+          if (before && oldNext !== over) { container.insertBefore(state.card, over); state.moved = true; }
+          else if (!before && oldNext !== over.nextElementSibling) { container.insertBefore(state.card, over.nextElementSibling); state.moved = true; }
+        });
+        const finish = async (event, cancelled) => {
+          const state = adminSortDragState;
+          if (!state || state.container !== container || state.pointerId !== event.pointerId) return;
+          adminSortDragState = null;
+          state.card.classList.remove("is-pointer-dragging");
+          getSortableCards(container, type).forEach(card => card.classList.remove("is-drop-target"));
+          if (cancelled) {
+            const cardsById = new Map(getSortableCards(container, type).map(card => [String(card.dataset.sortId), card]));
+            state.previousIds.forEach(id => { const card = cardsById.get(id); if (card) container.appendChild(card); });
+            return;
+          }
+          if (state.moved) await persistAdminSort(container, type, state.previousIds);
+        };
+        container.addEventListener("pointerup", event => { finish(event, false); });
+        container.addEventListener("pointercancel", event => { finish(event, true); });
+        container.addEventListener("keydown", async event => {
+          const handle = event.target.closest(`[data-sort-handle="${type}"]`);
+          if (!handle || handle.disabled || adminSortPersistBusy) return;
+          const key = event.key;
+          if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(key)) return;
+          event.preventDefault();
+          const previousIds = getSortableIds(container, type);
+          const cards = getSortableCards(container, type);
+          const card = handle.closest(`[data-sort-card="${type}"]`);
+          const index = cards.indexOf(card);
+          const target = key === "Home" ? cards[0] : key === "End" ? cards[cards.length - 1] : cards[index + (key === "ArrowUp" ? -1 : 1)];
+          if (moveSortableCard(handle, target)) await persistAdminSort(container, type, previousIds);
+        });
+      });
+    }
+
     function renderProducts() {
+      renderAdminActionList();
       const q = normalizeText(document.getElementById("productSearchInput")?.value || "");
+      const sortingEnabled = productFilter === "all" && !q;
+      const sortHint = document.getElementById("productSortHint");
+      if (sortHint) sortHint.textContent = sortingEnabled
+        ? "Kéo tay nắm ⋮⋮ để đổi thứ tự trên trang khách. Dùng phím ↑/↓ khi tay nắm được focus."
+        : "Để sắp xếp toàn bộ danh sách, chọn “Tất cả” và xóa nội dung tìm kiếm trước. Kéo-thả hiện tạm khóa khi đang lọc.";
       const preorderNeedsMap = computePreorderNeedsByProduct();
 
       const list = allProducts.filter(p => {
         if (productFilter === "visible" && !p.visible) return false;
         if (productFilter === "hidden" && p.visible) return false;
         if (productFilter === "low") {
-          const threshold = (p.productType !== "item" && p.packSize > 1) ? p.packSize * 2 : 5;
-          if (p.stock > threshold) return false;
+          const threshold = lowStockThreshold;
+          if (p.visible === false || threshold <= 0 || p.stock > threshold) return false;
         }
         if (productFilter === "preorder") {
           if (!preorderNeedsMap[p.id] || preorderNeedsMap[p.id].units <= 0) return false;
@@ -4132,9 +4365,10 @@
         ].filter(Boolean).join(" • ");
 
         return `
-          <div class="card" style="${!p.visible ? 'opacity:0.78;' : ''}">
+          <div class="card admin-sortable-card" data-sort-card="product" data-sort-id="${escapeHtml(p.id)}" style="${!p.visible ? 'opacity:0.78;' : ''}">
             <div class="card-top">
-              <div style="display:flex; gap:10px; align-items:flex-start; flex:1; min-width:0;">
+              <div style="display:flex; gap:8px; align-items:flex-start; flex:1; min-width:0;">
+                <button type="button" class="admin-sort-handle" data-sort-handle="product" aria-label="Kéo để sắp xếp ${escapeHtml(p.name)}" title="Kéo để sắp xếp sản phẩm" ${sortingEnabled ? "" : "disabled"}>⋮⋮</button>
                 ${imgs[0] ? `<img src="${escapeHtml(imgs[0])}" width="54" height="54" loading="lazy" style="width:54px; height:54px; border-radius:10px; object-fit:cover; border:1px solid var(--border); flex-shrink:0;" onerror="this.style.display='none'" />` : ""}
                 <div style="min-width:0;">
                   <div style="font-weight:700; color:var(--primary); font-size:14.5px;">${escapeHtml(p.name)} <span style="font-size:11.5px; font-weight:400; color:var(--muted);">(${escapeHtml(p.id)})</span></div>
@@ -4461,6 +4695,12 @@
         showToast("Đã xóa mục Hỏi - Đáp");
       } catch (err) {
         showToast("Lỗi xóa FAQ: " + err.message);
+      } finally {
+        btnEl.disabled = false;
+        btnEl.dataset.confirming = "0";
+        btnEl.textContent = "Xóa";
+        btnEl.classList.remove("btn-danger-confirm");
+        btnEl.classList.add("btn-danger");
       }
     }
 
@@ -4474,7 +4714,29 @@
       renderChatLogs();
     }
 
+    function updateAiUsageSummaryUi() {
+      const box = document.getElementById("aiUsageSummary");
+      if (!box) return;
+      const logs = Array.isArray(allChatLogs) ? allChatLogs : [];
+      const liveAi = logs.filter(item => String(item.source || "").startsWith("ai:")).length;
+      const sources = logs.map(item => String(item.source || ""));
+      const geminiFailures = sources.filter(source => source === "smart_local_fallback").length;
+      const unavailable = sources.filter(source => ["smart_local_no_key", "smart_local_quota_cooldown", "smart_local_disabled"].includes(source)).length;
+      const rateLimited = sources.filter(source => source === "smart_local_rate_limited").length;
+      const internal = Math.max(0, logs.length - liveAi - geminiFailures - unavailable - rateLimited);
+      const attempts = liveAi + geminiFailures;
+      const successRate = attempts ? Math.round(liveAi * 100 / attempts) : null;
+      const latestError = logs.find(item => item.aiError)?.aiError;
+      const blockedToday = Math.max(0, Number(chatRateLimitStats?.blocked || 0));
+      box.textContent = logs.length
+        ? `Trong ${logs.length} lượt chat gần nhất: Gemini trả lời ${liveAi}/${attempts} lượt đã thử${successRate === null ? "" : ` (${successRate}%)`}; lỗi Gemini chuyển sang trả lời dự phòng ${geminiFailures}; thiếu key/tắt AI/đang cooldown ${unavailable}; chặn do hạn mức AI ${rateLimited}; trả lời nội bộ theo dữ liệu tiệm ${internal}; chặn hạn mức chat công khai hôm nay ${blockedToday}.${latestError ? ` Lỗi gần nhất: ${String(latestError).slice(0, 160)}` : ""}`
+        : (blockedToday
+          ? `Chưa có lượt chat được lưu; đã chặn ${blockedToday} yêu cầu chat công khai hôm nay theo hạn mức.`
+          : "Chưa có lượt chat được lưu để thống kê; hãy thử lại sau khi có hội thoại mới.");
+    }
+
     function renderChatLogs() {
+      updateAiUsageSummaryUi();
       const q = normalizeText(document.getElementById("chatSearchInput")?.value || "");
       const groups = {};
       const orderOfSessions = [];
@@ -4630,6 +4892,12 @@
         showToast("Đã xóa phiên chat");
       } catch (err) {
         showToast("Lỗi xóa chat: " + err.message);
+      } finally {
+        btnEl.disabled = false;
+        btnEl.dataset.confirming = "0";
+        btnEl.textContent = "Xóa phiên chat";
+        btnEl.classList.remove("btn-danger-confirm");
+        btnEl.classList.add("btn-danger");
       }
     }
 
@@ -4883,6 +5151,7 @@
     const feedbackActionBusy = new Set();
 
     function renderFeedbackAdminList() {
+      renderAdminActionList();
       const box = document.getElementById("feedbackAdminList");
       const badge = document.getElementById("feedbackAdminCountBadge");
       if (!box) return;
@@ -4893,11 +5162,11 @@
         box.innerHTML = `<div style="padding:14px 0; color:var(--muted); font-size:12px;">Chưa có feedback nào. Bạn có thể tạo feedback đầu tiên ở form trên.</div>`;
         return;
       }
-      box.innerHTML = list.slice().sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""))).map(item => {
+      box.innerHTML = list.map(item => {
         const statusLabel = item.status === "published" ? "Đã đăng" : (item.status === "hidden" ? "Đang ẩn" : "Bản nháp");
         const statusClass = item.status === "published" ? "badge-ok" : (item.status === "hidden" ? "badge-hidden" : "badge-warn");
-        return `<div class="feedback-admin-card ${item.status !== "published" ? "is-hidden" : ""}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><strong style="font-size:13px;">${escapeHtml(item.customerHandle || "Khách hàng")}</strong><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><span class="badge ${statusClass}">${statusLabel}</span><span class="badge badge-info" title="Tổng lượt thích công khai">♥ ${Math.max(0, Number(item.likes || 0))}</span></span></div>
+        return `<div class="feedback-admin-card admin-sortable-card ${item.status !== "published" ? "is-hidden" : ""}" data-sort-card="feedback" data-sort-id="${escapeHtml(item.id)}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;"><div style="display:flex;align-items:flex-start;gap:8px;min-width:0;"><button type="button" class="admin-sort-handle" data-sort-handle="feedback" aria-label="Kéo để sắp xếp feedback của ${escapeHtml(item.customerHandle || "Khách hàng")}" title="Kéo để sắp xếp feedback">⋮⋮</button><strong style="font-size:13px;">${escapeHtml(item.customerHandle || "Khách hàng")}</strong></div><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;"><span class="badge ${statusClass}">${statusLabel}</span><span class="badge badge-info" title="Tổng lượt thích công khai">♥ ${Math.max(0, Number(item.likes || 0))}</span></span></div>
           <div style="font-size:12.5px; line-height:1.5; margin-top:5px; white-space:pre-line;">${escapeHtml(item.content || "")}</div>
           <div class="feedback-admin-meta"><span>${escapeHtml(item.paperType || "Chưa ghi loại giấy")}</span>${item.purchaseDate ? `<span>Mua ${escapeHtml(feedbackDateDisplay(item.purchaseDate))}</span>` : ""}${item.orderId ? `<span>Đơn #${escapeHtml(item.orderId)}</span>` : ""}${item.consent ? `<span>Đã có đồng ý</span>` : `<span style="color:var(--warn-text);">Chưa xác nhận đồng ý</span>`}</div>
           <div class="feedback-admin-actions"><button type="button" class="btn btn-soft btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="editFeedback('${escapeAttrJs(item.id)}')">Sửa</button><button type="button" class="btn btn-soft btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="toggleFeedbackStatus('${escapeAttrJs(item.id)}', this)">${feedbackActionBusy.has(String(item.id)) ? "Đang cập nhật..." : (item.status === "published" ? "Ẩn" : "Đăng")}</button><button type="button" class="btn ${feedbackDeleteConfirmTimers.has(String(item.id)) ? "btn-danger-confirm" : "btn-danger"} btn-sm" ${feedbackActionBusy.has(String(item.id)) ? "disabled" : ""} onclick="deleteFeedback('${escapeAttrJs(item.id)}', this)">${feedbackActionBusy.has(String(item.id)) ? "Đang xóa..." : (feedbackDeleteConfirmTimers.has(String(item.id)) ? "Bấm lại để xóa" : "Xóa")}</button></div>
@@ -5491,6 +5760,22 @@
       else { img.removeAttribute("src"); box.style.display = "none"; }
     }
 
+    async function saveLowStockThreshold() {
+      const input = document.getElementById("lowStockThresholdInput");
+      const btn = document.getElementById("saveLowStockThresholdBtn");
+      const value = Math.floor(Number(input.value));
+      if (!Number.isFinite(value) || value < 0 || value > 100000) { showToast("Ngưỡng phải là số từ 0 đến 100.000"); return; }
+      btn.disabled = true; btn.textContent = "Đang lưu...";
+      try {
+        await callApi({ action:"save_settings", lowStockThreshold:value });
+        lowStockThreshold = value;
+        renderAdminActionList();
+        renderProducts();
+        showToast(value === 0 ? "Đã tắt cảnh báo tồn thấp" : `Đã lưu ngưỡng tồn thấp: ${value}`);
+      } catch (err) { showToast("Lỗi lưu ngưỡng tồn thấp: " + err.message); }
+      finally { btn.disabled = false; btn.textContent = "Lưu ngưỡng cảnh báo"; }
+    }
+
     async function saveTelegramSettings() {
       const btn = document.getElementById("saveTelegramBtn");
       const telegramBotToken = document.getElementById("telegramTokenInput").value.trim();
@@ -5777,7 +6062,12 @@
         "Trạng thái"
       ];
 
-      const escCsv = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+      const escCsv = (val, isText = false) => {
+        let text = String(val ?? "");
+        if (isText && /^[\s\uFEFF]*[=+\-@]/u.test(text)) text = "'" + text;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+      const escCsvText = (val) => escCsv(val, true);
 
       let sumSubtotal = 0;
       let sumDiscount = 0;
@@ -5798,7 +6088,7 @@
         sumShip += ship;
         sumTotal += tot;
 
-        return [
+        const cells = [
           idx + 1,
           o.createdAt,
           o.orderId,
@@ -5812,7 +6102,9 @@
           tot,
           o.paymentMethod || "COD",
           o.status
-        ].map(escCsv).join(",");
+        ];
+        const textColumns = new Set([1, 2, 3, 4, 5, 11, 12]);
+        return cells.map((value, column) => escCsv(value, textColumns.has(column))).join(",");
       });
 
       rows.push([
@@ -5829,9 +6121,9 @@
         sumTotal,
         "",
         ""
-      ].map(escCsv).join(","));
+      ].map((value, column) => escCsv(value, [2, 3].includes(column))).join(","));
 
-      const csvContent = "\uFEFF" + [headers.map(escCsv).join(","), ...rows].join("\r\n");
+      const csvContent = "\uFEFF" + [headers.map(escCsvText).join(","), ...rows].join("\r\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -6016,6 +6308,8 @@
       qoResolvedDiscountSource = "";
       qoResolvedVoucherCode = "";
       document.getElementById("qoPasteCustomer").value = "";
+      quickOrderLastChannel = "";
+      quickOrderNonMarketplaceDefaults = null;
       document.getElementById("qoChannel").value = "Instagram";
       document.getElementById("qoCustName").value = "";
       document.getElementById("qoCustPhone").value = "";
@@ -6051,16 +6345,29 @@
       document.getElementById("quickOrderModal").classList.remove("open");
     }
 
+    let quickOrderLastChannel = "";
+    let quickOrderNonMarketplaceDefaults = null;
     function syncQuickOrderChannel() {
-      const ch = document.getElementById("qoChannel").value;
+      const chEl = document.getElementById("qoChannel");
+      const shipEl = document.getElementById("qoShipFee");
+      const payEl = document.getElementById("qoPaymentMethod");
+      const noteEl = document.getElementById("qoNote");
+      if (!chEl || !shipEl || !payEl || !noteEl) return;
+      const ch = chEl.value;
       const isMarketplace = ch === "Shopee" || ch === "Ký gửi";
+      const wasMarketplace = quickOrderLastChannel === "Shopee" || quickOrderLastChannel === "Ký gửi";
       if (isMarketplace) {
-        document.getElementById("qoShipFee").value = "0";
-        document.getElementById("qoPaymentMethod").value = "Đã thanh toán CK";
-        if (!document.getElementById("qoNote").value.trim()) {
-          document.getElementById("qoNote").value = `Đơn ${ch}`;
-        }
+        if (!wasMarketplace) quickOrderNonMarketplaceDefaults = { shipFee: shipEl.value, paymentMethod: payEl.value, note: noteEl.value };
+        shipEl.value = "0";
+        payEl.value = "Đã thanh toán CK";
+        if (!noteEl.value.trim()) noteEl.value = `Đơn ${ch}`;
+      } else if (wasMarketplace && quickOrderNonMarketplaceDefaults) {
+        shipEl.value = quickOrderNonMarketplaceDefaults.shipFee;
+        payEl.value = quickOrderNonMarketplaceDefaults.paymentMethod;
+        if (/^Đơn (Shopee|Ký gửi)$/.test(noteEl.value) && !quickOrderNonMarketplaceDefaults.note.trim()) noteEl.value = "";
+        else noteEl.value = quickOrderNonMarketplaceDefaults.note;
       }
+      quickOrderLastChannel = ch;
       recalcQuickOrderTotals();
     }
 
@@ -6397,7 +6704,7 @@
       };
 
       try {
-        const res = await callApi({ action: "admin_create_order", order: orderPayload });
+        const res = await callApi({ action: "create_admin_order", order: orderPayload });
         allOrders = res.orders || [];
         if (res.products) allProducts = res.products;
         if (Array.isArray(res.vouchers)) {
@@ -6549,4 +6856,3 @@
   </script>
 </body>
 </html>
-
